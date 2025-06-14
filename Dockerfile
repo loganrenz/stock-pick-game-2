@@ -43,6 +43,8 @@ COPY --from=build /app/frontend/dist ./frontend/dist
 COPY backend/prisma ./backend/prisma
 COPY backend/.env_file ./backend/.env
 
+# Set PORT environment variable
+ENV PORT=5173
 
 # Expose ports
 EXPOSE 4556 5173
