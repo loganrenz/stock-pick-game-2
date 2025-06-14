@@ -25,6 +25,7 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/stock-pick-game:latest
+          no-cache: true
 
       - name: SSH to VPS and deploy with docker compose
         uses: appleboy/ssh-action@v1.0.3
