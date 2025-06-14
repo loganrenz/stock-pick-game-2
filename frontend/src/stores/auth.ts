@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import axios from 'axios';
 
 interface User {
   id: number;
@@ -11,6 +12,29 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
 
   const isAuthenticated = computed(() => !!token.value);
+
+  async function fetchUser() {
+    if (!token.value) return;
+
+    try {
+      const response = await fetch('/api/me', {
+        headers: {
+          'Authorization': `Bearer ${token.value}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+
+      const data = await response.json();
+      user.value = { id: data.id, username: data.username };
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      // If we can't fetch the user, they're probably not authenticated
+      await logout();
+    }
+  }
 
   async function login(username: string, password: string) {
     try {
@@ -80,6 +104,9 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await response.json();
       token.value = data.token;
       localStorage.setItem('token', data.token);
+      
+      // After refreshing token, fetch user data
+      await fetchUser();
     } catch (error) {
       console.error('Token refresh error:', error);
       // If refresh fails, log out the user
@@ -87,8 +114,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Set up an interceptor to handle token refresh
-  const setupAxiosInterceptor = () => {
+  // Set up an interceptor to handle token refresh for fetch
+  const setupFetchInterceptor = () => {
     const originalFetch = window.fetch;
     window.fetch = async function (input: RequestInfo | URL, init?: RequestInit) {
       if (init?.headers && token.value) {
@@ -111,8 +138,29 @@ export const useAuthStore = defineStore('auth', () => {
     };
   };
 
-  // Initialize the interceptor
+  // Set up an interceptor to handle token for axios
+  const setupAxiosInterceptor = () => {
+    axios.interceptors.request.use(
+      (config) => {
+        const jwt = token.value || localStorage.getItem('token');
+        if (jwt) {
+          config.headers = config.headers || {};
+          config.headers['Authorization'] = `Bearer ${jwt}`;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+  };
+
+  // Initialize the interceptors
+  setupFetchInterceptor();
   setupAxiosInterceptor();
+
+  // Initialize user data if we have a token
+  if (token.value) {
+    fetchUser();
+  }
 
   return {
     token,
@@ -120,6 +168,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     login,
     logout,
-    refreshToken
+    refreshToken,
+    fetchUser
   };
 }); 

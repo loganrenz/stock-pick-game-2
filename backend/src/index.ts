@@ -118,6 +118,14 @@ app.post('/api/refresh-token', requireAuth, async (req: Request, res: Response) 
   res.json({ token: newToken });
 });
 
+// Get current user info
+app.get('/api/me', requireAuth, async (req: Request, res: Response) => {
+  res.json({
+    id: req.user!.id,
+    username: req.user!.username
+  });
+});
+
 // Get current week's picks
 app.get('/api/current-week', async (req: Request, res: Response) => {
   try {

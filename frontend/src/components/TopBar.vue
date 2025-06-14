@@ -11,6 +11,9 @@
         <div class="flex items-center space-x-4">
           <template v-if="isLoggedIn">
             <span class="text-sm font-medium text-blue-700">Logged in as: {{ username }}</span>
+            <button @click="handleLogout" class="text-sm font-medium text-red-600 hover:text-red-900">
+              Logout
+            </button>
           </template>
           <template v-else>
             <button class="text-sm font-medium text-indigo-600 hover:text-indigo-900"
@@ -27,8 +30,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { useGameStore } from '../stores/game'
 
 const auth = useAuthStore()
+const gameStore = useGameStore()
+
 const isLoggedIn = computed(() => auth.isAuthenticated)
 const username = computed(() => auth.user?.username)
+
+async function handleLogout() {
+  await auth.logout()
+  // Refresh game data after logout
+  await gameStore.fetchCurrentWeek()
+  await gameStore.fetchWeeks()
+  await gameStore.fetchScoreboard()
+}
 </script>

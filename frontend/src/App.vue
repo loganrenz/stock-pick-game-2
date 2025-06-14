@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import MainView from './views/MainView.vue';
 import TopBar from './components/TopBar.vue';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from './stores/auth';
 
 const showLoginModal = ref(false);
+const auth = useAuthStore();
+
+onMounted(async () => {
+  // Initialize auth state
+  if (auth.token) {
+    await auth.fetchUser();
+  }
+});
 </script>
 
 <template>

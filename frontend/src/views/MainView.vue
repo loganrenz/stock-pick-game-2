@@ -327,12 +327,16 @@ function formatDate(dateString: string) {
 }
 
 async function login() {
-  loginError.value = '';
   try {
+    loginError.value = '';
     await auth.login(loginForm.value.username, loginForm.value.password);
-    await gameStore.fetchAll();
-  } catch (err) {
-    loginError.value = auth.loginError;
+    closeLoginModal();
+    // Refresh game data after login
+    await gameStore.fetchCurrentWeek();
+    await gameStore.fetchWeeks();
+    await gameStore.fetchScoreboard();
+  } catch (error) {
+    loginError.value = 'Invalid username or password';
   }
 }
 
@@ -388,11 +392,14 @@ async function fetchScoreboard() {
   }
 }
 
-function openLoginModal() {
-  emit('update:show-login-modal', true);
-}
 function closeLoginModal() {
   emit('update:show-login-modal', false);
+  loginForm.value = { username: '', password: '' };
+  loginError.value = '';
+}
+
+function openLoginModal() {
+  emit('update:show-login-modal', true);
 }
 
 onMounted(async () => {
