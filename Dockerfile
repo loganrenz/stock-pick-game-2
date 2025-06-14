@@ -32,6 +32,7 @@ COPY --from=build /app/frontend/dist ./frontend/dist
 COPY backend/prisma ./backend/prisma
 COPY backend/.env_file ./backend/.env
 
+
 # Expose ports
 EXPOSE 4556 5173
 
