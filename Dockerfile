@@ -34,6 +34,11 @@ COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
 COPY backend/prisma ./backend/prisma
 COPY backend/.env_file ./backend/.env
+# Ensure /data exists for SQLite DB
+RUN mkdir -p /data
+# If a dev.db exists in the build context, copy it in (for seeding or migration)
+COPY backend/prisma/dev.db /data/dev.db
+VOLUME ["/data"]
 EXPOSE 4556
 CMD ["node", "backend/dist/index.js"]
 

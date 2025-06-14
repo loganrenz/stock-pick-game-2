@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  stock_pick_db:
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: stock_pick_game
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - stock_pick_network
-
   stock_pick_backend:
     build:
       context: .
@@ -31,9 +17,8 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - sqlite_data:/data
     command: sh -c "npm install && npm run dev"
-    depends_on:
-      - stock_pick_db
     networks:
       - stock_pick_network
 
@@ -55,7 +40,7 @@ services:
       - stock_pick_network
 
 volumes:
-  pgdata:
+  sqlite_data:
 
 networks:
   stock_pick_network:

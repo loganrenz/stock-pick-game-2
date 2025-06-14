@@ -1,70 +1,35 @@
 #!/bin/bash
 
-# Function to check if Docker is running
-check_docker() {
-    if ! docker info > /dev/null 2>&1; then
-        echo "Error: Docker is not running. Please start Docker and try again."
-        exit 1
-    fi
+# SQLite DB backup/restore helpers
+DB_PATH="../backend/prisma/dev.db"
+BACKUP_DIR="../backups"
+
+backup() {
+  mkdir -p "$BACKUP_DIR"
+  cp "$DB_PATH" "$BACKUP_DIR/dev-$(date +%Y%m%d%H%M%S).db"
+  echo "Backup complete: $BACKUP_DIR"
 }
 
-# Function to start the database
-start_db() {
-    echo "Starting PostgreSQL database..."
-    docker-compose up -d
-    echo "Waiting for database to be ready..."
-    sleep 5
-    echo "Database is ready!"
+restore() {
+  if [ -z "$1" ]; then
+    echo "Usage: $0 restore <backup_file>"
+    exit 1
+  fi
+  cp "$BACKUP_DIR/$1" "$DB_PATH"
+  echo "Restored $1 to $DB_PATH"
 }
 
-# Function to stop the database
-stop_db() {
-    echo "Stopping PostgreSQL database..."
-    docker-compose down
-    echo "Database stopped!"
-}
-
-# Function to reset the database
-reset_db() {
-    echo "Resetting PostgreSQL database..."
-    docker-compose down -v
-    docker-compose up -d
-    echo "Waiting for database to be ready..."
-    sleep 5
-    echo "Database has been reset!"
-}
-
-# Function to show database status
-status_db() {
-    echo "Checking database status..."
-    if docker ps | grep -q stock_pick_game_db; then
-        echo "Database is running"
-        docker ps | grep stock_pick_game_db
-    else
-        echo "Database is not running"
-    fi
-}
-
-# Main script
 case "$1" in
-    start)
-        check_docker
-        start_db
-        ;;
-    stop)
-        stop_db
-        ;;
-    reset)
-        check_docker
-        reset_db
-        ;;
-    status)
-        status_db
-        ;;
-    *)
-        echo "Usage: $0 {start|stop|reset|status}"
-        exit 1
-        ;;
+  backup)
+    backup
+    ;;
+  restore)
+    restore "$2"
+    ;;
+  *)
+    echo "Usage: $0 {backup|restore <backup_file>}"
+    exit 1
+    ;;
 esac
 
 exit 0 
