@@ -488,12 +488,11 @@ async function getCurrentPrice(symbol: string): Promise<number | null> {
         apikey: ALPHA_VANTAGE_API_KEY
       }
     });
-
-    const quote = response.data['Global Quote'] as { '05. price': string } | undefined;
+    const data = response.data as Record<string, any>;
+    const quote = data['Global Quote'] as { '05. price': string } | undefined;
     if (!quote || !quote['05. price']) {
       return null;
     }
-
     return parseFloat(quote['05. price']);
   } catch (error) {
     console.error('Error fetching current price:', error);
@@ -512,25 +511,19 @@ async function getDailyCandles(symbol: string, from: Date, to: Date): Promise<{ 
         outputsize: 'compact'
       }
     });
-
-    const timeSeriesData = response.data['Time Series (Daily)'] as { [key: string]: { '1. open': string; '4. close': string } } | undefined;
+    const data = response.data as Record<string, any>;
+    const timeSeriesData = data['Time Series (Daily)'] as { [key: string]: { '1. open': string; '4. close': string } } | undefined;
     if (!timeSeriesData) {
       throw new Error('No time series data available');
     }
-
     const result: { [key: string]: { open: string; close: string } } = {};
     const dates = Object.keys(timeSeriesData).sort();
-
-    // Find the closest available date for each day in the range
     for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split('T')[0];
       let closestDate = dates.find(date => date <= dateStr);
-      
-      // If no date found, use the most recent date
       if (!closestDate && dates.length > 0) {
         closestDate = dates[dates.length - 1];
       }
-
       if (closestDate && timeSeriesData[closestDate]) {
         result[dateStr] = {
           open: timeSeriesData[closestDate]['1. open'],
@@ -538,7 +531,6 @@ async function getDailyCandles(symbol: string, from: Date, to: Date): Promise<{ 
         };
       }
     }
-
     return result;
   } catch (error) {
     console.error('Error fetching daily candles:', error);
@@ -789,7 +781,6 @@ app.post('/api/update-prices', async (req, res) => {
     if (isWeekend(today)) {
       return res.json({ message: 'No updates on weekends' });
     }
-
     const week = await prisma.week.findFirst({
       where: {
         startDate: {
@@ -803,20 +794,18 @@ app.post('/api/update-prices', async (req, res) => {
         picks: true
       }
     });
-
     if (!week) {
       return res.json({ message: 'No active week found' });
     }
-
     const FMP_API_KEY = process.env.FMP_API_KEY || 'NMxvgvIlePZYlyhQTOtKcxtvTv1jv9Og';
     const dayOfWeek = today.getDay();
     const dayKey = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
-
     for (const pick of week.picks) {
       try {
         const response = await axios.get(`https://financialmodelingprep.com/api/v3/quote/${pick.symbol}?apikey=${FMP_API_KEY}`);
-        if (response.data && response.data.length > 0) {
-          const data = response.data[0];
+        const dataArr = response.data as Array<{ open: number; price: number }>;
+        if (Array.isArray(dataArr) && dataArr.length > 0) {
+          const data = dataArr[0];
           let dailyPrices: Record<string, { open: number; close: number }> = {};
           try {
             dailyPrices = pick.dailyPrices ? JSON.parse(pick.dailyPrices) : {};
@@ -827,7 +816,6 @@ app.post('/api/update-prices', async (req, res) => {
             open: Number(data.open),
             close: Number(data.price)
           };
-
           const updateData: any = {
             dailyPrices: JSON.stringify(dailyPrices),
             currentPrice: Number(data.price)
@@ -845,7 +833,6 @@ app.post('/api/update-prices', async (req, res) => {
         console.error(`Error updating price for ${pick.symbol}:`, error);
       }
     }
-
     res.json({ message: 'Prices updated successfully' });
   } catch (error) {
     console.error('Error updating prices:', error);
