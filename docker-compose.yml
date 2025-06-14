@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  frontend:
+    image: ghcr.io/loganrenz/stock-pick-game:latest
+    container_name: stock_pick_game_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/stock_pick_game
+    networks:
+      - stock_pick_network
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     container_name: stock_pick_game_db
@@ -12,12 +26,18 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stock_pick_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  stock_pick_network:
+    name: stock_pick_network
 
 volumes:
   postgres_data:
