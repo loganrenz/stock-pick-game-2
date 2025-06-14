@@ -48,4 +48,4 @@ COPY backend/.env_file ./backend/.env
 EXPOSE 4556 5173
 
 # Start backend and serve frontend
-CMD ["sh", "-c", "node backend/dist/index.js & npx serve -s frontend/dist -l 5173"] 
+CMD ["sh", "-c", "node backend/dist/index.js & npx serve -s frontend/dist -l 5173 --single"] 
