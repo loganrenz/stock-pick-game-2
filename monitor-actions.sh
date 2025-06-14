@@ -14,11 +14,11 @@ while true; do
   echo "[$TIME] Workflow: $NAME | Status: $STATUS | Conclusion: $CONCLUSION | Run ID: $RUN_ID"
   if [[ "$CONCLUSION" == "success" ]]; then
     echo "Workflow succeeded. Showing logs:"
-    gh run view $RUN_ID --repo "$REPO" --log
+    gh run view "$RUN_ID" --repo "$REPO" --log
     exit 0
   elif [[ "$CONCLUSION" == "failure" || "$CONCLUSION" == "cancelled" ]]; then
     echo "Workflow failed or was cancelled. Showing logs:"
-    gh run view $RUN_ID --repo "$REPO" --log
+    gh run view "$RUN_ID" --repo "$REPO" --log
     exit 1
   fi
   sleep 10
