@@ -3,6 +3,9 @@ FROM node:20-alpine as build
 
 WORKDIR /app
 
+# Install OpenSSL
+RUN apk add --no-cache openssl
+
 # Copy package files and install dependencies for both frontend and backend
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
@@ -25,6 +28,9 @@ RUN cd backend && npm run build
 # Production image
 FROM node:20-alpine
 WORKDIR /app
+
+# Install OpenSSL in production image
+RUN apk add --no-cache openssl
 
 # Copy built backend and frontend
 COPY --from=build /app/backend/dist ./backend/dist
