@@ -18,6 +18,7 @@ COPY backend ./backend
 # Build backend
 RUN cd backend && npm run build
 
+
 # Production image
 FROM node:20-alpine
 WORKDIR /app
