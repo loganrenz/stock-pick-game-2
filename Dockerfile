@@ -24,30 +24,23 @@ RUN cd frontend && npm run build
 # Build backend
 RUN cd backend && npm run build
 
-
-# Production image
-FROM node:20-alpine
+# --- Backend image ---
+FROM node:20-alpine as backend
 WORKDIR /app
-
-# Install OpenSSL in production image
 RUN apk add --no-cache openssl
-
-# Copy built backend and frontend
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
-COPY --from=build /app/frontend/dist ./frontend/dist
-
-# Copy backend prisma and .env
 COPY backend/prisma ./backend/prisma
 COPY backend/.env_file ./backend/.env
+EXPOSE 4556
+CMD ["node", "backend/dist/index.js"]
 
-# Set PORT environment variable
-ENV PORT=5173
-
-# Expose ports
-EXPOSE 4556 5173
-
-# Start backend and serve frontend
-CMD ["sh", "-c", "node backend/dist/index.js & npx serve -s frontend/dist -l 5173 --single"] 
+# --- Frontend image ---
+FROM node:20-alpine as frontend
+WORKDIR /app/frontend
+RUN apk add --no-cache openssl
+COPY --from=build /app/frontend/dist ./dist
+EXPOSE 5173
+CMD ["npx", "serve", "-s", "dist", "-l", "tcp://0.0.0.0:5173", "--single", "--cors"] 
