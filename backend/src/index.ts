@@ -9,7 +9,7 @@ dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
-const port = process.env.PORT || 4556;
+const port = Number(process.env.PORT) || 4556;
 
 // Middleware
 app.use(cors({
@@ -122,6 +122,6 @@ app.post('/api/picks', requireAuth, async (req, res) => {
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);
 }); 
