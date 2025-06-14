@@ -6,14 +6,17 @@ WORKDIR /app
 # Copy package files and install dependencies for both frontend and backend
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
-RUN cd backend && npm install && cd ../frontend && npm install
+RUN cd backend && npm install && npm rebuild bcrypt && cd ../frontend && npm install
+
+# Copy backend and frontend source
+COPY backend ./backend
+COPY frontend ./frontend
+
+# Generate Prisma client
+RUN cd backend && npx prisma generate
 
 # Build frontend
-COPY frontend ./frontend
 RUN cd frontend && npm run build
-
-# Copy backend source
-COPY backend ./backend
 
 # Build backend
 RUN cd backend && npm run build
@@ -27,6 +30,7 @@ WORKDIR /app
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/node_modules ./backend/node_modules
+COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
 COPY --from=build /app/frontend/dist ./frontend/dist
 
 # Copy backend prisma and .env
@@ -38,4 +42,4 @@ COPY backend/.env_file ./backend/.env
 EXPOSE 4556 5173
 
 # Start backend and serve frontend
-CMD ["sh", "-c", "node backend/dist/index.js & npx serve -s frontend/dist -l 0.0.0.0:5173"] 
+CMD ["sh", "-c", "node backend/dist/index.js & npx serve -s frontend/dist -l 5173"] 

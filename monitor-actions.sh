@@ -1,6 +1,7 @@
 #!/bin/bash
 
 REPO="loganrenz/stock-pick-game"
+export GH_PAGER=cat
 
 while true; do
   clear
