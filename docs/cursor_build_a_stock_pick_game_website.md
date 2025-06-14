@@ -1,0 +1,419 @@
+# Build a stock pick game website
+_Exported on 6/14/2025 at 11:36:42 EDT from Cursor (1.1.2)_
+
+---
+
+**User**
+
+Lets turn this spreadsheet into a website I can use to play with my friends. Right now each week I send a text and they send me a pick and i manually put it in the spreadsheet and its a real pain to update. I'd like to create a website, with a database, and an api for getting the stocks. At the start I'll have a back end page where I can login and put the picks in. Eventually we can add an Apple login integration but lets not start with that. I'll need you to create the project in ~/VSCODE/stock-pick-game then make use the vite vue js creation tool with npm to start the project, init a git repo, and all the other things needed to get this project going and debuggable and easy to run and deploy. ill be running the database on my vps at vps.tideye.com, but i dont have it setup yet so ill need a script to set that up, i want you to use this syntax for vue <template>
+  <div id="app">
+    <svg style="position: absolute; width: 0; height: 0;">
+      <defs>
+        <filter id="outerGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur1" />
+          <feGaussianBlur in="blur1" stdDeviation="2" result="blur2" />
+          <feGaussianBlur in="blur2" stdDeviation="4" result="blur3" />
+          <feMerge>
+            <feMergeNode in="blur3" />
+            <feMergeNode in="blur2" />
+            <feMergeNode in="blur1" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    </svg>
+    <router-view />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const SWIPE_THRESHOLD = 50;
+const views = ['LargeView', 'WindBattery'];
+
+const touchStartX = ref(0);
+const touchEndX = ref(0);
+
+const handleTouchStart = (e: TouchEvent) => {
+  touchStartX.value = e.touches[0].clientX;
+};
+
+const handleTouchEnd = (e: TouchEvent) => {
+  touchEndX.value = e.changedTouches[0].clientX;
+  handleSwipe();
+};
+
+const handleSwipe = () => {
+  const diff = touchStartX.value - touchEndX.value;
+  const currentViewIndex = views.indexOf(router.currentRoute.value.name as string);
+  
+  if (Math.abs(diff) < SWIPE_THRESHOLD) return;
+
+  if (diff > 0 && currentViewIndex < views.length - 1) {
+    // Swipe left - go to next view
+    router.push({ name: views[currentViewIndex + 1] });
+  } else if (diff < 0 && currentViewIndex > 0) {
+    // Swipe right - go to previous view
+    router.push({ name: views[currentViewIndex - 1] });
+  }
+};
+
+const preventBounce = (e: TouchEvent) => {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('touchmove', preventBounce, { passive: false });
+  
+  // Optional: Prevent double-tap zoom
+  document.addEventListener('touchend', (e) => {
+    e.preventDefault();
+  }, { passive: false });
+});
+
+onUnmounted(() => {
+  document.removeEventListener('touchmove', preventBounce);
+});
+</script>
+
+<style>
+#app {
+  touch-action: pan-y pinch-zoom;
+}
+</style>
+
+
+
+Week	Date	Picker	Symbol	Price	Price at Pick 	Mon	Tue 	Wed 	Thur	Fri	Return 1 Week 	Return 1 Week %	Current Price	Total Return
+1														
+	11/18/2024	Patrick	PLUG	$1.29	$1.89	$1.99	$1.92	$1.92	$1.89	$1.92	$0.03	1.6%	$1.29	-31.7%
+	11/18/2024	Taylor	BHVN	$15.46	$44.11	$45.41	$46.30	$46.83	$46.83	$45.59	$1.48	3.4%	$15.46	-65.0%
+	11/18/2024	Logan			-	-	-	-	-	-	-	-	-	-
+														
+Winner	Taylor													
+														
+														
+2														
+	11/25/2024	Patrick	CF	$99.93	$90.37	$87.39	$88.14	$88.66	-	$89.66	-$0.71	-0.8%	$99.93	10.6%
+	11/25/2024	Taylor	LAW	$4.04	$5.84	$5.91	$5.80	$5.88	$5.88	$5.92	$0.08	1.4%	$4.04	-30.8%
+	11/25/2024	Logan	F	$10.43	$11.30	$11.40	$11.10	$11.10	$11.10	$11.13	-$0.17	-1.5%	$10.43	-7.7%
+														
+Winner	Taylor													
+														
+														
+3														
+	12/2/2024	Patrick	DJT	$19.52	$31.87	$32.49	$33.66	$35.26	$33.74	$34.74	$2.88	9.0%	$19.52	-38.7%
+	12/2/2024	Taylor	BE	$21.95	$27.55	$26.92	$26.14	$26.28	$26.28	$27.08	-$0.47	-1.7%	$21.95	-20.3%
+	12/2/2024	Logan	ROKU	$74.41	$69.65	$77.05	$75.69	$82.94	$82.94	$84.12	$14.47	20.8%	$74.41	6.8%
+														
+Winner	Logan													
+														
+														
+4														
+	12/9/2024	Patrick	JMIA	$3.05	$4.70	$5.06	$4.62	$4.75	$4.64	$4.35	-$0.35	-7.4%	$3.05	-35.1%
+	12/9/2024	Taylor	RBLX	$97.17	$59.22	$56.93	$56.26	$59.89	$59.89	$59.60	$0.38	0.6%	$97.17	64.1%
+	12/9/2024	Logan	CE	$54.63	$72.25	$72.42	$69.65	$68.04	$68.04	$68.58	-$3.67	-5.1%	$54.63	-24.4%
+														
+Winner	Taylor													
+														
+														
+5														
+	12/16/2024	Patrick	PLUG	$1.29	$2.43	$2.45	$2.46	$2.22	$2.30	$2.56	$0.13	5.3%	$1.29	-46.9%
+	12/16/2024	Taylor	ELF	$125.26	$138.91	$140.27	$134.89	$127.20	$127.20	$128.66	-$10.25	-7.4%	$125.26	-9.8%
+	12/16/2024	Logan	DRI	$217.50	$166.51	$167.57	$165.46	$159.87	$159.87	$187.59	$21.08	12.7%	$217.50	30.6%
+														
+Winner	Logan													
+														
+														
+6														
+	12/23/2024	Patrick	NVDA	$141.97	$136.28	$139.67	$140.22	-	$139.93	$137.01	$0.73	0.5%	$141.97	4.2%
+	12/23/2024	Taylor	BA	$200.32	$178.12	$177.69	$179.34	-	-	$180.72	$2.60	1.5%	$200.32	12.5%
+	12/23/2024	Logan	NET	$171.97	$112.16	$111.58	$112.58	-	-	$110.61	-$1.55	-1.4%	$171.97	53.3%
+														
+Winner	Taylor													
+														
+														
+7								1/1/25	1/2/25	1/3/25				
+	12/30/2024	Patrick	SPXL	$156.56	$170.43	$170.74	$168.70	$168.70	$167.31	$173.37	$2.94	1.7%	$156.56	-8.1%
+	12/30/2024	Taylor	LAW	$4.04	$4.97	$4.98	$4.99		$4.85	$4.95	-$0.02	-0.4%	$4.04	-18.7%
+	12/30/2024	Logan	DD	$66.87	$76.03	$75.95	$76.25		$75.43	$74.75	-$1.28	-1.7%	$66.87	-12.0%
+														
+Winner	Patrick													
+														
+														
+8														
+	1/6/2025	Patrick	NVDA	$141.97	$148.59	$149.43	$140.14	$140.11	-	$135.91	-$12.68	-8.5%	$141.97	-4.5%
+	1/6/2025	Taylor	TM	$178.75	$193.00	$190.39	$193.12	$192.55	$192.55	$183.47	-$9.53	-4.9%	$178.75	-7.4%
+	1/6/2025	Logan	INTC	$20.14	$20.83	$19.87	$20.01	$19.88	$19.88	$19.15	-$1.68	-8.1%	$20.14	-3.3%
+														
+Winner	Taylor													
+														
+														
+9														
+	1/13/2025	Patrick	META	$682.87	$607.10	$608.33	$594.25	$617.12	$611.30	$612.77	$5.67	0.9%	$682.87	12.5%
+	1/13/2025	Taylor	DHI	$123.08	$136.84	$138.40	$143.16	$145.41	$145.41	$147.65	$10.81	7.9%	$123.08	-10.1%
+	1/13/2025	Logan	DRI	$217.50	$179.70	$182.77	$182.04	$180.83	$180.83	$181.75	$2.05	1.1%	$217.50	21.0%
+														
+Winner	Taylor													
+														
+														
+10														
+	1/21/2025	Patrick	DJT	$19.52	$37.59	-	$33.55	$32.71	$32.71	$32.71	-$4.88	-13.0%	$19.52	-48.1%
+	1/21/2025	Taylor	IGT	$14.60	$17.48	-	$17.11	$17.15	$17.11	$17.15	-$0.33	-1.9%	$14.60	-16.5%
+	1/21/2025	Logan	RTX	$145.69	$122.73	-	$126.29	$125.31	$126.29	$125.31	$2.58	2.1%	$145.69	18.7%
+														
+Winner	Logan													
+														
+														
+11														
+	1/28/2025	Patrick	AAPL	$196.45	$230.85	$238.26	$238.26	$237.59	$237.59	236	5.15	2.2%	$196.45	-14.9%
+	1/28/2025	Taylor	NVDA	$141.97	$121.81	$128.99	$128.99	$124.65	$124.65	120.07	-1.74	-1.4%	$141.97	16.6%
+	1/28/2025	Logan	META	$682.87	$666.00	$674.33	$674.33	$687.00	$687.00	689.18	23.18	3.5%	$682.87	2.5%
+														
+Winner	Logan													
+														
+														
+12														
+	2/3/2025	Patrick	VIX	16.54	19.63	-	-	-	16.54	16.54	-3.09	-15.7%	16.5	-15.7%
+	2/3/2025	Taylor	BTC	$46.61	$42.00	$44.86	$43.77	$43.14	$42.96	$42.42	$0.42	1.0%	$46.61	11.0%
+	2/3/2025	Logan	PEP	$130.85	$149.76	$150.27	$143.49	$145.66	$145.35	$144.58	-$5.18	-3.5%	$130.85	-12.6%
+														
+Winner	Taylor													
+														
+														
+13														
+	2/10/2025	Patrick			-	-	-	-	-	-	-	-	-	-
+	2/10/2025	Taylor			-	-	-	-	-	-	-	-	-	-
+	2/10/2025	Logan			-	-	-	-	-	-	-	-	-	-
+														
+Winner	-													
+														
+														
+14														
+	2/17/2025	Patrick	WING	$354.06	-	-	$306.02	$265.02	$247.09	$234.02	-	-	$354.06	-
+	2/17/2025	Taylor	UAL	$74.00	-	-	$103.25	$106.51	$106.51	$95.89	-	-	$74.00	-
+	2/17/2025	Logan	WMT	$94.44	-	-	$103.78	$104.00	$104.00	$94.78	-	-	$94.44	-
+														
+Winner	-													
+														
+														
+15														
+	2/24/2025	Patrick	LMT	$486.45	$442.00	$440.27	$448.46	$441.50	$446.46	$450.37	$8.37	1.9%	$486.45	10.1%
+	2/24/2025	Taylor	MSFT	$474.96	$408.51	$404.00	$397.90	$399.73	$399.73	$396.99	-$11.52	-2.8%	$474.96	16.3%
+	2/24/2025	Logan	WMT	$94.44	$94.18	$93.67	$97.69	$96.20	$96.20	$98.61	$4.43	4.7%	$94.44	0.3%
+														
+Winner	Logan													
+														
+														
+16														
+	3/3/2025	Patrick	EVO	$4.27	$4.34	$4.21	$3.92	$3.89	$3.67	$3.64	-$0.70	-16.1%	$4.27	-1.6%
+	3/3/2025	Taylor	COST	$990.21	$1051.74	$1046.85	$1036.87	$1047.75	$1047.75	$964.31	-$87.43	-8.3%	$990.21	-5.9%
+	3/3/2025	Logan	PLUG	$1.29	$1.61	$1.50	$1.62	$1.69	$1.69	$1.78	$0.17	10.6%	$1.29	-19.9%
+														
+Winner	Logan													
+														
+														
+17														
+	3/10/2025	Patrick			-	-	-	-	-	-	-	-	-	-
+	3/10/2025	Taylor			-	-	-	-	-	-	-	-	-	-
+	3/10/2025	Logan			-	-	-	-	-	-	-	-	-	-
+														
+Winner	-													
+														
+														
+18														
+	3/17/2025	Patrick	LUD	$4.15	$4.40	$4.85	$4.64	$4.72	$4.94	$4.78	$0.38	8.6%	$4.15	-5.7%
+	3/17/2025	Taylor	AAPL	$196.45	$213.31	$214.00	$212.69	$215.24	$215.24	$218.27	$4.96	2.3%	$196.45	-7.9%
+	3/17/2025	Logan	TSLA	$325.31	$245.06	$238.01	$225.31	$235.86	$235.86	$248.71	$3.65	1.5%	$325.31	32.7%
+														
+Winner	Patrick													
+														
+														
+19														
+	3/24/2025	Patrick	TSLA	$325.31	$258.08	$278.39	$288.14	$272.06	$273.13	$263.55	$5.47	2.1%	$325.31	26.1%
+	3/24/2025	Taylor	BHVN	$15.46	$28.99	$31.04	$29.87	$28.86	$28.86	$27.65	-$1.34	-4.6%	$15.46	-46.7%
+	3/24/2025	Logan	T	$28.19	$26.86	$26.96	$27.31	$27.65	$27.65	$28.18	$1.32	4.9%	$28.19	5.0%
+														
+Winner	Logan													
+														
+														
+20														
+	3/31/2025	Patrick	MELI	$2371.98	$1995.99	$1950.87	$1915.00	$1934.03	$1945.55	$1841.29	-$154.70	-7.8%	$2371.98	18.8%
+	3/31/2025	Taylor	AAL	$10.37	$10.41	$10.55	$10.30	$10.59	$10.59	$9.46	-$0.95	-9.1%	$10.37	-0.4%
+	3/31/2025	Logan	GOOG	$175.88	$154.81	$156.23	$158.88	$158.86	$158.86	$147.74	-$7.07	-4.6%	$175.88	13.6%
+														
+Winner	Logan													
+														
+														
+21														
+	4/7/2025	Patrick	AMZN	$212.10	$162.00	$175.26	$170.66	$191.10	$181.22	$184.87	$22.87	14.1%	$212.10	30.9%
+	4/7/2025	Taylor	BA	$200.32	$132.05	$138.86	$139.39	$160.82	$160.82	$156.84	$24.79	18.8%	$200.32	51.7%
+	4/7/2025	Logan	AAPL	$196.45	$177.20	$181.46	$172.42	$198.85	$198.85	$198.15	$20.95	11.8%	$196.45	10.9%
+														
+Winner	Taylor													
+														
+														
+22														
+	4/14/2025	Patrick	GS	$613.54	$510.00	$503.98	$507.89	$499.05	$509.49		-	-	$613.54	20.3%
+	4/14/2025	Taylor	DIS	$117.94	$85.83	$84.66	$85.01	$82.77	$82.77	-	-	-	$117.94	37.4%
+	4/14/2025	Logan	COST	$990.21	$970.00	$979.32	$976.92	$967.75	$967.75	-	-	-	$990.21	2.1%
+														
+Winner	-													
+														
+														
+23														
+	4/21/2025	Patrick			-	-	-	-	-	-	-	-	-	-
+	4/21/2025	Taylor			-	-	-	-	-	-	-	-	-	-
+	4/21/2025	Logan			-	-	-	-	-	-	-	-	-	-
+														
+Winner	-													
+														
+														
+24														
+	4/28/2025	Patrick	GM	$48.65	$47.20	$47.24	$46.94	$45.24	$45.05	$45.30	-$1.90	-4.0%	$48.65	3.1%
+	4/28/2025	Taylor	AAPL	$196.45	$210.00	$210.14	$211.21	$212.50	$212.50	$205.35	-$4.65	-2.2%	$196.45	-6.5%
+	4/28/2025	Logan	XOM	$112.12	$108.75	$108.63	$108.36	$105.63	$105.63	$106.21	-$2.54	-2.3%	$112.12	3.1%
+														
+Winner	Taylor													
+														
+														
+25														
+	5/5/2025	Patrick	Pltr	$137.40	$123.70	$123.77	$108.86	$110.48	$119.15	$117.30	-$6.40	-5.2%	$137.40	11.1%
+	5/5/2025	Taylor	DIS	$117.94	$89.70	$92.11	$92.17	$102.09	$102.09	$105.94	$16.24	18.1%	$117.94	31.5%
+	5/5/2025	Logan	T	$28.19	$27.56	$27.51	$28.16	$28.10	$28.10	$27.84	$0.28	1.0%	$28.19	2.3%
+														
+Winner	Taylor													
+														
+														
+26														
+	5/12/2025	Patrick	WMT	$94.44	$97.67	$96.75	$95.88	$96.83	$96.35	$98.24	$0.57	0.6%	$94.44	-3.3%
+	5/12/2025	Taylor	DIS	$117.94	$109.87	$110.49	$111.38	$112.94	$112.94	$113.42	$3.55	3.2%	$117.94	7.3%
+	5/12/2025	Logan	LMT	$486.45	$473.50	$473.16	$459.83	$449.18	$449.18	$468.32	-$5.18	-1.1%	$486.45	2.7%
+														
+Winner	Taylor													
+														
+														
+27														
+	5/19/2025	Patrick	Ssrm	$12.71	$10.85	$10.85	$11.23	$11.42	$11.16	$11.52	$0.67	6.2%	$12.71	17.1%
+	5/19/2025	Taylor	Baba	$112.87	$120.18	$122.96	$125.16	$123.59	$123.59	$120.73	$0.55	0.5%	$112.87	-6.1%
+	5/19/2025	Logan	Bac	$44.09	$44.11	$44.77	$44.69	$43.25	$43.25	$43.20	-$0.91	-2.1%	$44.09	-0.0%
+														
+Winner	Patrick													
+														
+														
+28														
+	5/26/2025	Patrick	NVDA	$141.97	-	-	$135.50	$134.81	$139.19	$135.13	-	-	$141.97	-
+	5/26/2025	Taylor	Baba	$112.87	-	-	$119.52	$116.74	$116.74	$113.84	-	-	$112.87	-
+	5/26/2025	Logan	Ba	$200.32	-	-	$201.03	$201.50	$201.50	$207.32	-	-	$200.32	-
+														
+Winner	-													
+														
+														
+29														
+	6/2/2025	Patrick	CRWD	$480.62	$471.00	$479.17	$488.76	$460.56	$462.94	$468.41	-$2.59	-0.5%	$480.62	2.0%
+	6/2/2025	Taylor	PLTR	$137.40	$131.44	$132.04	$133.17	$130.01	$130.01	$127.72	-$3.72	-2.8%	$137.40	4.5%
+	6/2/2025	Logan	NET	$171.97	$165.00	$169.70	$172.57	$170.92	$170.92	$179.67	$14.67	8.9%	$171.97	4.2%
+														
+Winner	Logan													
+														
+														
+														
+														dont just tell me how to do it i want you to do the entire complete thing the first time through. if i left out a detail and it is important you make sure that you get it done. i want you to have a migration to backfill all the current data. the most important things for the database are the dates and the stock pick. we can store the other info too so we dont have to hit the api but lets not put them in the migration. i dont have an api picked out yet if you can offer one that is free and it doesnt have to be live updated. also i need you to add some tracking for each of the users, go ahead and create a users table with patrick and taylor and logan in it. for the admin page, create an admin user as well called admin 
+
+---
+
+**Cursor**
+
+Here’s a complete plan and the first steps to get your “Stock Pick Game” web app up and running, including project scaffolding, database schema, migration, and a script to set up your VPS database. I’ll also recommend a free stock API and ensure everything is ready for you to run, debug, and deploy.
+
+---
+
+## 1. Project Structure
+
+- **Frontend:** Vite + Vue 3 (TypeScript, Vue Router, Pinia for state, your custom template syntax)
+- **Backend:** Node.js (Express, TypeScript)
+- **Database:** PostgreSQL (hosted on your VPS)
+- **ORM:** Prisma (for migrations, type safety, and easy DB access)
+- **API:** Free stock data via [Financial Modeling Prep](https://financialmodelingprep.com/developer/docs/) (has a free tier, no credit card required)
+- **Auth:** Simple session-based login for admin (expandable to Apple login later)
+- **Dev Tools:** ESLint, Prettier, Git, .env for config
+
+---
+
+## 2. Steps to Set Up
+
+### A. Scaffold the Project
+
+1. Create the project directory and initialize git.
+2. Scaffold the Vite+Vue app with TypeScript.
+3. Set up the backend (Express + TypeScript).
+4. Set up Prisma and connect to PostgreSQL.
+5. Create migration for users and picks, and a seed script to backfill your spreadsheet data.
+6. Provide a script to set up PostgreSQL on your VPS.
+7. Add a simple admin login and backend page for entering picks.
+8. Set up the API route for fetching stocks.
+
+---
+
+## 3. Let’s Start: Project Initialization
+
+I’ll now:
+- Create the project in `~/VSCODE/stock-pick-game`
+- Scaffold the Vite+Vue frontend
+- Scaffold the backend
+- Initialize git
+
+After that, I’ll proceed with the backend, database, and migration.
+
+---
+
+**Let’s begin by running the initial setup commands.**
+
+```plaintext
+// ... existing code ...
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  password String? // nullable for now, only admin will have a password
+  picks    Pick[]
+}
+
+model Week {
+  id        Int      @id @default(autoincrement())
+  weekNum   Int
+  startDate DateTime
+  winnerId  Int?     // nullable, set when week is complete
+  winner    User?    @relation(fields: [winnerId], references: [id])
+  picks     Pick[]
+}
+
+model Pick {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  weekId     Int
+  symbol     String
+  priceAtPick Float
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  week       Week     @relation(fields: [weekId], references: [id])
+  // Optionally store extra info as JSON for future-proofing
+  extraData  Json?
+}
+
+// ... existing code ...
+```
+
+It looks like there was a filesystem error when trying to write to the Prisma schema file. This is likely because the backend directory or its contents are not writable at the moment, possibly due to a permissions issue or a misconfiguration.
+
+Here’s what you should do next:
+1. Check that the backend directory exists and is writable.
+2. Make sure you have the correct permissions for the `~/VSCODE/stock-pick-game/backend` directory.
+3. If you’re running in a restricted environment, try running your editor or terminal with elevated permissions, or check your workspace settings.
+
+Once you’ve confirmed the backend directory is writable, let me know and I’ll proceed with defining the database schema, migrations, and the rest of the setup. If you want, I can also provide the schema code here for you to paste manually. Would you like to try fixing the permissions, or should I give you the schema code directly?
+
