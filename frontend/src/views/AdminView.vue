@@ -108,19 +108,18 @@ const error = ref('');
 const loading = ref(false);
 
 const formatDate = (date: string) => {
+  if (!date) return '';
   return format(new Date(date), 'MMM d, yyyy');
 };
 
 const createNewWeek = async () => {
   loading.value = true;
   error.value = '';
-  
   try {
     const response = await axios.post('/api/weeks', {
       weekNum: gameStore.weeks.length + 1,
       startDate: new Date().toISOString(),
     });
-    
     await gameStore.fetchWeeks();
   } catch (err) {
     error.value = 'Failed to create new week';
@@ -131,18 +130,14 @@ const createNewWeek = async () => {
 
 const handleAddPick = async () => {
   if (!gameStore.currentWeek) return;
-  
   loading.value = true;
   error.value = '';
-  
   try {
     await gameStore.submitPick(
       gameStore.currentWeek.id,
       symbol.value,
       parseFloat(price.value)
     );
-    
-    // Reset form
     selectedUser.value = '';
     symbol.value = '';
     price.value = '';
@@ -155,15 +150,12 @@ const handleAddPick = async () => {
 
 const handleEndWeek = async () => {
   if (!gameStore.currentWeek || !selectedWinner.value) return;
-  
   loading.value = true;
   error.value = '';
-  
   try {
     await axios.put(`/api/weeks/${gameStore.currentWeek.id}`, {
       winnerId: parseInt(selectedWinner.value),
     });
-    
     await gameStore.fetchWeeks();
     selectedWinner.value = '';
   } catch (err) {
@@ -182,8 +174,9 @@ onMounted(async () => {
 <style scoped>
 .admin {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 2rem auto 0 auto;
+  padding: 2rem 1rem 1rem 1rem;
+  background: transparent;
 }
 
 .admin-section {
@@ -286,5 +279,9 @@ button:disabled {
   text-align: center;
   padding: 2rem;
   color: #666;
+}
+
+@media (max-width: 900px) {
+  .admin { padding: 1rem 0.5rem 0.5rem 0.5rem; }
 }
 </style> 

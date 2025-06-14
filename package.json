@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "start": "cd backend && npm start"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "concurrently": "^9.1.2",
+    "playwright": "^1.53.0"
+  },
+  "dependencies": {
+    "axios": "^1.10.0"
+  }
+}

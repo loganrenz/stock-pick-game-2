@@ -417,3 +417,6 @@ Here’s what you should do next:
 
 Once you’ve confirmed the backend directory is writable, let me know and I’ll proceed with defining the database schema, migrations, and the rest of the setup. If you want, I can also provide the schema code here for you to paste manually. Would you like to try fixing the permissions, or should I give you the schema code directly?
 
+
+
+<https://site.financialmodelingprep.com/developer/docs/dashboard>

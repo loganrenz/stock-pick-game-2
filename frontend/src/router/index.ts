@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
     name: 'History',
     component: () => import('../views/HistoryView.vue'),
   },
+  {
+    path: '/stats',
+    name: 'Stats',
+    component: () => import('../views/StatsView.vue'),
+  },
 ];
 
 const router = createRouter({

@@ -16,7 +16,6 @@ A web application for tracking and managing a weekly stock picking competition b
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
 - Docker (optional, for containerized deployment)
 
 ### Installation
@@ -44,7 +43,7 @@ npm install
 
 ```bash
 # Backend (.env)
-DATABASE_URL=postgresql://username:password@localhost:5432/stockpickgame
+DATABASE_URL=file:./dev.db
 JWT_SECRET=your_jwt_secret
 PORT=3001
 
@@ -52,17 +51,7 @@ PORT=3001
 VITE_API_URL=http://localhost:3001
 ```
 
-4. Set up the database:
-
-```bash
-# Using Docker (recommended)
-./scripts/db.sh start
-
-# Or manually on your VPS
-./backend/scripts/setup-db.sh
-```
-
-5. Run database migrations and seed data:
+4. Run database migrations and seed data:
 
 ```bash
 cd backend
@@ -70,13 +59,10 @@ npm run prisma:migrate
 npm run prisma:seed
 ```
 
-6. Start the development servers:
+5. Start the development servers:
 
 ```bash
-# Start backend (from backend directory)
-npm run dev
-
-# Start frontend (from frontend directory)
+# Start both backend and frontend (from the project root)
 npm run dev
 ```
 

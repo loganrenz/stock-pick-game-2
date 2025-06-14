@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="1" failures="0" errors="0" time="0.028458167">
+    <testsuite name="src/views/HistoryView.spec.ts" timestamp="2025-06-14T19:59:13.247Z" hostname="Mac.curl-banjo.ts.net lan" tests="1" failures="0" errors="0" skipped="0" time="0.028458167">
+        <testcase classname="src/views/HistoryView.spec.ts" name="HistoryView &gt; renders correctly visually" time="0.027926791">
+        </testcase>
+    </testsuite>
+</testsuites>

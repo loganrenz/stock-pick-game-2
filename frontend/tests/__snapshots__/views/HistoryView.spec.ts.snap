@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`HistoryView > renders correctly visually 1`] = `
+<div>
+  <div
+    class="history"
+    data-v-77e3d4bd=""
+  >
+    <h1
+      data-v-77e3d4bd=""
+    >
+      Game History
+    </h1>
+    <div
+      data-v-77e3d4bd=""
+    >
+      <table
+        class="weeks-table"
+        data-v-77e3d4bd=""
+      >
+        <thead
+          data-v-77e3d4bd=""
+        >
+          <tr
+            data-v-77e3d4bd=""
+          >
+            <th
+              data-v-77e3d4bd=""
+            >
+              Week
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Date
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Picker
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Symbol
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Price
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Price at Pick
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Mon
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Tue
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Wed
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Thur
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Fri
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Return 1 Week
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Return 1 Week %
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Current Price
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Total Return
+            </th>
+            <th
+              data-v-77e3d4bd=""
+            >
+              Winner
+            </th>
+          </tr>
+        </thead>
+        <tbody
+          data-v-77e3d4bd=""
+        >
+          
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+`;

@@ -1,149 +1,95 @@
 <template>
-  <div class="login">
-    <div class="login-card">
-      <h1>Login</h1>
-      <form @submit.prevent="handleLogin" class="login-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input
-            id="username"
-            v-model="username"
-            type="text"
-            required
-            placeholder="Enter your username"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            required
-            placeholder="Enter your password"
-          />
+  <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Sign in to your account
+        </h2>
+      </div>
+      <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
+        <div class="rounded-md shadow-sm -space-y-px">
+          <div>
+            <label for="username" class="sr-only">Username</label>
+            <input
+              id="username"
+              v-model="username"
+              name="username"
+              type="text"
+              required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Username"
+            />
+          </div>
+          <div>
+            <label for="password" class="sr-only">Password</label>
+            <input
+              id="password"
+              v-model="password"
+              name="password"
+              type="password"
+              required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Password"
+            />
+          </div>
         </div>
 
-        <div v-if="error" class="error">
-          {{ error }}
+        <div>
+          <button
+            type="submit"
+            :disabled="isLoading"
+            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+              <svg
+                class="h-5 w-5 text-indigo-500 group-hover:text-indigo-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </span>
+            {{ isLoading ? 'Signing in...' : 'Sign in' }}
+          </button>
         </div>
-
-        <button type="submit" :disabled="loading">
-          {{ loading ? 'Logging in...' : 'Login' }}
-        </button>
       </form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useGameStore } from '../stores/game'
+import axios from 'axios'
 
-const router = useRouter();
-const username = ref('');
-const password = ref('');
-const error = ref('');
-const loading = ref(false);
+const router = useRouter()
+const gameStore = useGameStore()
+
+const username = ref('')
+const password = ref('')
+const isLoading = ref(false)
+const error = ref('')
 
 const handleLogin = async () => {
-  loading.value = true;
-  error.value = '';
-  
   try {
-    const response = await axios.post('/api/login', {
-      username: username.value,
-      password: password.value,
-    });
-    
-    localStorage.setItem('user', JSON.stringify(response.data));
-    router.push('/');
+    isLoading.value = true
+    error.value = ''
+    const response = await axios.post('/api/login', { username: username.value, password: password.value })
+    localStorage.setItem('user', JSON.stringify({ username: response.data.username }))
+    await gameStore.fetchUsers()
+    router.push('/')
   } catch (err) {
-    error.value = 'Invalid username or password';
+    error.value = 'Login failed: Invalid username or password'
+    console.error('Login failed:', err)
   } finally {
-    loading.value = false;
+    isLoading.value = false
   }
-};
-</script>
-
-<style scoped>
-.login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: #f5f5f5;
 }
-
-.login-card {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-}
-
-.login-card h1 {
-  margin: 0 0 2rem 0;
-  text-align: center;
-  color: #2c3e50;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-label {
-  color: #666;
-  font-size: 0.9rem;
-}
-
-input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-input:focus {
-  outline: none;
-  border-color: #4CAF50;
-}
-
-button {
-  padding: 0.75rem;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-button:hover:not(:disabled) {
-  background: #45a049;
-}
-
-button:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #dc3545;
-  text-align: center;
-  font-size: 0.9rem;
-}
-</style> 
+</script> 

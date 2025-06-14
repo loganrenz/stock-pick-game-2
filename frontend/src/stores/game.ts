@@ -1,11 +1,10 @@
 import { defineStore } from 'pinia';
-import type { Week, User, Pick } from '../types';
+import type { Week, Pick } from '../types';
 import axios from 'axios';
 
 interface GameState {
   weeks: Week[];
   currentWeek: Week | null;
-  users: User[];
   loading: boolean;
   error: string | null;
 }
@@ -14,7 +13,6 @@ export const useGameStore = defineStore('game', {
   state: (): GameState => ({
     weeks: [],
     currentWeek: null,
-    users: [],
     loading: false,
     error: null,
   }),
@@ -25,33 +23,48 @@ export const useGameStore = defineStore('game', {
       try {
         const res = await axios.get('/api/weeks');
         this.weeks = res.data;
-        this.currentWeek = this.weeks.find((w: Week) => !w.winnerId) || null;
+        // Set currentWeek to the latest week (first in sorted list)
+        this.currentWeek = this.weeks[0] || null;
       } catch (err) {
         this.error = 'Failed to fetch weeks';
       } finally {
         this.loading = false;
       }
     },
-    async fetchUsers() {
+    async fetchCurrentWeek() {
       this.loading = true;
       this.error = null;
       try {
-        const res = await axios.get('/api/users');
-        this.users = res.data;
+        const res = await axios.get('/api/current-week');
+        this.currentWeek = res.data;
       } catch (err) {
-        this.error = 'Failed to fetch users';
+        this.error = 'Failed to fetch current week';
       } finally {
         this.loading = false;
       }
     },
-    async submitPick(weekId: number, symbol: string, priceAtPick: number) {
+    async submitPick(symbol: string) {
       this.loading = true;
       this.error = null;
       try {
-        await axios.post('/api/picks', { weekId, symbol, priceAtPick });
+        await axios.post('/api/picks', { symbol });
         await this.fetchWeeks();
+        await this.fetchCurrentWeek();
       } catch (err) {
         this.error = 'Failed to submit pick';
+      } finally {
+        this.loading = false;
+      }
+    },
+    async submitNextWeekPick(symbol: string) {
+      this.loading = true;
+      this.error = null;
+      try {
+        await axios.post('/api/picks/next-week', { symbol });
+        await this.fetchWeeks();
+        await this.fetchCurrentWeek();
+      } catch (err) {
+        this.error = 'Failed to submit next week pick';
       } finally {
         this.loading = false;
       }
@@ -59,8 +72,7 @@ export const useGameStore = defineStore('game', {
   },
   getters: {
     getWeekById: (state) => (id: number) => state.weeks.find(w => w.id === id),
-    getUserById: (state) => (id: number) => state.users.find(u => u.id === id),
     getCurrentWeekPicks: (state) => state.currentWeek ? state.currentWeek.picks : [],
-    getHistoricalWeeks: (state) => state.weeks.filter(w => w.winnerId),
+    getHistoricalWeeks: (state) => [...state.weeks].sort((a, b) => b.weekNum - a.weekNum),
   },
 }); 

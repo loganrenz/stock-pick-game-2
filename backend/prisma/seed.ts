@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import fs from 'fs';
+import path from 'path';
+import { parse as csvParse } from 'csv-parse/sync';
 
 const prisma = new PrismaClient();
 
@@ -34,25 +37,61 @@ async function main() {
     update: {},
     create: {
       username: 'logan',
+      password: await bcrypt.hash('loganpw', 10),
     },
   });
 
-  // Backfill weeks and picks from spreadsheet (partial example, add all weeks as needed)
-  const weeksData = [
-    {
-      weekNum: 1,
-      startDate: new Date('2024-11-18'),
-      winnerId: taylor.id,
-      picks: [
-        { userId: patrick.id, symbol: 'PLUG', priceAtPick: 1.89, createdAt: new Date('2024-11-18'), currentPrice: 1.92, weekReturn: 0.03, weekReturnPct: 1.6, totalReturn: -31.7 },
-        { userId: taylor.id, symbol: 'BHVN', priceAtPick: 44.11, createdAt: new Date('2024-11-18'), currentPrice: 45.59, weekReturn: 1.48, weekReturnPct: 3.4, totalReturn: -65.0 },
-      ],
-    },
-    // ... Add all other weeks and picks from the spreadsheet here ...
-  ];
+  // Import weeks and picks from CSV
+  const csvPath = path.resolve(__dirname, '../../numbers-data/originaldata.csv');
+  const csvContent = fs.readFileSync(csvPath, 'utf-8');
+  const records = csvParse(csvContent, { columns: false, skip_empty_lines: true });
+
+  let currentWeekNum = 0;
+  let currentWeek: any = null;
+  let winnerUsername = '';
+  const userMap: { [key: string]: typeof patrick } = { patrick, taylor, logan, admin };
+  const weeksData: any[] = [];
+
+  for (const row of records as string[][]) {
+    if (/^\d+$/.test(row[0])) {
+      // New week
+      currentWeekNum = parseInt(row[0], 10);
+      currentWeek = { weekNum: currentWeekNum, picks: [], weekStartDate: '' };
+      weeksData.push(currentWeek);
+    } else if (row[0] && row[0].toLowerCase() === 'winner') {
+      winnerUsername = (row[1] || '').toLowerCase();
+      if (currentWeek && userMap[winnerUsername]) {
+        currentWeek.winnerId = userMap[winnerUsername].id;
+      }
+    } else if (row[2] && userMap[row[2].toLowerCase()]) {
+      // Pick row
+      const user = userMap[row[2].toLowerCase()];
+      const symbol = row[3] || '';
+      const priceAtPick = parseFloat((row[5] || '').replace(/[^\d.\-]/g, ''));
+      if (!symbol || isNaN(priceAtPick)) continue; // skip invalid pick rows
+      const createdAt = row[1] ? new Date(row[1]) : new Date();
+      if (!currentWeek.weekStartDate && row[1]) currentWeek.weekStartDate = row[1];
+      const currentPrice = parseFloat((row[10] || '').replace(/[^\d.\-]/g, ''));
+      const weekReturn = parseFloat((row[12] || '').replace(/[^\d.\-]/g, ''));
+      const weekReturnPct = parseFloat((row[13] || '').replace(/[^\d.\-]/g, ''));
+      const totalReturn = parseFloat((row[15] || '').replace(/[^\d.\-]/g, ''));
+      currentWeek.picks.push({
+        userId: user.id,
+        symbol,
+        priceAtPick,
+        createdAt,
+        currentPrice: isNaN(currentPrice) ? undefined : currentPrice,
+        weekReturn: isNaN(weekReturn) ? undefined : weekReturn,
+        weekReturnPct: isNaN(weekReturnPct) ? undefined : weekReturnPct,
+        totalReturn: isNaN(totalReturn) ? undefined : totalReturn,
+      });
+    }
+  }
 
   for (const weekData of weeksData) {
-    const { picks, ...weekInfo } = weekData;
+    const { picks, weekStartDate, ...weekInfo } = weekData;
+    // Set startDate from the first pick row for the week
+    weekInfo.startDate = weekStartDate ? new Date(weekStartDate) : new Date();
     const week = await prisma.week.create({ data: weekInfo });
     for (const pickData of picks) {
       await prisma.pick.create({ data: { ...pickData, weekId: week.id } });

@@ -1,40 +1,61 @@
 <template>
-  <div class="home">
-    <h1>Stock Pick Game</h1>
-    
-    <div v-if="gameStore.loading" class="loading">
-      Loading...
-    </div>
-    
-    <div v-else-if="gameStore.error" class="error">
-      {{ gameStore.error }}
-    </div>
-    
-    <div v-else class="current-week">
-      <h2>Current Week</h2>
-      <div v-if="gameStore.currentWeek" class="picks-grid">
-        <div v-for="pick in gameStore.getCurrentWeekPicks" :key="pick.id" class="pick-card">
-          <h3>{{ pick.user.username }}</h3>
-          <div class="pick-details">
-            <p>Symbol: {{ pick.symbol }}</p>
-            <p>Price at Pick: ${{ pick.priceAtPick.toFixed(2) }}</p>
-            <p v-if="pick.currentPrice">
-              Current Price: ${{ pick.currentPrice.toFixed(2) }}
+  <div class="py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+          Stock Pick Game
+        </h1>
+        <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
+          Make your weekly stock predictions and compete with others!
+        </p>
+      </div>
+
+      <div class="mt-12">
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+          <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+              Current Week
+            </h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+              {{ formatDate(currentWeek.startDate) }} - {{ formatDate(currentWeek.endDate) }}
             </p>
-            <p v-if="pick.weekReturnPct">
-              Week Return: {{ pick.weekReturnPct.toFixed(2) }}%
-            </p>
+          </div>
+          
+          <div class="border-t border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div v-for="pick in currentWeek.picks" :key="pick.id" class="bg-gray-50 rounded-lg p-4">
+                  <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-medium text-gray-900">{{ pick.user.username }}</h4>
+                    <span 
+                      :class="[
+                        'px-2 py-1 text-xs font-medium rounded-full',
+                        pick.isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      ]"
+                    >
+                      {{ pick.isCorrect ? 'Correct' : 'Incorrect' }}
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <p>Stock: {{ pick.stockSymbol }}</p>
+                    <p>Direction: {{ pick.direction }}</p>
+                    <p>Confidence: {{ pick.confidence }}%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div v-else class="no-picks">
-        No active week found
-      </div>
-    </div>
 
-    <div class="navigation">
-      <router-link to="/history" class="nav-link">View History</router-link>
-      <router-link v-if="isAdmin" to="/admin" class="nav-link">Admin Panel</router-link>
+      <div class="mt-8 text-center">
+        <router-link
+          to="/history"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          View History
+        </router-link>
+      </div>
     </div>
   </div>
 </template>
@@ -45,22 +66,37 @@ import { useGameStore } from '../stores/game';
 
 const gameStore = useGameStore();
 
-const isAdmin = computed(() => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user).username === 'admin' : false;
+const currentWeek = computed(() => gameStore.currentWeek || {
+  id: 0,
+  weekNum: 0,
+  startDate: '',
+  endDate: '',
+  picks: []
 });
 
-onMounted(async () => {
-  await gameStore.fetchWeeks();
-  await gameStore.fetchUsers();
+const loading = computed(() => gameStore.loading);
+const error = computed(() => gameStore.error);
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+onMounted(() => {
+  gameStore.fetchWeeks();
 });
 </script>
 
 <style scoped>
 .home {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  margin: 2rem auto 0 auto;
+  padding: 2rem 1rem 1rem 1rem;
+  background: transparent;
 }
 
 .loading, .error {
@@ -105,6 +141,7 @@ onMounted(async () => {
   margin-top: 2rem;
   display: flex;
   gap: 1rem;
+  justify-content: center;
 }
 
 .nav-link {
@@ -124,5 +161,9 @@ onMounted(async () => {
   text-align: center;
   padding: 2rem;
   color: #666;
+}
+
+@media (max-width: 900px) {
+  .home { padding: 1rem 0.5rem 0.5rem 0.5rem; }
 }
 </style> 

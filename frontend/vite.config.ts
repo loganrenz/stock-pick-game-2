@@ -1,9 +1,10 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), tailwindcss()],
   base: '/',
   server: {
     host: '0.0.0.0',
@@ -15,5 +16,14 @@ export default defineConfig({
         ws: true,
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./vitest.setup.ts'],
+    reporters: ['default', ['junit', { outputFile: './tests/results/junit.xml' }]],
+    outputFile: './tests/results/vitest-report.txt',
+    resolveSnapshotPath: (testPath, snapshotExtension) =>
+      testPath.replace(/src\//, 'tests/__snapshots__/') + snapshotExtension,
   },
 })

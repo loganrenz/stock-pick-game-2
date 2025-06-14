@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  password String?
+  picks    Pick[]
+  wins     Week[]  @relation("Winner")
+}
+
+model Week {
+  id        Int      @id @default(autoincrement())
+  weekNum   Int
+  startDate DateTime
+  winnerId  Int?
+  picks     Pick[]
+  winner    User?    @relation("Winner", fields: [winnerId], references: [id])
+}
+
+model Pick {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  weekId        Int
+  symbol        String
+  priceAtPick   Float
+  createdAt     DateTime @default(now())
+  dailyPrices   String?
+  currentPrice  Float?
+  totalReturn   Float?
+  weekReturn    Float?
+  weekReturnPct Float?
+  week          Week     @relation(fields: [weekId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+}
