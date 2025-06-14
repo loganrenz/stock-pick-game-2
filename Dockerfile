@@ -30,7 +30,7 @@ COPY --from=build /app/frontend/dist ./frontend/dist
 
 # Copy backend prisma and .env
 COPY backend/prisma ./backend/prisma
-COPY backend/.env ./backend/.env
+COPY backend/.env ./backend/.env_file
 
 # Expose ports
 EXPOSE 4556 5173
