@@ -697,7 +697,17 @@ app.post('/api/picks/next-week', requireAuth, async (req: Request, res: Response
       const existing = await prisma.week.findFirst({ where: { startDate: nextWeekStart, endDate: nextWeekEnd } });
       const weekNum = await calculateWeekNum(nextWeekStart);
       if (existing) {
-        nextWeek = await prisma.week.update({ where: { id: existing.id }, data: { weekNum } });
+        nextWeek = await prisma.week.update({ 
+          where: { id: existing.id }, 
+          data: { weekNum },
+          include: {
+            picks: {
+              include: {
+                user: true
+              }
+            }
+          }
+        });
       } else {
         nextWeek = await prisma.week.create({
           data: {
@@ -716,6 +726,10 @@ app.post('/api/picks/next-week', requireAuth, async (req: Request, res: Response
       }
     }
 
+    if (!nextWeek) {
+      return res.status(500).json({ error: 'Could not create or find next week' });
+    }
+
     // Check if user already has a pick for next week
     const existingPick = await prisma.pick.findFirst({
       where: {
@@ -726,8 +740,11 @@ app.post('/api/picks/next-week', requireAuth, async (req: Request, res: Response
 
     // Get current price and daily prices
     const price = await getCurrentPrice(symbol);
+    if (price === null) {
+      return res.status(400).json({ error: 'Invalid stock symbol' });
+    }
     const history = await getDailyCandles(symbol, nextWeekStart, nextWeekEnd);
-    const dailyPrices = buildDailyPrices(history, nextWeekStart);
+    const dailyPrices: Record<string, { open: string | null; close: string | null }> = buildDailyPrices(history, nextWeekStart);
 
     if (existingPick) {
       // Update existing pick
@@ -800,25 +817,28 @@ app.post('/api/update-prices', async (req, res) => {
         const response = await axios.get(`https://financialmodelingprep.com/api/v3/quote/${pick.symbol}?apikey=${FMP_API_KEY}`);
         if (response.data && response.data.length > 0) {
           const data = response.data[0];
-          let dailyPrices = {};
+          let dailyPrices: Record<string, { open: number; close: number }> = {};
           try {
             dailyPrices = pick.dailyPrices ? JSON.parse(pick.dailyPrices) : {};
           } catch (e) {
             dailyPrices = {};
           }
           dailyPrices[dayKey] = {
-            open: data.open,
-            close: data.price
+            open: Number(data.open),
+            close: Number(data.price)
           };
 
+          const updateData: any = {
+            dailyPrices: JSON.stringify(dailyPrices),
+            currentPrice: Number(data.price)
+          };
+          if (typeof pick.priceAtPick === 'number') {
+            updateData.weekReturn = Number(data.price) - pick.priceAtPick;
+            updateData.weekReturnPct = pick.priceAtPick !== 0 ? ((Number(data.price) - pick.priceAtPick) / pick.priceAtPick) * 100 : 0;
+          }
           await prisma.pick.update({
             where: { id: pick.id },
-            data: {
-              dailyPrices: JSON.stringify(dailyPrices),
-              currentPrice: data.price,
-              weekReturn: data.price - pick.priceAtPick,
-              weekReturnPct: ((data.price - pick.priceAtPick) / pick.priceAtPick) * 100
-            }
+            data: updateData
           });
         }
       } catch (error) {
@@ -860,12 +880,12 @@ app.post('/api/backfill-daily-prices', async (req, res) => {
       const to = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const history = await getDailyCandles(symbol, new Date(from), new Date(to));
       // Map by date for easy lookup
-      const priceByDate = {};
+      const priceByDate: Record<string, { open: number; close: number }> = {};
       for (const [date, data] of Object.entries(history)) {
-        priceByDate[date] = data;
+        priceByDate[date] = { open: Number(data.open), close: Number(data.close) };
       }
       // Build dailyPrices for Mon-Fri
-      const dailyPrices = {};
+      const dailyPrices: Record<string, { open: number | null; close: number | null }> = {};
       let lastValid = null;
       for (let i = 0; i < 5; i++) {
         const d = new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000);
@@ -916,7 +936,8 @@ app.post('/api/weeks/next', async (req, res) => {
       where: {
         startDate: nextMonday,
         endDate: nextSunday
-      }
+      },
+      include: { picks: { include: { user: true } } }
     });
     if (!week) {
       const weekNum = await calculateWeekNum(nextMonday);
@@ -925,7 +946,8 @@ app.post('/api/weeks/next', async (req, res) => {
           weekNum,
           startDate: nextMonday,
           endDate: nextSunday
-        }
+        },
+        include: { picks: { include: { user: true } } }
       });
     }
     res.json(week);
@@ -953,7 +975,8 @@ app.get('/api/next-week', async (req, res) => {
           weekNum,
           startDate: nextMonday,
           endDate: nextSunday
-        }
+        },
+        include: { picks: { include: { user: true } } }
       });
     }
     // Only return next week if pick window is open (Friday close to Sunday midnight)
