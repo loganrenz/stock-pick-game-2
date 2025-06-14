@@ -1,6 +1,6 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
@@ -14,7 +14,17 @@ const prisma = new PrismaClient();
 const port = Number(process.env.PORT) || 4556;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
+const JWT_REFRESH_THRESHOLD = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 const ALPHA_VANTAGE_API_KEY = 'J135CCG2DDOQOM6D';
+
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 // Middleware
 app.use(cors({
@@ -24,7 +34,7 @@ app.use(cors({
 app.use(express.json());
 
 // JWT middleware
-const requireAuth = async (req: any, res: any, next: any) => {
+const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
   
   if (!token) {
@@ -32,13 +42,24 @@ const requireAuth = async (req: any, res: any, next: any) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; exp: number };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId }
     });
 
     if (!user || user.jwtToken !== token) {
       return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if token needs refresh (if less than 30 days until expiry)
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp - now < JWT_REFRESH_THRESHOLD / 1000) {
+      const newToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { jwtToken: newToken }
+      });
+      res.setHeader('X-New-Token', newToken);
     }
 
     req.user = user;
@@ -49,7 +70,7 @@ const requireAuth = async (req: any, res: any, next: any) => {
 };
 
 // Routes
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   
   const user = await prisma.user.findUnique({
@@ -77,22 +98,34 @@ app.post('/api/login', async (req, res) => {
   res.json({ token, username: user.username });
 });
 
-app.post('/api/logout', requireAuth, async (req, res) => {
+app.post('/api/logout', requireAuth, async (req: Request, res: Response) => {
   await prisma.user.update({
-    where: { id: req.user.id },
+    where: { id: req.user!.id },
     data: { jwtToken: null }
   });
   res.json({ message: 'Logged out successfully' });
 });
 
+// Add token refresh endpoint
+app.post('/api/refresh-token', requireAuth, async (req: Request, res: Response) => {
+  const newToken = jwt.sign({ userId: req.user!.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+  
+  await prisma.user.update({
+    where: { id: req.user!.id },
+    data: { jwtToken: newToken }
+  });
+
+  res.json({ token: newToken });
+});
+
 // Get current week's picks
-app.get('/api/current-week', async (req, res) => {
+app.get('/api/current-week', async (req: Request, res: Response) => {
   try {
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // End on Sunday
 
-    let week = await prisma.week.findFirst({
+    let currentWeek = await prisma.week.findFirst({
       where: {
         startDate: {
           lte: today
@@ -111,29 +144,53 @@ app.get('/api/current-week', async (req, res) => {
       }
     });
 
-    if (!week) {
-      // Create new week if it doesn't exist
-      week = await prisma.week.create({
-        data: {
-          weekNum: Math.ceil((today.getTime() - new Date(2024, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+    if (!currentWeek) {
+      // Prevent duplicate week for same date range
+      const existing = await prisma.week.findFirst({ 
+        where: { 
           startDate: weekStart,
-          endDate: weekEnd
-        },
-        include: {
-          picks: {
-            include: {
-              user: true
-            }
-          },
-          winner: true
+          endDate: weekEnd 
         }
       });
+      
+      const weekNum = await calculateWeekNum(weekStart);
+      
+      if (existing) {
+        currentWeek = await prisma.week.update({ 
+          where: { id: existing.id }, 
+          data: { weekNum },
+          include: {
+            picks: {
+              include: {
+                user: true
+              }
+            },
+            winner: true
+          }
+        });
+      } else {
+        currentWeek = await prisma.week.create({
+          data: {
+            weekNum,
+            startDate: weekStart,
+            endDate: weekEnd
+          },
+          include: {
+            picks: {
+              include: {
+                user: true
+              }
+            },
+            winner: true
+          }
+        });
+      }
     }
 
     // If it's weekend, calculate winners
-    if (isWeekend(today) && !week.winner) {
+    if (isWeekend(today) && !currentWeek.winner) {
       const picks = await prisma.pick.findMany({
-        where: { weekId: week.id },
+        where: { weekId: currentWeek.id },
         include: { user: true }
       });
 
@@ -148,8 +205,8 @@ app.get('/api/current-week', async (req, res) => {
       }
 
       if (bestPick) {
-        week = await prisma.week.update({
-          where: { id: week.id },
+        currentWeek = await prisma.week.update({
+          where: { id: currentWeek.id },
           data: { winnerId: bestPick.userId },
           include: {
             picks: {
@@ -163,20 +220,30 @@ app.get('/api/current-week', async (req, res) => {
       }
     }
 
-    // Parse dailyPrices for all picks before sending to frontend
-    for (const pick of week.picks) {
-      pick.dailyPrices = pick.dailyPrices ? JSON.parse(pick.dailyPrices) : {};
+    // Update daily prices for all picks
+    for (const pick of currentWeek.picks) {
+      if (!pick.dailyPrices && currentWeek.startDate && currentWeek.endDate) {
+        const dailyPrices = await getDailyCandles(pick.symbol, currentWeek.startDate, currentWeek.endDate);
+        const formattedPrices = buildDailyPrices(dailyPrices, currentWeek.startDate);
+        
+        await prisma.pick.update({
+          where: { id: pick.id },
+          data: {
+            dailyPrices: JSON.stringify(formattedPrices)
+          }
+        });
+      }
     }
 
-    res.json(week);
+    res.json(currentWeek);
   } catch (error) {
-    console.error('Error fetching current week:', error);
+    console.error('Error in /api/current-week:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get all weeks with picks
-app.get('/api/weeks', async (req, res) => {
+app.get('/api/weeks', async (req: Request, res: Response) => {
   try {
     const weeks = await prisma.week.findMany({
       include: {
@@ -200,7 +267,7 @@ app.get('/api/weeks', async (req, res) => {
     }
 
     res.json(weeks);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching weeks:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -222,42 +289,143 @@ function getSundayMidnight(date = new Date()) {
   return sunday;
 }
 
-// Helper: get the next available week for picks
+// Utility: Calculate weekNum based on the number of weeks since the first week in the DB
+async function calculateWeekNum(startDate: Date): Promise<number> {
+  const firstWeek = await prisma.week.findFirst({ orderBy: { startDate: 'asc' } });
+  if (!firstWeek) return 1;
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const diff = startOfWeek(startDate, { weekStartsOn: 1 }).getTime() - startOfWeek(new Date(firstWeek.startDate), { weekStartsOn: 1 }).getTime();
+  return 1 + Math.round(diff / msPerWeek);
+}
+
+// Get or create next available week
 async function getOrCreateNextAvailableWeek() {
-  const today = new Date();
-  // Find the latest week
-  let latestWeek = await prisma.week.findFirst({ orderBy: { weekNum: 'desc' } });
-  if (!latestWeek) {
-    // If no week exists, create the first week
-    const start = startOfWeek(today, { weekStartsOn: 1 });
-    const end = endOfWeek(today, { weekStartsOn: 1 });
-    latestWeek = await prisma.week.create({
-      data: {
-        weekNum: 1,
-        startDate: start,
-        endDate: end
+  try {
+    const today = new Date();
+    const nextWeekStart = startOfWeek(addDays(today, 7), { weekStartsOn: 1 });
+    const nextWeekEnd = endOfWeek(nextWeekStart, { weekStartsOn: 1 });
+
+    let nextWeek = await prisma.week.findFirst({
+      where: {
+        startDate: nextWeekStart,
+        endDate: nextWeekEnd
+      },
+      include: {
+        picks: {
+          include: {
+            user: true
+          }
+        }
       }
     });
-  }
-  // If today is after the latest week's Friday close, create the next week if not already created
-  const fridayClose = getFridayClose(new Date(latestWeek.startDate));
-  if (today >= fridayClose) {
-    const nextMonday = startOfWeek(addDays(new Date(latestWeek.startDate), 7), { weekStartsOn: 1 });
-    const nextSunday = endOfWeek(addDays(new Date(latestWeek.startDate), 7), { weekStartsOn: 1 });
-    let nextWeek = await prisma.week.findFirst({ where: { startDate: nextMonday, endDate: nextSunday } });
+
     if (!nextWeek) {
+      const weekNum = await calculateWeekNum(nextWeekStart);
       nextWeek = await prisma.week.create({
         data: {
-          weekNum: latestWeek.weekNum + 1,
-          startDate: nextMonday,
-          endDate: nextSunday
+          weekNum,
+          startDate: nextWeekStart,
+          endDate: nextWeekEnd
+        },
+        include: {
+          picks: {
+            include: {
+              user: true
+            }
+          }
         }
       });
+
+      // Rollover picks for the new week
+      if (nextWeek) {
+        await rolloverPicksForWeek(nextWeek.id);
+      }
     }
+
     return nextWeek;
+  } catch (error) {
+    console.error('Error getting/creating next week:', error);
+    return null;
   }
-  return latestWeek;
 }
+
+// Rollover picks for a week
+async function rolloverPicksForWeek(weekId: number) {
+  try {
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: {
+        picks: true
+      }
+    });
+
+    if (!week || !week.startDate) {
+      throw new Error('Week not found or invalid');
+    }
+
+    // Get all users
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          in: ['patrick', 'taylor', 'logan']
+        }
+      }
+    });
+
+    // For each user, check if they have a pick for this week
+    for (const user of users) {
+      const existingPick = week.picks.find(pick => pick.userId === user.id);
+      
+      if (!existingPick) {
+        // Find the user's last pick
+        const lastPick = await prisma.pick.findFirst({
+          where: {
+            userId: user.id,
+            week: {
+              endDate: {
+                lt: week.startDate
+              }
+            }
+          },
+          orderBy: {
+            week: {
+              startDate: 'desc'
+            }
+          }
+        });
+
+        if (lastPick) {
+          // Create a new pick with the same symbol
+          const currentPrice = await getCurrentPrice(lastPick.symbol);
+          if (currentPrice !== null) {
+            await prisma.pick.create({
+              data: {
+                userId: user.id,
+                weekId: week.id,
+                symbol: lastPick.symbol,
+                priceAtPick: currentPrice
+              }
+            });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error rolling over picks:', error);
+  }
+}
+
+// Schedule: rollover picks for new week every Monday at 00:05 UTC
+setInterval(async () => {
+  const now = new Date();
+  if (now.getUTCDay() === 1 && now.getUTCHours() === 0 && now.getUTCMinutes() < 10) {
+    // Find the latest week
+    const latestWeek = await prisma.week.findFirst({ orderBy: { weekNum: 'desc' } });
+    if (latestWeek) {
+      await rolloverPicksForWeek(latestWeek.id);
+    }
+  }
+}, 5 * 60 * 1000); // every 5 minutes
 
 // Helper: backfill missing picks for past weeks
 async function backfillMissingPicks() {
@@ -302,195 +470,289 @@ app.post('/api/backfill-all-picks', async (req, res) => {
   }
 });
 
-// Helper: get current price from FMP, fallback to Alpha Vantage
-async function getCurrentPrice(symbol) {
-  const FMP_API_KEY = process.env.FMP_API_KEY || 'NMxvgvIlePZYlyhQTOtKcxtvTv1jv9Og';
+// Get current price for a stock
+async function getCurrentPrice(symbol: string): Promise<number | null> {
   try {
-    const response = await axios.get(`https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_API_KEY}`);
-    if (response.data && response.data.length > 0 && response.data[0].price) {
-      return response.data[0].price;
-    }
-    // If FMP returns error or no data, fall through
-  } catch (err) {
-    if (err.response && err.response.status !== 429) throw err;
-    // else, try Alpha Vantage
-  }
-  // Alpha Vantage fallback
-  const avRes = await axios.get(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`);
-  if (avRes.data && avRes.data['Global Quote'] && avRes.data['Global Quote']['05. price']) {
-    return parseFloat(avRes.data['Global Quote']['05. price']);
-  }
-  throw new Error('No price data found');
-}
-
-// Helper: get daily candles from FMP, fallback to Alpha Vantage
-async function getDailyCandles(symbol, from, to) {
-  const FMP_API_KEY = process.env.FMP_API_KEY || 'NMxvgvIlePZYlyhQTOtKcxtvTv1jv9Og';
-  try {
-    const response = await axios.get(`https://financialmodelingprep.com/api/v3/historical-price-full/${symbol}?from=${from}&to=${to}&apikey=${FMP_API_KEY}`);
-    if (response.data && response.data.historical && response.data.historical.length > 0) {
-      return response.data.historical;
-    }
-  } catch (err) {
-    if (err.response && err.response.status !== 429) throw err;
-  }
-  // Alpha Vantage fallback
-  const avRes = await axios.get(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${symbol}&outputsize=full&apikey=${ALPHA_VANTAGE_API_KEY}`);
-  if (avRes.data && avRes.data['Time Series (Daily)']) {
-    // Convert to FMP-like format
-    const candles = [];
-    for (const [date, data] of Object.entries(avRes.data['Time Series (Daily)'])) {
-      if (date >= from && date <= to) {
-        candles.push({
-          date,
-          open: parseFloat(data['1. open']),
-          close: parseFloat(data['4. close'])
-        });
-      }
-    }
-    return candles;
-  }
-  throw new Error('No daily data found');
-}
-
-// Update /api/picks/next-week to use getOrCreateNextAvailableWeek and always allow pick for next available week if window is open
-app.post('/api/picks/next-week', requireAuth, async (req, res) => {
-  try {
-    const { symbol } = req.body;
-    const today = new Date();
-    const week = await getOrCreateNextAvailableWeek();
-    // Only allow pick if now >= Friday close of previous week and <= Sunday midnight of this week
-    const prevFridayClose = getFridayClose(addDays(new Date(week.startDate), -7));
-    const thisSundayMidnight = getSundayMidnight(new Date(week.startDate));
-    if (today < prevFridayClose || today > thisSundayMidnight) {
-      return res.status(400).json({ error: 'Pick window for next week is closed' });
-    }
-    // Check if user already has a pick for this week
-    let existingPick = await prisma.pick.findFirst({
-      where: {
-        weekId: week.id,
-        userId: req.user.id
+    const response = await axios.get(`https://www.alphavantage.co/query`, {
+      params: {
+        function: 'GLOBAL_QUOTE',
+        symbol,
+        apikey: ALPHA_VANTAGE_API_KEY
       }
     });
-    const priceAtPick = await getCurrentPrice(symbol);
+
+    const quote = response.data['Global Quote'] as { '05. price': string } | undefined;
+    if (!quote || !quote['05. price']) {
+      return null;
+    }
+
+    return parseFloat(quote['05. price']);
+  } catch (error) {
+    console.error('Error fetching current price:', error);
+    return null;
+  }
+}
+
+// Get daily candles for a stock
+async function getDailyCandles(symbol: string, from: Date, to: Date): Promise<{ [key: string]: { open: string; close: string } }> {
+  try {
+    const response = await axios.get(`https://www.alphavantage.co/query`, {
+      params: {
+        function: 'TIME_SERIES_DAILY',
+        symbol,
+        apikey: ALPHA_VANTAGE_API_KEY,
+        outputsize: 'compact'
+      }
+    });
+
+    const timeSeriesData = response.data['Time Series (Daily)'] as { [key: string]: { '1. open': string; '4. close': string } } | undefined;
+    if (!timeSeriesData) {
+      throw new Error('No time series data available');
+    }
+
+    const result: { [key: string]: { open: string; close: string } } = {};
+    const dates = Object.keys(timeSeriesData).sort();
+
+    // Find the closest available date for each day in the range
+    for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      let closestDate = dates.find(date => date <= dateStr);
+      
+      // If no date found, use the most recent date
+      if (!closestDate && dates.length > 0) {
+        closestDate = dates[dates.length - 1];
+      }
+
+      if (closestDate && timeSeriesData[closestDate]) {
+        result[dateStr] = {
+          open: timeSeriesData[closestDate]['1. open'],
+          close: timeSeriesData[closestDate]['4. close']
+        };
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching daily candles:', error);
+    return {};
+  }
+}
+
+// Build daily prices object
+function buildDailyPrices(history: { [key: string]: { open: string; close: string } }, weekStart: Date): { [key: string]: { open: string | null; close: string | null } } {
+  const result: { [key: string]: { open: string | null; close: string | null } } = {};
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  
+  for (let i = 0; i < 5; i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    if (history[dateStr]) {
+      result[days[i]] = {
+        open: history[dateStr].open,
+        close: history[dateStr].close
+      };
+    } else {
+      // If no data for this day, use the previous day's close as both open and close
+      const prevDate = new Date(date);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const prevDateStr = prevDate.toISOString().split('T')[0];
+      
+      if (history[prevDateStr]) {
+        result[days[i]] = {
+          open: history[prevDateStr].close,
+          close: history[prevDateStr].close
+        };
+      } else {
+        result[days[i]] = {
+          open: null,
+          close: null
+        };
+      }
+    }
+  }
+  
+  return result;
+}
+
+// Submit a pick for the current week
+app.post('/api/picks', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { symbol, weekId } = req.body;
+    const userId = req.user!.id;
+
+    // Validate the week exists and is current/next
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: {
+        picks: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    if (!week || !week.endDate) {
+      return res.status(404).json({ error: 'Week not found or invalid' });
+    }
+
+    const now = new Date();
+    const weekEnd = new Date(week.endDate);
+    if (now > weekEnd) {
+      return res.status(400).json({ error: 'Cannot submit pick for past week' });
+    }
+
+    // Get current price
+    const currentPrice = await getCurrentPrice(symbol);
+    if (currentPrice === null) {
+      return res.status(400).json({ error: 'Invalid stock symbol' });
+    }
+
+    // Check if user already has a pick for this week
+    const existingPick = await prisma.pick.findFirst({
+      where: {
+        userId,
+        weekId
+      }
+    });
+
     if (existingPick) {
-      // Update the existing pick
-      existingPick = await prisma.pick.update({
+      // Update existing pick
+      const updatedPick = await prisma.pick.update({
         where: { id: existingPick.id },
         data: {
           symbol,
-          priceAtPick,
-          dailyPrices: JSON.stringify({
-            monday: { open: priceAtPick, close: priceAtPick },
-            tuesday: { open: null, close: null },
-            wednesday: { open: null, close: null },
-            thursday: { open: null, close: null },
-            friday: { open: null, close: null }
-          })
+          priceAtPick: currentPrice,
+          dailyPrices: null, // Reset daily prices to be updated later
+          currentPrice: null,
+          totalReturn: null,
+          weekReturn: null,
+          weekReturnPct: null
         },
-        include: { user: true }
+        include: {
+          user: true
+        }
       });
-      existingPick.dailyPrices = JSON.parse(existingPick.dailyPrices || '{}');
-      return res.json(existingPick);
+      res.json(updatedPick);
+    } else {
+      // Create new pick
+      const newPick = await prisma.pick.create({
+        data: {
+          userId,
+          weekId,
+          symbol,
+          priceAtPick: currentPrice
+        },
+        include: {
+          user: true
+        }
+      });
+      res.json(newPick);
     }
-    // Create pick for this week
-    const pick = await prisma.pick.create({
-      data: {
-        weekId: week.id,
-        userId: req.user.id,
-        symbol,
-        priceAtPick,
-        dailyPrices: JSON.stringify({
-          monday: { open: priceAtPick, close: priceAtPick },
-          tuesday: { open: null, close: null },
-          wednesday: { open: null, close: null },
-          thursday: { open: null, close: null },
-          friday: { open: null, close: null }
-        })
-      },
-      include: { user: true }
-    });
-    pick.dailyPrices = JSON.parse(pick.dailyPrices || '{}');
-    res.json(pick);
   } catch (error) {
-    console.error('Error creating next week pick:', error);
+    console.error('Error submitting pick:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Make a pick for the current week
-app.post('/api/picks', requireAuth, async (req, res) => {
+// Submit pick for next week
+app.post('/api/picks/next-week', requireAuth, async (req: Request, res: Response) => {
+  const user = req.user;
+  if (!user) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+
   try {
     const { symbol } = req.body;
     const today = new Date();
-    const week = await prisma.week.findFirst({
+    const nextWeekStart = startOfWeek(addDays(today, 7), { weekStartsOn: 1 });
+    const nextWeekEnd = endOfWeek(addDays(today, 7), { weekStartsOn: 1 });
+
+    let nextWeek = await prisma.week.findFirst({
       where: {
-        startDate: {
-          lte: today
-        },
-        endDate: {
-          gte: today
-        }
-      }
-    });
-    if (!week) {
-      // Create new week if it doesn't exist
-      week = await prisma.week.create({
-        data: {
-          weekNum: Math.ceil((today.getTime() - new Date(2024, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
-          startDate: startOfWeek(today, { weekStartsOn: 1 }),
-          endDate: endOfWeek(today, { weekStartsOn: 1 })
-        }
-      });
-      await backfillMissingPicks();
-      week = await prisma.week.findFirst({
-        where: { id: week.id },
-        include: {
-          picks: { include: { user: true } },
-          winner: true
-        }
-      });
-    }
-    // Only allow pick if today is before Friday close
-    const fridayClose = getFridayClose(today);
-    if (today >= fridayClose) {
-      return res.status(400).json({ error: 'Pick window for current week is closed' });
-    }
-    // Check if user already has a pick for this week
-    const existingPick = await prisma.pick.findFirst({
-      where: {
-        weekId: week.id,
-        userId: req.user.id
-      }
-    });
-    if (existingPick) {
-      return res.status(400).json({ error: 'You already have a pick for this week' });
-    }
-    // Get current stock price
-    const priceAtPick = await getCurrentPrice(symbol);
-    // Create pick
-    const pick = await prisma.pick.create({
-      data: {
-        weekId: week.id,
-        userId: req.user.id,
-        symbol,
-        priceAtPick,
-        dailyPrices: JSON.stringify({
-          monday: { open: priceAtPick, close: priceAtPick },
-          tuesday: { open: null, close: null },
-          wednesday: { open: null, close: null },
-          thursday: { open: null, close: null },
-          friday: { open: null, close: null }
-        })
+        startDate: nextWeekStart,
+        endDate: nextWeekEnd
       },
       include: {
-        user: true
+        picks: {
+          include: {
+            user: true
+          }
+        }
       }
     });
-    pick.dailyPrices = JSON.parse(pick.dailyPrices || '{}');
-    res.json(pick);
-  } catch (error) {
-    console.error('Error creating pick:', error);
+
+    if (!nextWeek) {
+      // Prevent duplicate week for same date range
+      const existing = await prisma.week.findFirst({ where: { startDate: nextWeekStart, endDate: nextWeekEnd } });
+      const weekNum = await calculateWeekNum(nextWeekStart);
+      if (existing) {
+        nextWeek = await prisma.week.update({ where: { id: existing.id }, data: { weekNum } });
+      } else {
+        nextWeek = await prisma.week.create({
+          data: {
+            weekNum,
+            startDate: nextWeekStart,
+            endDate: nextWeekEnd
+          },
+          include: {
+            picks: {
+              include: {
+                user: true
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Check if user already has a pick for next week
+    const existingPick = await prisma.pick.findFirst({
+      where: {
+        userId: user.id,
+        weekId: nextWeek.id
+      }
+    });
+
+    // Get current price and daily prices
+    const price = await getCurrentPrice(symbol);
+    const history = await getDailyCandles(symbol, nextWeekStart, nextWeekEnd);
+    const dailyPrices = buildDailyPrices(history, nextWeekStart);
+
+    if (existingPick) {
+      // Update existing pick
+      const pick = await prisma.pick.update({
+        where: { id: existingPick.id },
+        data: {
+          symbol,
+          priceAtPick: price,
+          dailyPrices: JSON.stringify(dailyPrices)
+        },
+        include: {
+          user: true
+        }
+      });
+      res.json(pick);
+    } else {
+      // Create new pick
+      const pick = await prisma.pick.create({
+        data: {
+          userId: user.id,
+          weekId: nextWeek.id,
+          symbol,
+          priceAtPick: price,
+          dailyPrices: JSON.stringify(dailyPrices)
+        },
+        include: {
+          user: true
+        }
+      });
+      res.json(pick);
+    }
+  } catch (error: unknown) {
+    console.error('Error submitting next week pick:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -588,11 +850,11 @@ app.post('/api/backfill-daily-prices', async (req, res) => {
       const symbol = pick.symbol;
       const from = weekStart.toISOString().slice(0, 10);
       const to = new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const history = await getDailyCandles(symbol, from, to);
+      const history = await getDailyCandles(symbol, new Date(from), new Date(to));
       // Map by date for easy lookup
       const priceByDate = {};
-      for (const day of history) {
-        priceByDate[day.date] = day;
+      for (const [date, data] of Object.entries(history)) {
+        priceByDate[date] = data;
       }
       // Build dailyPrices for Mon-Fri
       const dailyPrices = {};
@@ -649,9 +911,10 @@ app.post('/api/weeks/next', async (req, res) => {
       }
     });
     if (!week) {
+      const weekNum = await calculateWeekNum(nextMonday);
       week = await prisma.week.create({
         data: {
-          weekNum: Math.ceil((nextMonday.getTime() - new Date(2024, 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+          weekNum,
           startDate: nextMonday,
           endDate: nextSunday
         }
@@ -660,6 +923,41 @@ app.post('/api/weeks/next', async (req, res) => {
     res.json(week);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create next week' });
+  }
+});
+
+// New: API endpoint to get the next week for picks (or null if not in pick window)
+app.get('/api/next-week', async (req, res) => {
+  try {
+    const today = new Date();
+    let latestWeek = await prisma.week.findFirst({ orderBy: { weekNum: 'desc' } });
+    if (!latestWeek) {
+      return res.json(null);
+    }
+    const fridayClose = getFridayClose(new Date(latestWeek.startDate));
+    const nextMonday = startOfWeek(addDays(new Date(latestWeek.startDate), 7), { weekStartsOn: 1 });
+    const nextSunday = endOfWeek(addDays(new Date(latestWeek.startDate), 7), { weekStartsOn: 1 });
+    let nextWeek = await prisma.week.findFirst({ where: { startDate: nextMonday, endDate: nextSunday }, include: { picks: { include: { user: true } } } });
+    if (!nextWeek && today >= fridayClose) {
+      const weekNum = await calculateWeekNum(nextMonday);
+      nextWeek = await prisma.week.create({
+        data: {
+          weekNum,
+          startDate: nextMonday,
+          endDate: nextSunday
+        }
+      });
+    }
+    // Only return next week if pick window is open (Friday close to Sunday midnight)
+    const thisSunday = new Date(nextMonday);
+    thisSunday.setDate(thisSunday.getDate() + 6);
+    thisSunday.setHours(23, 59, 59, 999);
+    if (today >= fridayClose && today <= thisSunday) {
+      return res.json(nextWeek);
+    }
+    return res.json(null);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get next week' });
   }
 });
 

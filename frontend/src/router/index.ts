@@ -4,13 +4,8 @@ import type { RouteRecordRaw } from 'vue-router';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Home',
-    component: () => import('../views/HomeView.vue'),
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/LoginView.vue'),
+    name: 'Main',
+    component: () => import('../views/MainView.vue'),
   },
   {
     path: '/admin',
@@ -38,11 +33,8 @@ const router = createRouter({
 // Navigation guard for protected routes
 router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('user');
-  
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'Login' });
-  } else if (!isAuthenticated && to.name !== 'Login') {
-    next({ name: 'Login' });
+    next({ path: '/' });
   } else {
     next();
   }

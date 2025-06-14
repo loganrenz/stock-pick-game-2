@@ -23,8 +23,6 @@ export const useGameStore = defineStore('game', {
       try {
         const res = await axios.get('/api/weeks');
         this.weeks = res.data;
-        // Set currentWeek to the latest week (first in sorted list)
-        this.currentWeek = this.weeks[0] || null;
       } catch (err) {
         this.error = 'Failed to fetch weeks';
       } finally {
@@ -39,6 +37,22 @@ export const useGameStore = defineStore('game', {
         this.currentWeek = res.data;
       } catch (err) {
         this.error = 'Failed to fetch current week';
+      } finally {
+        this.loading = false;
+      }
+    },
+    async fetchAll() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const [weeksRes, currentWeekRes] = await Promise.all([
+          axios.get('/api/weeks'),
+          axios.get('/api/current-week')
+        ]);
+        this.weeks = weeksRes.data;
+        this.currentWeek = currentWeekRes.data;
+      } catch (err) {
+        this.error = 'Failed to fetch data';
       } finally {
         this.loading = false;
       }
