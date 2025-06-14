@@ -27,6 +27,12 @@ app.use(session({
   },
 }));
 
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
+
 // Auth middleware
 const requireAuth = (req: any, res: any, next: any) => {
   if (req.session.userId) {
@@ -101,7 +107,9 @@ app.get('/api/weeks', async (req, res) => {
 
 app.post('/api/picks', requireAuth, async (req, res) => {
   const { weekId, symbol, priceAtPick } = req.body;
-  
+  if (typeof req.session.userId !== 'number') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const pick = await prisma.pick.create({
     data: {
       weekId,
@@ -117,7 +125,6 @@ app.post('/api/picks', requireAuth, async (req, res) => {
       },
     },
   });
-  
   res.json(pick);
 });
 
