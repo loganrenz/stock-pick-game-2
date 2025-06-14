@@ -4,10 +4,13 @@ REPO="loganrenz/stock-pick-game"
 
 while true; do
   clear
-  echo "Latest GitHub Actions run for $REPO:"
+  echo "Monitoring latest GitHub Actions run for $REPO:"
   LATEST=$(gh run list --limit 1 --repo "$REPO" | head -n 1)
   echo "$LATEST"
-  STATUS=$(echo "$LATEST" | awk '{print $7}')
+  NAME=$(echo "$LATEST" | awk '{print $2}')
+  STATUS=$(echo "$LATEST" | awk '{print $4}')
+  TIME=$(date '+%Y-%m-%d %H:%M:%S')
+  echo "[$TIME] Workflow: $NAME | Status: $STATUS"
   if [[ "$STATUS" == "success" ]]; then
     echo "Workflow succeeded."
     exit 0

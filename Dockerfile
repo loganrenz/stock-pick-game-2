@@ -22,7 +22,6 @@ RUN cd backend && npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-
 # Copy built backend and frontend
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
