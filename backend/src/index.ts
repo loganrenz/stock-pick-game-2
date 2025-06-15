@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { PrismaClient, User } from '@prisma/client';
+import { createClient } from '@libsql/client';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import axios from 'axios';
@@ -13,9 +14,17 @@ import path from 'path';
 dotenv.config();
 
 const app = express();
+const libsql = createClient({
+  url: process.env.DATABASE_URL || 'libsql://stockpickgame-loganrenz.aws-us-east-1.turso.io',
+  authToken: process.env.DATABASE_AUTH_TOKEN
+});
+
 const prisma = new PrismaClient({
-  // log: ['query', 'info', 'warn', 'error'],
-  // errorFormat: 'pretty'
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL
+    }
+  }
 });
 const port = Number(process.env.PORT) || 4556;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';

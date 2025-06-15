@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/dist/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "buildCommand": "cd backend && npm install && npm run build",
+        "installCommand": "cd backend && npm install"
+      }
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "cd frontend && npm install && npm run build",
+        "installCommand": "cd frontend && npm install"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/dist/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "libsql://stockpickgame-loganrenz.aws-us-east-1.turso.io",
+    "DATABASE_AUTH_TOKEN": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTAwMTExODksImlkIjoiMmY4OWFmMzgtNTQ0My00YjBkLWIzNTAtNjE4MTlmNjY3ZGRmIiwicmlkIjoiYzRkODNlMGItMWQ2OS00ZGU2LWExYmQtZWNkMzU4YWU4NmU0In0.PQoroze_w1ur6vgnGJE3XDWigKdZFuj0WReEueC-RnboUrM3bNrcTn9JgyObxjgHOx2nxQa1pmS_8g3GTUafAw",
+    "JWT_SECRET": "your-secret-key",
+    "ALPHA_VANTAGE_API_KEY": "J135CCG2DDOQOM6D",
+    "NODE_ENV": "production",
+    "PORT": "4556"
+  }
+} 
