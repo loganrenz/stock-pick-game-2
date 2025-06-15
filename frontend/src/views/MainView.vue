@@ -115,7 +115,7 @@
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-              }})</span>
+                }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
@@ -136,7 +136,7 @@
           <template #header>
             <div class="text-xl font-bold">{{ userNextWeekPick ? 'Change' : 'Make' }} Your Pick for Next Week</div>
             <div class="text-gray-500 text-sm">{{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-            }}</div>
+              }}</div>
           </template>
           <template #body>
             <form @submit.prevent="submitNextWeekPick">
@@ -200,7 +200,7 @@
                     <p v-if="pick.currentPrice"><b>Current Price:</b> {{ pick.currentPrice }}</p>
                     <p><b>Return %:</b> {{ typeof pick.weekReturnPct === 'number' ? pick.weekReturnPct.toFixed(2) + '%'
                       : 'N/A'
-                    }}</p>
+                      }}</p>
                   </div>
                   <div v-if="pick.dailyPrices" class="mt-2">
                     <div v-for="(day, key) in pick.dailyPrices" :key="key" class="text-xs text-gray-600">
@@ -248,7 +248,7 @@ const auth = useAuthStore();
 const isAuthenticated = computed(() => auth.isAuthenticated);
 const currentWeek = computed(() => gameStore.currentWeek);
 const allWeeks = computed(() => gameStore.weeks);
-const historicalWeeks = computed(() => gameStore.getHistoricalWeeks.filter(w => w.id !== currentWeek.value?.id));
+const historicalWeeks = computed(() => (Array.isArray(gameStore.getHistoricalWeeks) ? gameStore.getHistoricalWeeks : []).filter(w => w.id !== currentWeek.value?.id));
 
 const canPickCurrentWeek = computed(() => {
   if (!isAuthenticated.value || !currentWeek.value) return false;
@@ -264,7 +264,7 @@ const canPickCurrentWeek = computed(() => {
 
 // Find the next week (highest weekNum not equal to currentWeek)
 const nextAvailableWeek = computed(() => {
-  if (!allWeeks.value.length || !currentWeek.value) return null;
+  if (!Array.isArray(allWeeks.value) || !currentWeek.value) return null;
   return allWeeks.value.filter(w => w.id !== currentWeek.value.id).sort((a, b) => b.weekNum - a.weekNum)[0] || null;
 });
 
@@ -291,10 +291,10 @@ const isAdmin = computed(() => auth.user?.username === 'admin');
 const completedWeeks = computed(() => {
   // Only show weeks that have ended (endDate in the past and/or winner assigned)
   const now = new Date();
-  return gameStore.weeks
+  return (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
     .filter(w => {
       const ended = w.endDate && new Date(w.endDate) < now;
-      return (ended || w.winnerId) && w.picks.some(p => users.includes(p.user.username.toLowerCase()));
+      return (ended || w.winnerId) && w.picks && w.picks.some(p => users.includes(p.user.username.toLowerCase()));
     })
     .sort((a, b) => b.weekNum - a.weekNum);
 });
@@ -386,7 +386,7 @@ async function submitNextWeekPick() {
 async function fetchScoreboard() {
   try {
     const res = await axios.get('/api/scoreboard');
-    scoreboard.value = res.data.filter((s: any) => users.includes(s.username.toLowerCase()));
+    scoreboard.value = Array.isArray(res.data) ? res.data.filter((s: any) => users.includes(s.username.toLowerCase())) : [];
   } catch (err) {
     scoreboard.value = users.map(u => ({ username: u, wins: 0 }));
   }

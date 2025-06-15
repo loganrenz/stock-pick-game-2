@@ -93,8 +93,8 @@ const playerNames = ['patrick', 'taylor', 'logan'];
 function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
   const statsObj: Record<string, any> = {};
   for (const user of usersArr) {
-    const userPicks = picks.filter((p: any) => p.userId === user.id);
-    const userWins = weeks.filter((w: any) => w.winnerId === user.id).length;
+    const userPicks = (Array.isArray(picks) ? picks : []).filter((p: any) => p.userId === user.id);
+    const userWins = (Array.isArray(weeks) ? weeks : []).filter((w: any) => w.winnerId === user.id).length;
     // Portfolio value: $100 per pick, fractional shares
     let portfolioValue = 0;
     let totalInvested = 0;
@@ -174,10 +174,10 @@ const allStatRows = computed(() => {
 onMounted(async () => {
   loading.value = true;
   const res = await axios.get('/api/stats');
-  users.value = res.data.users.filter((u: any) => playerNames.includes(u.username.toLowerCase()));
+  users.value = Array.isArray(res.data.users) ? res.data.users.filter((u: any) => playerNames.includes(u.username.toLowerCase())) : [];
   stats.value = calculateStats(users.value, res.data.weeks, res.data.picks);
   allWeeks.value = res.data.weeks;
-  allPicks.value = res.data.picks.filter((p: any) => playerNames.includes(p.user.username.toLowerCase()));
+  allPicks.value = Array.isArray(res.data.picks) ? res.data.picks.filter((p: any) => playerNames.includes(p.user.username.toLowerCase())) : [];
   loading.value = false;
 });
 </script>
