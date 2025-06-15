@@ -39,7 +39,7 @@ RUN cd frontend && npm run build
 RUN cd backend && npm run build
 
 # --- Backend image ---
-FROM node:20-slim
+FROM node:20-slim as backend
 
 WORKDIR /app
 
@@ -64,7 +64,7 @@ ENV DATABASE_URL="file:/data/dev.db"
 USER node
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4556
 
 # Start the server
 CMD ["node", "dist/index.js"]
@@ -74,5 +74,6 @@ FROM node:20-alpine as frontend
 WORKDIR /app/frontend
 RUN apk add --no-cache openssl
 COPY --from=build /app/frontend/dist ./dist
+RUN npm install -g serve
 EXPOSE 5173
 CMD ["npx", "serve", "-s", "dist", "-l", "tcp://0.0.0.0:5173", "--single", "--cors"] 

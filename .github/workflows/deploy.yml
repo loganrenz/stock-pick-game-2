@@ -39,6 +39,13 @@ jobs:
             # Backup SQLite DB before deployment
             mkdir -p backups
             docker cp stock_pick_backend:/data/dev.db backups/dev-$(date +%Y%m%d%H%M%S).db || true
+            # Stop and remove existing containers
+            docker-compose down
+            # Start services
             docker-compose up -d
+            # Wait for services to be ready
             sleep 10
-            docker-compose exec -T stock_pick_backend npx prisma migrate deploy 
+            # Run database migrations
+            docker-compose exec -T stock_pick_backend npx prisma migrate deploy
+            # Verify services are running
+            docker-compose ps 
