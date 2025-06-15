@@ -10,8 +10,8 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=4556
-    env_file:
-      - ./backend/.env_file
+      - DATABASE_URL=file:/data/dev.db
+      - DATABASE_PROVIDER=sqlite
     ports:
       - "4556:4556"
     volumes:
