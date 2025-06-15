@@ -7,14 +7,11 @@ export default defineConfig({
   plugins: [vue(), tailwindcss()],
   base: '/',
   build: {
-    sourcemap: 'inline',
+    sourcemap: true,
     minify: 'terser',
-    terserOptions: {
-      sourceMap: true,
-    },
+    terserOptions: {},
     rollupOptions: {
       output: {
-        sourcemap: true,
         entryFileNames: `assets/[name].[hash].js`,
         chunkFileNames: `assets/[name].[hash].js`,
         assetFileNames: `assets/[name].[hash].[ext]`
