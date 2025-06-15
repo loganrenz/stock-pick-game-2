@@ -1,14 +1,26 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "builds": [
     {
       "src": "package.json",
       "use": "@vercel/static-build"
+    },
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
     }
   ],
-  "rootDirectory": "frontend",
   "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ],
   "env": {
     "DATABASE_URL_PROD": "libsql://prod-loganrenz.aws-us-east-1.turso.io",
@@ -17,7 +29,6 @@
     "DATABASE_AUTH_TOKEN_DEV": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTAwMTI0MjUsImlkIjoiNTZkY2NlMjMtYmRkZC00YzExLWFhYzUtYjI2YWY5NTU1ZTFmIiwicmlkIjoiOTkyYTZkNDMtZGQyOS00ZWNkLWJiM2EtNjVjMGM3MzZhMmM4In0.mmcHbaaQvF_zDx_xaMedcCQs_xjrTVk9mOlKfMyPeUCq_GNxZ-AhjWeHPpckjWxNUOometC_zYuYHaMNMUWEAA",
     "JWT_SECRET": "your-secret-key",
     "ALPHA_VANTAGE_API_KEY": "J135CCG2DDOQOM6D",
-    "NODE_ENV": "production",
-    "PORT": "4556"
+    "NODE_ENV": "production"
   }
 } 

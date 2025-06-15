@@ -117,3 +117,25 @@ docker-compose up -d
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Stock Pick Game Rules
+
+### Pick Window
+
+- Picks for the following week can be made after Friday 4:30pm Eastern (market close) until Sunday midnight Eastern.
+- Picks are locked as soon as Monday starts (12:00am ET).
+- If a player does not make a pick, their previous week's pick rolls over.
+- The backend automatically creates the next week as soon as the pick window opens (no admin needed).
+- On backend restart, if the next week is missing and the pick window is open, it is created immediately.
+
+### Game Flow
+
+- Users see the current week's picks in a table.
+- On weekends, the end result and winner (best % gain from Monday open to Friday close) are shown.
+- Only one screen: shows current week, pick history, and winner (prominently).
+- Stock info includes Monday open, daily open/close, and previous day's prices for holidays.
+
+### Authentication
+
+- Simple password login.
+- Long-lived JWT (1 year), refreshed on each visit.

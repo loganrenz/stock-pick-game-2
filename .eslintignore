@@ -1,0 +1,24 @@
+# Generated files
+old/backend/generated/
+old/backend/prisma/generated/
+
+# Build output
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# Test coverage
+coverage/
+
+# Cache
+.cache/
+.eslintcache
+
+# Environment files
+.env*
+
+# Exclude directories
+public
+*.d.ts 

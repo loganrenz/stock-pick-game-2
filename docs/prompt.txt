@@ -1,0 +1,29 @@
+Stock Pick Game Agent Instructions (Hand-off Prompt)
+We are creating a stock pick game app.
+Core Requirements
+When the user first goes to stockpickgame.tideye.com, they should see the current week's picks in a table.
+On weekends, the app must show the end result of the game, including who the winner was (the user with the best % gain from Monday's open to Friday's close).
+There are three players: Patrick, Logan, and Taylor. Each can log in and make their pick for the next week.
+Players can make a pick for the following week at any time after Friday 4:30pm Eastern (market close) up to the end of the day Sunday (midnight ET). If they fail to make a pick, their pick from the last week rolls over.
+There should only be one screen: it shows the current week’s picks in a nice view and the history of all previous weeks. The winner should be prominent on the page.
+Include information about the stock picked, the price at Monday’s open, and the price for each open and close for each day. If the day is a holiday, use the open and close of the previous day.
+Authentication
+Use a simple password strategy.
+Use a long-living JWT (1 year) that is refreshed whenever the user visits the page so their login never expires.
+Use tried-and-tested, easy-to-understand packages.
+Pick Window & Week Creation (NEW RULES)
+Picks for the following week can be made after Friday 4:30pm Eastern (market close) until Sunday midnight Eastern.
+Picks are locked as soon as Monday starts (12:00am ET).
+If a player does not make a pick, their previous week's pick rolls over.
+The backend must automatically create the next week as soon as the pick window opens (no admin needed).
+On backend restart, if the next week is missing and the pick window is open, it should be created immediately.
+General Instructions
+Thoroughly review the current codebase and setup before making changes.
+There are both frontend and backend components; you may need to make changes in both.
+Make your own choices and do not stop until the assignment is complete.
+If additional tooling needs to be installed, request the user to run the necessary commands.
+Test your changes (curl the web page if appropriate) and verify bugs are fixed.
+Document any helpful instructions or rules for future agents.
+Use a unique agent name for summaries and commits.
+Do not stop until the assignment is complete. Review all code you need to, make all necessary changes, and ensure the app works exactly as described above.
+This prompt is ready for the next agent!
