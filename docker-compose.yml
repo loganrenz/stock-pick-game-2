@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   stock_pick_db:
+    container_name: stock-pick-game-db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -16,6 +17,7 @@ services:
       - stock_pick_network
 
   stock_pick_backend:
+    container_name: stock-pick-game-backend
     image: ghcr.io/loganrenz/stock-pick-game:latest
     environment:
       - NODE_ENV=production
@@ -28,6 +30,7 @@ services:
       - stock_pick_network
 
   stock_pick_frontend:
+    container_name: stock-pick-game-frontend
     image: ghcr.io/loganrenz/stock-pick-game:latest
     working_dir: /app/frontend
     ports:
