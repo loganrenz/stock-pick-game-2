@@ -54,6 +54,8 @@ Please give yourself a unique name so that when I ask you for a summary in a lit
 4. Deploys to production server
 5. Updates containers using docker-compose
 
+> **Important:** All changes to the codebase must be pushed to GitHub first. The GitHub Actions workflow will handle the deployment to the VPS. Do not manually restart or update containers on the VPS as this will be overwritten by the next deployment.
+
 ## Monitoring Deployment
 
 To monitor the deployment process:

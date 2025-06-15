@@ -32,6 +32,7 @@ services:
       - stock_pick_db
     networks:
       - stock_pick_network
+    restart: always
 
 volumes:
   pgdata:
