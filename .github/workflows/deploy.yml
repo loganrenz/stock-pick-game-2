@@ -36,9 +36,9 @@ jobs:
           script: |
             cd /root/stock-pick-game
             docker-compose pull
+            # Backup SQLite DB before deployment
+            mkdir -p backups
+            docker cp stock_pick_backend:/data/dev.db backups/dev-$(date +%Y%m%d%H%M%S).db || true
             docker-compose up -d
             sleep 10
-            docker-compose exec -T stock_pick_backend npx prisma migrate deploy
-            # Backup SQLite DB after migration
-            mkdir -p backups
-            cp backend/prisma/dev.db backups/dev-$(date +%Y%m%d%H%M%S).db 
+            docker-compose exec -T stock_pick_backend npx prisma migrate deploy 

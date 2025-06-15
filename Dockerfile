@@ -6,17 +6,28 @@ WORKDIR /app
 # Install OpenSSL
 RUN apk add --no-cache openssl
 
-# Copy package files and install dependencies for both frontend and backend
-COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
+# Copy backend files
+COPY backend/package*.json backend/
+COPY backend/prisma backend/prisma/
+COPY backend/src backend/src/
+COPY backend/tsconfig.json backend/
+
+# Copy frontend files
+COPY frontend/package*.json frontend/
+COPY frontend/src frontend/src/
+COPY frontend/public frontend/public/
+COPY frontend/tsconfig.json frontend/
+COPY frontend/vite.config.ts frontend/
+
+# Install dependencies and build
 RUN cd backend && npm install && npm rebuild bcrypt && cd ../frontend && npm install
 
-# Copy backend and frontend source
-COPY backend ./backend
-COPY frontend ./frontend
-
-# Generate Prisma client
-RUN cd backend && npx prisma generate
+# Generate Prisma client and set up database
+RUN cd backend && \
+    npx prisma generate && \
+    mkdir -p /data && \
+    touch /data/dev.db && \
+    chown -R node:node /data
 
 # Build frontend
 RUN cd frontend && npm run build
@@ -25,22 +36,34 @@ RUN cd frontend && npm run build
 RUN cd backend && npm run build
 
 # --- Backend image ---
-FROM node:20-alpine as backend
+FROM node:20-slim
+
 WORKDIR /app
-RUN apk add --no-cache openssl
-COPY --from=build /app/backend/dist ./backend/dist
-COPY --from=build /app/backend/package.json ./backend/package.json
-COPY --from=build /app/backend/node_modules ./backend/node_modules
-COPY --from=build /app/backend/node_modules/.prisma ./backend/node_modules/.prisma
-COPY backend/prisma ./backend/prisma
-COPY backend/.env_file ./backend/.env
-# Ensure /data exists for SQLite DB
-RUN mkdir -p /data
-# If a dev.db exists in the build context, copy it in (for seeding or migration)
-COPY backend/prisma/dev.db /data/dev.db
-VOLUME ["/data"]
-EXPOSE 4556
-CMD ["node", "backend/dist/index.js"]
+
+# Install OpenSSL
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
+# Copy backend files
+COPY --from=build /app/backend/package*.json ./
+COPY --from=build /app/backend/dist ./dist
+COPY --from=build /app/backend/prisma ./prisma
+COPY --from=build /app/backend/node_modules ./node_modules
+
+# Create data directory for SQLite
+RUN mkdir -p /data && chown -R node:node /data
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV DATABASE_URL="file:/data/dev.db"
+
+# Switch to non-root user
+USER node
+
+# Expose port
+EXPOSE 3000
+
+# Start the server
+CMD ["node", "dist/index.js"]
 
 # --- Frontend image ---
 FROM node:20-alpine as frontend
