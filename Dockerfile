@@ -38,39 +38,34 @@ RUN cd frontend && npm run build
 # Build backend
 RUN cd backend && npm run build
 
-# --- Backend image ---
-FROM node:20-slim
+# --- Final image ---
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install OpenSSL
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# Install OpenSSL and serve
+RUN apk add --no-cache openssl && npm install -g serve
 
 # Copy backend files
-COPY --from=build /app/backend/package*.json ./
-COPY --from=build /app/backend/dist ./dist
-COPY --from=build /app/backend/prisma ./prisma
-COPY --from=build /app/backend/node_modules ./node_modules
-COPY --from=build /app/backend/prisma/schema.prisma ./prisma/schema.prisma
+COPY --from=build /app/backend/package*.json ./backend/
+COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/prisma ./backend/prisma
+COPY --from=build /app/backend/node_modules ./backend/node_modules
+COPY --from=build /app/backend/tsconfig.json ./backend/tsconfig.json
 
-# Create data directory for SQLite
-RUN mkdir -p /data && chown -R node:node /data
+# Copy frontend build
+COPY --from=build /app/frontend/dist ./frontend/dist
+
+# Copy database
+COPY --from=build /app/data /data
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV DATABASE_URL="file:/data/dev.db"
 
-# Switch to non-root user
-USER node
-
-# Expose port
+# Expose ports
 EXPOSE 4556
-
-# Start the server
-CMD ["node", "dist/index.js"]
-
-# --- Frontend image ---
-FROM nginx:alpine as frontend
-COPY --from=build /app/frontend/dist /usr/share/nginx/html
 EXPOSE 5173
-CMD ["nginx", "-g", "daemon off;"] 
+
+# Start both backend and frontend
+CMD ["sh", "-c", "node backend/dist/index.js & serve -s frontend/dist -l tcp://0.0.0.0:5173 --single --cors"] 

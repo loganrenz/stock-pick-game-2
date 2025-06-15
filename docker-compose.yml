@@ -2,7 +2,6 @@ version: '3.8'
 
 services:
   stock_pick_db:
-    container_name: stock-pick-game-db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -16,9 +15,11 @@ services:
     networks:
       - stock_pick_network
 
-  stock_pick_backend:
-    container_name: stock-pick-game-backend
+  stock_pick_game:
     image: ghcr.io/loganrenz/stock-pick-game:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
       - PORT=4556
@@ -26,18 +27,9 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@stock_pick_db:5432/stock_pick_game
     ports:
       - "4556:4556"
+      - "5173:5173"
     depends_on:
       - stock_pick_db
-    networks:
-      - stock_pick_network
-
-  stock_pick_frontend:
-    container_name: stock-pick-game-frontend
-    image: ghcr.io/loganrenz/stock-pick-game-frontend:latest
-    ports:
-      - "5173:80"
-    depends_on:
-      - stock_pick_backend
     networks:
       - stock_pick_network
 
