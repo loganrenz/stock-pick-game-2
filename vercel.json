@@ -2,16 +2,19 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build"
     }
   ],
+  "rootDirectory": "frontend",
   "routes": [
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
-    "DATABASE_URL": "libsql://stockpickgame-loganrenz.aws-us-east-1.turso.io",
-    "DATABASE_AUTH_TOKEN": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTAwMTExODksImlkIjoiMmY4OWFmMzgtNTQ0My00YjBkLWIzNTAtNjE4MTlmNjY3ZGRmIiwicmlkIjoiYzRkODNlMGItMWQ2OS00ZGU2LWExYmQtZWNkMzU4YWU4NmU0In0.PQoroze_w1ur6vgnGJE3XDWigKdZFuj0WReEueC-RnboUrM3bNrcTn9JgyObxjgHOx2nxQa1pmS_8g3GTUafAw",
+    "DATABASE_URL_PROD": "libsql://prod-loganrenz.aws-us-east-1.turso.io",
+    "DATABASE_AUTH_TOKEN_PROD": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE3ODE1NDgzNDIsImlhdCI6MTc1MDAxMjM0MiwiaWQiOiJmNTFjMGYwZi05ZGUzLTQ4MjUtOGE4YS1kNmFhNDc4Y2QyMmEiLCJyaWQiOiJiYWUzNTVmMC0yMTY5LTRkZjItYjA3Mi05MTExYWVlMWQ1MmEifQ.0Wo5TrPgTxCt1tywzu4-lzO3PDb6x1-iZP9Idz2okKZw_n1ucDSGAgcrGQTiPtxlomfbG73c3d-Ug-Wt-BGnCA",
+    "DATABASE_URL_DEV": "libsql://dev-loganrenz.aws-us-east-1.turso.io",
+    "DATABASE_AUTH_TOKEN_DEV": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTAwMTI0MjUsImlkIjoiNTZkY2NlMjMtYmRkZC00YzExLWFhYzUtYjI2YWY5NTU1ZTFmIiwicmlkIjoiOTkyYTZkNDMtZGQyOS00ZWNkLWJiM2EtNjVjMGM3MzZhMmM4In0.mmcHbaaQvF_zDx_xaMedcCQs_xjrTVk9mOlKfMyPeUCq_GNxZ-AhjWeHPpckjWxNUOometC_zYuYHaMNMUWEAA",
     "JWT_SECRET": "your-secret-key",
     "ALPHA_VANTAGE_API_KEY": "J135CCG2DDOQOM6D",
     "NODE_ENV": "production",
