@@ -115,7 +115,7 @@
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-                }})</span>
+              }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
@@ -136,7 +136,7 @@
           <template #header>
             <div class="text-xl font-bold">{{ userNextWeekPick ? 'Change' : 'Make' }} Your Pick for Next Week</div>
             <div class="text-gray-500 text-sm">{{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-              }}</div>
+            }}</div>
           </template>
           <template #body>
             <form @submit.prevent="submitNextWeekPick">
@@ -200,7 +200,7 @@
                     <p v-if="pick.currentPrice"><b>Current Price:</b> {{ pick.currentPrice }}</p>
                     <p><b>Return %:</b> {{ typeof pick.weekReturnPct === 'number' ? pick.weekReturnPct.toFixed(2) + '%'
                       : 'N/A'
-                      }}</p>
+                    }}</p>
                   </div>
                   <div v-if="pick.dailyPrices" class="mt-2">
                     <div v-for="(day, key) in pick.dailyPrices" :key="key" class="text-xs text-gray-600">
