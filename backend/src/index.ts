@@ -7,6 +7,8 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { addDays, startOfWeek, endOfWeek, isWeekend, isMonday, isFriday } from 'date-fns';
 import { toZonedTime } from "date-fns-tz";
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
@@ -20,6 +22,32 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
 const JWT_REFRESH_THRESHOLD = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 const ALPHA_VANTAGE_API_KEY = 'J135CCG2DDOQOM6D';
+
+// Ensure logs directory exists
+const logsDir = '/data/logs';
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Configure logging
+const logStream = fs.createWriteStream(path.join(logsDir, 'api_server.log'), { flags: 'a' });
+const logToFile = (message: string) => {
+  const timestamp = new Date().toISOString();
+  logStream.write(`${timestamp} - ${message}\n`);
+};
+
+// Update console.log calls to also log to file
+console.log = (...args) => {
+  const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+  logToFile(message);
+  process.stdout.write(message + '\n');
+};
+
+console.error = (...args) => {
+  const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg).join(' ');
+  logToFile(`ERROR: ${message}`);
+  process.stderr.write(message + '\n');
+};
 
 // Extend Express Request type to include user
 declare global {
