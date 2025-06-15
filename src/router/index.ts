@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import type { RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw, type NavigationGuardNext, type RouteLocationNormalized } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -31,10 +31,18 @@ const router = createRouter({
 });
 
 // Navigation guard for protected routes
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('user');
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ path: '/' });
+router.beforeEach((
+  to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
+  next: NavigationGuardNext
+) => {
+  const authStore = useAuthStore();
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    if (to.path === '/') {
+      next(); // Stay on main page, show login modal
+    } else {
+      next({ path: '/' }); // Redirect to main page
+    }
   } else {
     next();
   }

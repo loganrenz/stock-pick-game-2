@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import MainView from './views/MainView.vue';
 import TopBar from './components/TopBar.vue';
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from './stores/auth';
@@ -11,9 +10,14 @@ const appVersion = __APP_VERSION__;
 const buildTime = __BUILD_TIME__;
 
 onMounted(async () => {
-  // Initialize auth state
   if (auth.token) {
-    await auth.fetchUser();
+    try {
+      await auth.fetchUser();
+    } catch {
+      showLoginModal.value = true; // Show login modal if fetch fails
+    }
+  } else {
+    showLoginModal.value = true; // Show login modal if no token
   }
 });
 </script>
@@ -23,11 +27,8 @@ onMounted(async () => {
     <TopBar @open-login-modal="showLoginModal = true" />
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <router-view v-slot="{ Component }">
-        <component
-          :is="Component"
-          :show-login-modal="showLoginModal"
-          @update:show-login-modal="showLoginModal = $event"
-        />
+        <component :is="Component" :show-login-modal="showLoginModal"
+          @update:show-login-modal="showLoginModal = $event" />
       </router-view>
     </main>
     <div class="version-badge">
