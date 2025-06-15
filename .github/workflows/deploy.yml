@@ -24,7 +24,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/stock-pick-game:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/stock-pick-game:latest
+            ghcr.io/${{ github.repository_owner }}/stock-pick-game:${{ github.sha }}
           no-cache: true
 
       - name: SSH to VPS and deploy with docker compose
@@ -35,12 +37,15 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /root/stock-pick-game
-            docker-compose pull
+            # Force pull the latest image
+            docker pull ghcr.io/${{ github.repository_owner }}/stock-pick-game:${{ github.sha }}
             # Backup SQLite DB before deployment
             mkdir -p backups
             docker cp stock_pick_backend:/data/dev.db backups/dev-$(date +%Y%m%d%H%M%S).db || true
             # Stop and remove existing containers
             docker-compose down
+            # Update docker-compose.yml to use the specific version
+            sed -i "s|image: ghcr.io/loganrenz/stock-pick-game:latest|image: ghcr.io/${{ github.repository_owner }}/stock-pick-game:${{ github.sha }}|g" docker-compose.yml
             # Start services
             docker-compose up -d --remove-orphans
             # Wait for services to be ready
