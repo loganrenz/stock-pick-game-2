@@ -28,6 +28,8 @@ model Week {
   winner    User?    @relation("Winner", fields: [winnerId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime? @updatedAt
+
+  @@unique([startDate])
 }
 
 model Pick {
@@ -45,4 +47,6 @@ model Pick {
   weekReturnPct Float?
   user          User     @relation(fields: [userId], references: [id])
   week          Week     @relation(fields: [weekId], references: [id])
+
+  @@unique([userId, weekId])
 }

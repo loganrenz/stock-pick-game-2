@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  stock_pick_db:
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: stock_pick_game
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - stock_pick_network
-
   stock_pick_game:
     image: ghcr.io/loganrenz/stock-pick-game:latest
     build:
@@ -23,20 +9,15 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=4556
-      - DATABASE_PROVIDER=postgresql
-      - DATABASE_URL=postgresql://postgres:postgres@stock_pick_db:5432/stock_pick_game
+      - DATABASE_URL=file:/data/dev.db
+      - DATABASE_PROVIDER=sqlite
     ports:
       - "4556:4556"
       - "5173:5173"
-    depends_on:
-      - stock_pick_db
-    networks:
-      - stock_pick_network
+    volumes:
+      - ./data:/data
     restart: always
 
-volumes:
-  pgdata:
-
 networks:
-  stock_pick_network:
+  default:
     driver: bridge 
