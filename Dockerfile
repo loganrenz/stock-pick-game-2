@@ -50,8 +50,8 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/backend/package*.json ./
 COPY --from=build /app/backend/dist ./dist
 COPY --from=build /app/backend/prisma ./prisma
-COPY --from=build /app/backend/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=build /app/backend/node_modules ./node_modules
+COPY --from=build /app/backend/prisma/schema.prisma ./prisma/schema.prisma
 
 # Create data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
