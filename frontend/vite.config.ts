@@ -5,9 +5,16 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
-  base: '/?v=' + Date.now(),
+  base: '/',
   build: {
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name].[hash].js?v=${Date.now()}`,
+        chunkFileNames: `assets/[name].[hash].js?v=${Date.now()}`,
+        assetFileNames: `assets/[name].[hash].[ext]?v=${Date.now()}`
+      }
+    }
   },
   server: {
     host: '0.0.0.0',
