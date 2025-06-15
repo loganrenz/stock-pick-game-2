@@ -18,6 +18,14 @@
       "dest": "/api/$1"
     },
     {
+      "src": "/assets/(.*)",
+      "headers": {
+        "cache-control": "public, max-age=31536000, immutable",
+        "Content-Type": "text/css"
+      },
+      "continue": true
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
