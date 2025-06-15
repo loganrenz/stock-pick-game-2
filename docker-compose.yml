@@ -35,7 +35,7 @@ services:
     container_name: stock-pick-game-frontend
     image: ghcr.io/loganrenz/stock-pick-game-frontend:latest
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
       - stock_pick_backend
     networks:
