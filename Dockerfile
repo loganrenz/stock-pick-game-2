@@ -17,6 +17,8 @@ COPY frontend/package*.json frontend/
 COPY frontend/src frontend/src/
 COPY frontend/public frontend/public/
 COPY frontend/tsconfig.json frontend/
+COPY frontend/tsconfig.app.json frontend/
+COPY frontend/tsconfig.node.json frontend/
 COPY frontend/vite.config.ts frontend/
 COPY frontend/index.html frontend/
 
