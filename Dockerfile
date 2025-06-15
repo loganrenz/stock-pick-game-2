@@ -65,5 +65,5 @@ USER node
 # Expose ports
 EXPOSE 4556 5173
 
-# Start both services
-CMD sh -c "cd backend && npm start & cd frontend && serve -s dist -l 5173" 
+# Start both backend and frontend
+CMD ["sh", "-c", "node backend/dist/index.js & serve -s frontend/dist -l tcp://0.0.0.0:5173 --single --cors"] 
