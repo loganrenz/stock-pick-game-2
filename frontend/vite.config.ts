@@ -5,9 +5,11 @@ import tailwindcss from '@tailwindcss/vite'
 const buildTime = new Date().toISOString();
 const version = process.env.npm_package_version;
 
+const isTest = !!process.env.VITEST;
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+  plugins: isTest ? [vue()] : [vue(), tailwindcss()],
   base: '/',
   build: {
     sourcemap: true,
@@ -40,6 +42,7 @@ export default defineConfig({
     outputFile: './tests/results/vitest-report.txt',
     resolveSnapshotPath: (testPath, snapshotExtension) =>
       testPath.replace(/src\//, 'tests/__snapshots__/') + snapshotExtension,
+    exclude: ['tests/e2e/**', 'node_modules/**'],
   },
   define: {
     __APP_VERSION__: JSON.stringify(version),

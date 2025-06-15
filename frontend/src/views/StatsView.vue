@@ -59,8 +59,8 @@
               <td class="px-2 py-1">{{ user.username }}</td>
               <td class="px-2 py-1">{{ pick.weekNum }}</td>
               <td class="px-2 py-1">{{ pick.symbol }}</td>
-              <td class="px-2 py-1">{{ typeof pick.weekReturnPct === 'number' ? pick.weekReturnPct.toFixed(2) + '%' :
-                'N/A' }}</td>
+              <td class="px-2 py-1">{{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2) +
+                '%' : 'N/A' }}</td>
               <td class="px-2 py-1">
                 <span v-if="pick.isWinner"
                   class="bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">Win</span>
@@ -104,12 +104,12 @@ function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
     let lastWin = false;
     let avgReturn = 0;
     for (const pick of userPicks) {
-      if (pick.priceAtPick && pick.currentPrice) {
-        const shares = 100 / pick.priceAtPick;
-        const value = shares * pick.currentPrice;
+      if (pick.entryPrice && pick.currentValue) {
+        const shares = 100 / pick.entryPrice;
+        const value = shares * pick.currentValue;
         portfolioValue += value;
         totalInvested += 100;
-        const pct = ((pick.currentPrice - pick.priceAtPick) / pick.priceAtPick) * 100;
+        const pct = ((pick.currentValue - pick.entryPrice) / pick.entryPrice) * 100;
         totalReturnPct += pct;
         avgReturn += pct;
         if (pct > biggestWin) biggestWin = pct;
@@ -147,14 +147,14 @@ function allPicksForUser(user: any) {
     return {
       weekNum: week.weekNum,
       symbol: pick.symbol || '-',
-      weekReturnPct: pick.weekReturnPct,
+      returnPercentage: pick.returnPercentage,
       isWinner: week.winnerId === user.id
     };
   });
 }
 
 const allStatRows = computed(() => {
-  // Returns an array of { username, weekNum, symbol, weekReturnPct, isWinner }
+  // Returns an array of { username, weekNum, symbol, returnPercentage, isWinner }
   const rows: any[] = [];
   users.value.forEach(user => {
     allWeeks.value.forEach(week => {
@@ -163,7 +163,7 @@ const allStatRows = computed(() => {
         username: user.username,
         weekNum: week.weekNum,
         symbol: pick.symbol || '-',
-        weekReturnPct: pick.weekReturnPct,
+        returnPercentage: pick.returnPercentage,
         isWinner: week.winnerId === user.id
       });
     });

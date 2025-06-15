@@ -11,7 +11,7 @@ interface GameState {
 
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
-    weeks: [],
+    weeks: [] as Week[],
     currentWeek: null,
     loading: false,
     error: null,
@@ -22,7 +22,16 @@ export const useGameStore = defineStore('game', {
       this.error = null;
       try {
         const res = await axios.get('/api/weeks');
-        this.weeks = res.data;
+        this.weeks = res.data.map((week: any) => ({
+          ...week,
+          picks: week.picks.map((pick: any) => ({
+            ...pick,
+            entryPrice: pick.entryPrice ?? pick.priceAtPick,
+            currentValue: pick.currentValue ?? pick.currentPrice,
+            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
+            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+          }))
+        }));
       } catch (err) {
         this.error = 'Failed to fetch weeks';
       } finally {
@@ -33,8 +42,17 @@ export const useGameStore = defineStore('game', {
       this.loading = true;
       this.error = null;
       try {
-        const res = await axios.get('/api/current-week');
-        this.currentWeek = res.data;
+        const res = await axios.get('/api/weeks/current');
+        this.currentWeek = {
+          ...res.data,
+          picks: res.data.picks.map((pick: any) => ({
+            ...pick,
+            entryPrice: pick.entryPrice ?? pick.priceAtPick,
+            currentValue: pick.currentValue ?? pick.currentPrice,
+            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
+            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+          }))
+        };
       } catch (err) {
         this.error = 'Failed to fetch current week';
       } finally {
@@ -47,7 +65,7 @@ export const useGameStore = defineStore('game', {
       try {
         const [weeksRes, currentWeekRes] = await Promise.all([
           axios.get('/api/weeks'),
-          axios.get('/api/current-week')
+          axios.get('/api/weeks/current')
         ]);
         this.weeks = weeksRes.data;
         this.currentWeek = currentWeekRes.data;
@@ -70,11 +88,11 @@ export const useGameStore = defineStore('game', {
         this.loading = false;
       }
     },
-    async submitNextWeekPick(symbol: string) {
+    async submitNextWeekPick(symbol: string, weekId: number) {
       this.loading = true;
       this.error = null;
       try {
-        await axios.post('/api/picks/next-week', { symbol });
+        await axios.post('/api/picks/next-week', { symbol, weekId });
         await this.fetchWeeks();
         await this.fetchCurrentWeek();
       } catch (err) {
@@ -83,6 +101,19 @@ export const useGameStore = defineStore('game', {
         this.loading = false;
       }
     },
+    async fetchScoreboard() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const res = await axios.get('/api/scoreboard');
+        return res.data;
+      } catch (err) {
+        this.error = 'Failed to fetch scoreboard';
+        return [];
+      } finally {
+        this.loading = false;
+      }
+    }
   },
   getters: {
     getWeekById: (state) => (id: number) => state.weeks.find(w => w.id === id),

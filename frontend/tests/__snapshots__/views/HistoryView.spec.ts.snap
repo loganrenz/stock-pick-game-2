@@ -3,116 +3,26 @@
 exports[`HistoryView > renders correctly visually 1`] = `
 <div>
   <div
-    class="history"
+    class="py-6"
     data-v-77e3d4bd=""
   >
-    <h1
-      data-v-77e3d4bd=""
-    >
-      Game History
-    </h1>
     <div
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       data-v-77e3d4bd=""
     >
-      <table
-        class="weeks-table"
+      <h1
+        class="text-3xl font-bold text-gray-900 mb-8"
         data-v-77e3d4bd=""
       >
-        <thead
-          data-v-77e3d4bd=""
-        >
-          <tr
-            data-v-77e3d4bd=""
-          >
-            <th
-              data-v-77e3d4bd=""
-            >
-              Week
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Date
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Picker
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Symbol
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Price
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Price at Pick
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Mon
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Tue
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Wed
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Thur
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Fri
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Return 1 Week
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Return 1 Week %
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Current Price
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Total Return
-            </th>
-            <th
-              data-v-77e3d4bd=""
-            >
-              Winner
-            </th>
-          </tr>
-        </thead>
-        <tbody
-          data-v-77e3d4bd=""
-        >
-          
-          
-        </tbody>
-      </table>
+        Stock Pick History
+      </h1>
+      <div
+        class="space-y-6"
+        data-v-77e3d4bd=""
+      >
+        
+        
+      </div>
     </div>
   </div>
 </div>

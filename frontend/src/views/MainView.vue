@@ -106,13 +106,12 @@ ap<template>
                     'N/A' }}</p>
                 </div>
                 <div v-if="pick.dailyPriceData" class="mt-2">
-                  <template v-for="(priceData, dayName) in (pick.dailyPriceData as Record<string, DailyPrice>)"
-                    :key="dayName">
-                    <div
-                      v-if="priceData && (dayName === 'monday' || dayName === 'tuesday' || dayName === 'wednesday' || dayName === 'thursday' || dayName === 'friday')"
-                      class="text-xs text-gray-600">
-                      <b>{{ capitalize(dayName) }}:</b> Open {{ priceData?.open != null ? priceData.open : '-' }}, Close
-                      {{ priceData?.close != null ? priceData.close : '-' }}
+                  <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
+                    <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
+                      :data-testid="`daily-price-${day}`">
+                      <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
+                      <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
+                      <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
                     </div>
                   </template>
                 </div>
@@ -215,13 +214,12 @@ ap<template>
                       : 'N/A' }}</p>
                   </div>
                   <div v-if="pick.dailyPriceData" class="mt-2">
-                    <template v-for="(priceData, dayName) in (pick.dailyPriceData as Record<string, DailyPrice>)"
-                      :key="dayName">
-                      <div
-                        v-if="priceData && (dayName === 'monday' || dayName === 'tuesday' || dayName === 'wednesday' || dayName === 'thursday' || dayName === 'friday')"
-                        class="text-xs text-gray-600">
-                        <b>{{ capitalize(dayName) }}:</b> Open {{ priceData?.open != null ? priceData.open : '-' }},
-                        Close {{ priceData?.close != null ? priceData.close : '-' }}
+                    <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
+                      <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
+                        :data-testid="`daily-price-${day}`">
+                        <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
+                        <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
+                        <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
                       </div>
                     </template>
                   </div>
@@ -449,6 +447,17 @@ function copyDebugInfo() {
   navigator.clipboard.writeText(text.trim());
   debugCopied.value = true;
   setTimeout(() => { debugCopied.value = false; }, 1200);
+}
+
+function dayLabel(day: string) {
+  const map: Record<string, string> = {
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+  };
+  return map[day] || day;
 }
 
 onMounted(async () => {

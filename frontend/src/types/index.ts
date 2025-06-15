@@ -13,11 +13,11 @@ export interface Pick {
   userId: number;
   weekId: number;
   symbol: string;
-  priceAtPick: number;
+  entryPrice: number;
   createdAt: string;
   updatedAt: string;
   user: User;
-  dailyPrices?: {
+  dailyPriceData?: {
     monday?: DailyPrice;
     tuesday?: DailyPrice;
     wednesday?: DailyPrice;
@@ -25,10 +25,8 @@ export interface Pick {
     friday?: DailyPrice;
     [key: string]: DailyPrice | undefined;
   };
-  currentPrice?: number;
-  totalReturn?: number;
-  weekReturn?: number;
-  weekReturnPct?: number;
+  currentValue?: number;
+  returnPercentage?: number;
 }
 
 export interface Week {

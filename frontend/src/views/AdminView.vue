@@ -1,7 +1,7 @@
 <template>
   <div class="admin">
     <h1>Admin Panel</h1>
-    
+
     <div class="admin-section">
       <h2>Current Week</h2>
       <div v-if="gameStore.currentWeek" class="current-week">
@@ -9,12 +9,12 @@
           <p>Week {{ gameStore.currentWeek.weekNum }}</p>
           <p>Start Date: {{ formatDate(gameStore.currentWeek.startDate) }}</p>
         </div>
-        
+
         <div class="picks-list">
           <h3>Picks</h3>
           <div v-for="pick in gameStore.getCurrentWeekPicks" :key="pick.id" class="pick-item">
             <span>{{ pick.user.username }}: {{ pick.symbol }}</span>
-            <span>${{ pick.priceAtPick.toFixed(2) }}</span>
+            <span>${{ pick.entryPrice.toFixed(2) }}</span>
           </div>
         </div>
       </div>
@@ -41,25 +41,12 @@
 
         <div class="form-group">
           <label for="symbol">Stock Symbol</label>
-          <input
-            id="symbol"
-            v-model="symbol"
-            type="text"
-            required
-            placeholder="Enter stock symbol"
-          />
+          <input id="symbol" v-model="symbol" type="text" required placeholder="Enter stock symbol" />
         </div>
 
         <div class="form-group">
           <label for="price">Price at Pick</label>
-          <input
-            id="price"
-            v-model="price"
-            type="number"
-            step="0.01"
-            required
-            placeholder="Enter price"
-          />
+          <input id="price" v-model="price" type="number" step="0.01" required placeholder="Enter price" />
         </div>
 
         <div v-if="error" class="error">
@@ -237,14 +224,16 @@ label {
   font-size: 0.9rem;
 }
 
-input, select {
+input,
+select {
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: #4CAF50;
 }
@@ -282,6 +271,8 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-  .admin { padding: 1rem 0.5rem 0.5rem 0.5rem; }
+  .admin {
+    padding: 1rem 0.5rem 0.5rem 0.5rem;
+  }
 }
-</style> 
+</style>
