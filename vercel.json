@@ -2,32 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/dist/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "buildCommand": "cd backend && npm install && npm run build",
-        "installCommand": "cd backend && npm install"
-      }
-    },
-    {
       "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist",
-        "buildCommand": "cd frontend && npm install && npm run build",
-        "installCommand": "cd frontend && npm install"
-      }
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/dist/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/dist/$1"
-    }
+    { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "DATABASE_URL": "libsql://stockpickgame-loganrenz.aws-us-east-1.turso.io",
