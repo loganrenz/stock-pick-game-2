@@ -37,14 +37,13 @@ model Pick {
   userId        Int
   weekId        Int
   symbol        String
-  priceAtPick   Float
+  entryPrice    Float
   createdAt     DateTime @default(now())
   updatedAt     DateTime? @updatedAt
-  dailyPrices   String?  // Store daily prices as JSON string
-  currentPrice  Float?
-  totalReturn   Float?
+  dailyPriceData String?
+  currentValue  Float?
   weekReturn    Float?
-  weekReturnPct Float?
+  returnPercentage Float?
   user          User     @relation(fields: [userId], references: [id])
   week          Week     @relation(fields: [weekId], references: [id])
 
