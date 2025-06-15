@@ -39,7 +39,7 @@ RUN cd frontend && npm run build
 RUN cd backend && npm run build
 
 # --- Backend image ---
-FROM node:20-slim as backend
+FROM node:20-slim
 
 WORKDIR /app
 
@@ -70,10 +70,8 @@ EXPOSE 4556
 CMD ["node", "dist/index.js"]
 
 # --- Frontend image ---
-FROM node:20-alpine as frontend
-WORKDIR /app/frontend
-RUN apk add --no-cache openssl
-COPY --from=build /app/frontend/dist ./dist
-RUN npm install -g serve
+FROM nginx:alpine as frontend
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 5173
-CMD ["npx", "serve", "-s", "dist", "-l", "tcp://0.0.0.0:5173", "--single", "--cors", "--no-clipboard", "--no-compression"] 
+CMD ["nginx", "-g", "daemon off;"] 
