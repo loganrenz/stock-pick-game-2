@@ -26,7 +26,11 @@ const ALPHA_VANTAGE_API_KEY = 'J135CCG2DDOQOM6D';
 // Ensure logs directory exists
 const logsDir = '/data/logs';
 if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+  try {
+    fs.mkdirSync(logsDir, { recursive: true });
+  } catch (error) {
+    console.error('Error creating logs directory:', error);
+  }
 }
 
 // Configure logging
