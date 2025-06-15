@@ -76,4 +76,4 @@ RUN apk add --no-cache openssl
 COPY --from=build /app/frontend/dist ./dist
 RUN npm install -g serve
 EXPOSE 5173
-CMD ["npx", "serve", "-s", "dist", "-l", "tcp://0.0.0.0:5173", "--single", "--cors"] 
+CMD ["npx", "serve", "-s", "dist", "-l", "tcp://0.0.0.0:5173", "--single", "--cors", "--no-clipboard", "--no-compression"] 
