@@ -26,14 +26,15 @@ ap<template>
             <div class="mb-4">
               <label class="block text-gray-700 mb-2">Username</label>
               <input v-model="loginForm.username" type="text" class="w-full border rounded px-3 py-2"
-                placeholder="Enter your username" />
+                placeholder="Enter your username" data-testid="login-username" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 mb-2">Password</label>
-              <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-2" />
+              <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-2"
+                data-testid="login-password" />
             </div>
-            <button type="submit"
-              class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Login</button>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
+              data-testid="login-submit">Login</button>
             <div v-if="loginError" class="text-red-600 mt-2 text-center">{{ loginError }}</div>
           </form>
         </template>
@@ -47,7 +48,7 @@ ap<template>
           </div>
         </div>
         <!-- Current Week at the top -->
-        <div class="bg-white shadow-lg rounded-lg mb-10 border-2 border-blue-200">
+        <div class="bg-white shadow-lg rounded-lg mb-10 border-2 border-blue-200" data-testid="current-week-section">
           <div
             class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg">
             <div>
@@ -69,7 +70,8 @@ ap<template>
               <form @submit.prevent="submitPick" class="mb-6 flex gap-4 items-end">
                 <div class="flex-1">
                   <label class="block text-gray-700 mb-1">Your Pick for Current Week</label>
-                  <input v-model="pickForm.symbol" class="w-full border rounded px-3 py-2" placeholder="e.g. AAPL" />
+                  <input v-model="pickForm.symbol" class="w-full border rounded px-3 py-2" placeholder="e.g. AAPL"
+                    data-testid="pick-symbol" />
                 </div>
                 <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">
                   Submit Pick
@@ -126,7 +128,7 @@ ap<template>
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-              }})</span>
+                }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
@@ -147,7 +149,7 @@ ap<template>
           <template #header>
             <div class="text-xl font-bold">{{ userNextWeekPick ? 'Change' : 'Make' }} Your Pick for Next Week</div>
             <div class="text-gray-500 text-sm">{{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-            }}</div>
+              }}</div>
           </template>
           <template #body>
             <form @submit.prevent="submitNextWeekPick">
@@ -244,7 +246,8 @@ ap<template>
     <div>isAuthenticated: {{ isAuthenticated.toString() }}</div>
     <div>currentWeek.startDate: {{ currentWeek?.startDate }}</div>
     <div>currentWeek.endDate: {{ currentWeek?.endDate }}</div>
-    <div>alreadyPicked: {{currentWeek?.picks.some(p => p.user.username === auth.user?.username).toString()}}</div>
+    <div>alreadyPicked: {{(currentWeek?.picks ?? []).some(p => p.user.username === auth.user?.username).toString()}}
+    </div>
     <div>canPickCurrentWeek: {{ canPickCurrentWeek.toString() }}</div>
   </div>
   <div class="debug-box"
@@ -325,7 +328,7 @@ const showNextWeekPickBox = computed(() => {
 
 const userNextWeekPick = computed(() => {
   if (!isAuthenticated.value || !nextWeek.value) return null;
-  return nextWeek.value.picks.find((p: Pick) => p.user.username === auth.user?.username) || null;
+  return (nextWeek.value.picks ?? []).find((p: Pick) => p.user.username === auth.user?.username) || null;
 });
 
 const isAdmin = computed(() => auth.user?.username === 'admin');
@@ -336,7 +339,7 @@ const completedWeeks = computed(() => {
   return (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
     .filter((w: Week) => {
       const ended = w.endDate && new Date(w.endDate) < now;
-      return (ended || w.winnerId) && w.picks && w.picks.some((p: Pick) => users.includes(p.user.username.toLowerCase()));
+      return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => users.includes(p.user.username.toLowerCase()));
     })
     .sort((a: Week, b: Week) => b.weekNum - a.weekNum);
 });
