@@ -15,7 +15,7 @@ services:
       - "4556:4556"
       - "5173:5173"
     volumes:
-      - ./data:/data
+      - ./data:/data:rw
     restart: always
 
 networks:
