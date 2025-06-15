@@ -18,6 +18,7 @@ COPY frontend/src frontend/src/
 COPY frontend/public frontend/public/
 COPY frontend/tsconfig.json frontend/
 COPY frontend/vite.config.ts frontend/
+COPY frontend/index.html frontend/
 
 # Install dependencies and build
 RUN cd backend && npm install && npm rebuild bcrypt && cd ../frontend && npm install
