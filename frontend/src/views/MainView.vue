@@ -1,4 +1,4 @@
-<template>
+ap<template>
   <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       <!-- Scoreboard in upper left corner, hidden on small screens -->
@@ -99,10 +99,22 @@
                 </div>
                 <div class="text-sm text-gray-500">
                   <p><b>Stock:</b> {{ pick.symbol }}</p>
-                  <p><b>Pick Price (Mon Open):</b> {{ pick.priceAtPick }}</p>
-                  <p v-if="pick.currentPrice"><b>Current Price:</b> {{ pick.currentPrice }}</p>
-                  <p><b>Return %:</b> {{ typeof pick.weekReturnPct === 'number' ? pick.weekReturnPct.toFixed(2) + '%' :
+                  <p><b>Pick Price (Mon Open):</b> {{ pick.entryPrice }}</p>
+                  <p v-if="pick.currentValue"><b>Current Price:</b> {{ pick.currentValue }}</p>
+                  <p><b>Return %:</b> {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2) +
+                    '%' :
                     'N/A' }}</p>
+                </div>
+                <div v-if="pick.dailyPriceData" class="mt-2">
+                  <template v-for="(priceData, dayName) in (pick.dailyPriceData as Record<string, DailyPrice>)"
+                    :key="dayName">
+                    <div
+                      v-if="priceData && (dayName === 'monday' || dayName === 'tuesday' || dayName === 'wednesday' || dayName === 'thursday' || dayName === 'friday')"
+                      class="text-xs text-gray-600">
+                      <b>{{ capitalize(dayName) }}:</b> Open {{ priceData?.open != null ? priceData.open : '-' }}, Close
+                      {{ priceData?.close != null ? priceData.close : '-' }}
+                    </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -196,16 +208,22 @@
                   </div>
                   <div class="text-sm text-gray-500">
                     <p><b>Stock:</b> {{ pick.symbol }}</p>
-                    <p><b>Pick Price (Mon Open):</b> {{ pick.priceAtPick }}</p>
-                    <p v-if="pick.currentPrice"><b>Current Price:</b> {{ pick.currentPrice }}</p>
-                    <p><b>Return %:</b> {{ typeof pick.weekReturnPct === 'number' ? pick.weekReturnPct.toFixed(2) + '%'
-                      : 'N/A'
-                    }}</p>
+                    <p><b>Pick Price (Mon Open):</b> {{ pick.entryPrice }}</p>
+                    <p v-if="pick.currentValue"><b>Current Price:</b> {{ pick.currentValue }}</p>
+                    <p><b>Return %:</b> {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2)
+                      + '%'
+                      : 'N/A' }}</p>
                   </div>
-                  <div v-if="pick.dailyPrices" class="mt-2">
-                    <div v-for="(day, key) in pick.dailyPrices" :key="key" class="text-xs text-gray-600">
-                      <b>{{ capitalize(key) }}:</b> Open {{ day.open ?? '-' }}, Close {{ day.close ?? '-' }}
-                    </div>
+                  <div v-if="pick.dailyPriceData" class="mt-2">
+                    <template v-for="(priceData, dayName) in (pick.dailyPriceData as Record<string, DailyPrice>)"
+                      :key="dayName">
+                      <div
+                        v-if="priceData && (dayName === 'monday' || dayName === 'tuesday' || dayName === 'wednesday' || dayName === 'thursday' || dayName === 'friday')"
+                        class="text-xs text-gray-600">
+                        <b>{{ capitalize(dayName) }}:</b> Open {{ priceData?.open != null ? priceData.open : '-' }},
+                        Close {{ priceData?.close != null ? priceData.close : '-' }}
+                      </div>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -215,6 +233,31 @@
       </div>
     </div>
   </div>
+  <div style="margin-top: 3rem;"></div>
+  <button @click="copyDebugInfo"
+    style="margin-bottom: 1rem; padding: 0.5rem 1.2rem; background: #1890ff; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;">Copy
+    Debug Info</button>
+  <span v-if="debugCopied" style="color: #52c41a; margin-left: 1rem; font-weight: bold;">Copied!</span>
+  <div class="debug-box"
+    style="background:#fffbe6;border:1px solid #ffe58f;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
+    <b>DEBUG INFO</b><br>
+    <div>Current Time: {{ new Date().toString() }}</div>
+    <div>Username: {{ auth.user?.username }}</div>
+    <div>isAuthenticated: {{ isAuthenticated.toString() }}</div>
+    <div>currentWeek.startDate: {{ currentWeek?.startDate }}</div>
+    <div>currentWeek.endDate: {{ currentWeek?.endDate }}</div>
+    <div>alreadyPicked: {{currentWeek?.picks.some(p => p.user.username === auth.user?.username).toString()}}</div>
+    <div>canPickCurrentWeek: {{ canPickCurrentWeek.toString() }}</div>
+  </div>
+  <div class="debug-box"
+    style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
+    <b>NEXT WEEK DEBUG</b><br>
+    <div>nextWeek.startDate: {{ nextWeek?.startDate }}</div>
+    <div>nextWeek.endDate: {{ nextWeek?.endDate }}</div>
+    <div>showNextWeekPickBox: {{ showNextWeekPickBox.toString() }}</div>
+    <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
+    <div>nextAvailableWeek.startDate: {{ nextAvailableWeek?.startDate }}</div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -223,8 +266,8 @@ import { useGameStore } from '../stores/game';
 import axios from 'axios';
 import Modal from '../components/Modal.vue';
 import { useAuthStore } from '../stores/auth';
-import { formatDate, capitalize } from '../utils/format';
-import { isWeekend } from 'date-fns';
+import { capitalize } from '../utils/format';
+import type { Pick, Week, DailyPrice } from '../types';
 
 const props = defineProps({
   showLoginModal: Boolean
@@ -239,8 +282,9 @@ const pickError = ref('');
 const nextWeekPickForm = ref({ symbol: '' });
 const nextWeekPickError = ref('');
 const showNextWeekModal = ref(false);
-const nextWeek = ref(null);
-const scoreboard = ref([]);
+const nextWeek = ref<any>(null);
+const scoreboard = ref<any[]>([]);
+const debugCopied = ref(false);
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -248,11 +292,11 @@ const auth = useAuthStore();
 const isAuthenticated = computed(() => auth.isAuthenticated);
 const currentWeek = computed(() => gameStore.currentWeek);
 const allWeeks = computed(() => gameStore.weeks);
-const historicalWeeks = computed(() => (Array.isArray(gameStore.getHistoricalWeeks) ? gameStore.getHistoricalWeeks : []).filter(w => w.id !== currentWeek.value?.id));
+const historicalWeeks = computed(() => (Array.isArray(gameStore.getHistoricalWeeks) ? gameStore.getHistoricalWeeks : []).filter((w: any) => w.id !== currentWeek.value?.id));
 
 const canPickCurrentWeek = computed(() => {
   if (!isAuthenticated.value || !currentWeek.value) return false;
-  const alreadyPicked = currentWeek.value.picks.some(p => p.user.username === auth.user?.username);
+  const alreadyPicked = currentWeek.value.picks?.some((p: Pick) => p.user.username === auth.user?.username) ?? false;
   const now = new Date();
   const monday = new Date(currentWeek.value.startDate);
   monday.setHours(0, 0, 0, 0);
@@ -265,7 +309,7 @@ const canPickCurrentWeek = computed(() => {
 // Find the next week (highest weekNum not equal to currentWeek)
 const nextAvailableWeek = computed(() => {
   if (!Array.isArray(allWeeks.value) || !currentWeek.value) return null;
-  return allWeeks.value.filter(w => w.id !== currentWeek.value.id).sort((a, b) => b.weekNum - a.weekNum)[0] || null;
+  return allWeeks.value.filter(w => w.id !== currentWeek.value?.id).sort((a, b) => b.weekNum - a.weekNum)[0] || null;
 });
 
 // Only show next week pick box if pick window is open (Friday close to Sunday midnight)
@@ -283,7 +327,7 @@ const showNextWeekPickBox = computed(() => {
 
 const userNextWeekPick = computed(() => {
   if (!isAuthenticated.value || !nextWeek.value) return null;
-  return nextWeek.value.picks.find(p => p.user.username === auth.user?.username) || null;
+  return nextWeek.value.picks.find((p: Pick) => p.user.username === auth.user?.username) || null;
 });
 
 const isAdmin = computed(() => auth.user?.username === 'admin');
@@ -292,11 +336,11 @@ const completedWeeks = computed(() => {
   // Only show weeks that have ended (endDate in the past and/or winner assigned)
   const now = new Date();
   return (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
-    .filter(w => {
+    .filter((w: Week) => {
       const ended = w.endDate && new Date(w.endDate) < now;
-      return (ended || w.winnerId) && w.picks && w.picks.some(p => users.includes(p.user.username.toLowerCase()));
+      return (ended || w.winnerId) && w.picks && w.picks.some((p: Pick) => users.includes(p.user.username.toLowerCase()));
     })
-    .sort((a, b) => b.weekNum - a.weekNum);
+    .sort((a: Week, b: Week) => b.weekNum - a.weekNum);
 });
 
 const today = new Date();
@@ -317,7 +361,7 @@ const userNextAvailableWeekPick = computed(() => {
   return nextAvailableWeek.value.picks?.find(p => p.user.username === auth.user?.username) || null;
 });
 
-function formatDate(dateString: string) {
+function formatDate(dateString?: string) {
   if (!dateString) return '';
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -373,22 +417,18 @@ async function submitNextWeekPick() {
     nextWeekPickError.value = 'Please enter a stock symbol';
     return;
   }
+  if (!nextAvailableWeek.value) {
+    nextWeekPickError.value = 'No next week available.';
+    return;
+  }
   try {
-    await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol);
+    await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol, nextAvailableWeek.value.id);
     nextWeekPickForm.value.symbol = '';
     showNextWeekModal.value = false;
+    await gameStore.fetchAll();
     await fetchNextWeek();
   } catch (err) {
     nextWeekPickError.value = 'Failed to submit pick';
-  }
-}
-
-async function fetchScoreboard() {
-  try {
-    const res = await axios.get('/api/scoreboard');
-    scoreboard.value = Array.isArray(res.data) ? res.data.filter((s: any) => users.includes(s.username.toLowerCase())) : [];
-  } catch (err) {
-    scoreboard.value = users.map(u => ({ username: u, wins: 0 }));
   }
 }
 
@@ -402,9 +442,17 @@ function openLoginModal() {
   emit('update:show-login-modal', true);
 }
 
+function copyDebugInfo() {
+  const debugBoxes = document.querySelectorAll('.debug-box');
+  let text = '';
+  debugBoxes.forEach(box => { text += box.textContent + '\n'; });
+  navigator.clipboard.writeText(text.trim());
+  debugCopied.value = true;
+  setTimeout(() => { debugCopied.value = false; }, 1200);
+}
+
 onMounted(async () => {
   await gameStore.fetchAll();
-  await fetchScoreboard();
   await fetchNextWeek();
 });
 </script>
