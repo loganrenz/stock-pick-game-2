@@ -68,6 +68,8 @@ jobs:
             EOL
             # Start services
             docker-compose up -d --remove-orphans
+            # Run Prisma migrations
+            docker exec stock_pick_game npx prisma migrate deploy
             # Wait for services to be ready
             sleep 10
             # Check if services are running

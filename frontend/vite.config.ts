@@ -2,6 +2,9 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 
+const buildTime = new Date().toISOString();
+const version = process.env.npm_package_version;
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
@@ -37,5 +40,9 @@ export default defineConfig({
     outputFile: './tests/results/vitest-report.txt',
     resolveSnapshotPath: (testPath, snapshotExtension) =>
       testPath.replace(/src\//, 'tests/__snapshots__/') + snapshotExtension,
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(version),
+    __BUILD_TIME__: JSON.stringify(buildTime),
   },
 })

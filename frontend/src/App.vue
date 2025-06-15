@@ -7,6 +7,9 @@ import { useAuthStore } from './stores/auth';
 const showLoginModal = ref(false);
 const auth = useAuthStore();
 
+const appVersion = __APP_VERSION__;
+const buildTime = __BUILD_TIME__;
+
 onMounted(async () => {
   // Initialize auth state
   if (auth.token) {
@@ -24,6 +27,9 @@ onMounted(async () => {
           @update:show-login-modal="showLoginModal = $event" />
       </router-view>
     </main>
+    <div class="version-badge">
+      v{{ appVersion }}<span> &bull; </span>{{ buildTime }}
+    </div>
   </div>
 </template>
 
@@ -128,5 +134,18 @@ body {
     font-size: 0.95rem;
     padding: 0.4rem 0.7rem;
   }
+}
+
+.version-badge {
+  position: fixed;
+  right: 10px;
+  top: 8px;
+  font-size: 0.75rem;
+  color: #888;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  padding: 2px 8px;
+  z-index: 9999;
+  pointer-events: none;
 }
 </style>
