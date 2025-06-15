@@ -42,7 +42,7 @@ jobs:
             # Stop and remove existing containers
             docker-compose down
             # Start services
-            docker-compose up -d
+            docker-compose up -d --remove-orphans
             # Wait for services to be ready
             sleep 10
             # Run database migrations

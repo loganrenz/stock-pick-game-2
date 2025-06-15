@@ -1,27 +1,34 @@
 version: '3.8'
 
 services:
+  stock_pick_db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stock_pick_game
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - stock_pick_network
+
   stock_pick_backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: backend
-    working_dir: /app
+    image: ghcr.io/loganrenz/stock-pick-game:latest
     environment:
       - NODE_ENV=production
       - PORT=4556
     ports:
       - "4556:4556"
-    volumes:
-      - sqlite_data:/data
+    depends_on:
+      - stock_pick_db
     networks:
       - stock_pick_network
 
   stock_pick_frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend
+    image: ghcr.io/loganrenz/stock-pick-game:latest
     working_dir: /app/frontend
     ports:
       - "5173:5173"
@@ -31,7 +38,7 @@ services:
       - stock_pick_network
 
 volumes:
-  sqlite_data:
+  pgdata:
 
 networks:
   stock_pick_network:
