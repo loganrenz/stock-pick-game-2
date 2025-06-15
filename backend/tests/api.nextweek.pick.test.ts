@@ -1,24 +1,20 @@
 import request from 'supertest';
-import app from '../src/index';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-let server: any;
+const PROD_URL = 'https://api.stockpickgame.tideye.com';
 
-beforeAll((done) => {
-  server = app.listen(0, done);
-});
+beforeAll(() => {});
 afterAll(async () => {
   await prisma.$disconnect();
-  server.close();
 });
 
-describe('Next Week Pick Flow', () => {
+describe('Next Week Pick Flow (PROD)', () => {
   let token: string;
   let nextWeek: any;
 
   it('should log in as logan', async () => {
-    const res = await request(server)
+    const res = await request(PROD_URL)
       .post('/api/login')
       .send({ username: 'logan', password: 'loganpw' });
     expect(res.status).toBe(200);
@@ -27,7 +23,7 @@ describe('Next Week Pick Flow', () => {
   });
 
   it('should get the next week', async () => {
-    const res = await request(server)
+    const res = await request(PROD_URL)
       .get('/api/next-week');
     expect(res.status).toBe(200);
     expect(res.body).toBeDefined();
@@ -37,7 +33,7 @@ describe('Next Week Pick Flow', () => {
   });
 
   it('should submit a pick for next week as logan', async () => {
-    const res = await request(server)
+    const res = await request(PROD_URL)
       .post('/api/weeks/next/picks')
       .set('Authorization', `Bearer ${token}`)
       .send({ symbol: 'AAPL' });
@@ -49,7 +45,7 @@ describe('Next Week Pick Flow', () => {
   });
 
   it('should see logan\'s pick for next week in /api/next-week', async () => {
-    const res = await request(server)
+    const res = await request(PROD_URL)
       .get('/api/next-week');
     expect(res.status).toBe(200);
     expect(res.body).toBeDefined();
