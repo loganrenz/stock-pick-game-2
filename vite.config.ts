@@ -1,23 +1,18 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import svgr from 'vite-plugin-svgr';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [vue(), svgr()],
+  plugins: [vue(), svgr(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
     }
   },
   server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
+    port: 5173
   },
   build: {
     outDir: 'dist',

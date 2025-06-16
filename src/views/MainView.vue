@@ -27,28 +27,16 @@ ap<template>
           <form @submit.prevent="login">
             <div class="mb-4">
               <label class="block text-gray-700 mb-2">Username</label>
-              <input
-                v-model="loginForm.username"
-                type="text"
-                class="w-full border rounded px-3 py-2"
-                placeholder="Enter your username"
-                data-testid="login-username"
-              />
+              <input v-model="loginForm.username" type="text" class="w-full border rounded px-3 py-2"
+                placeholder="Enter your username" data-testid="login-username" />
             </div>
             <div class="mb-4">
               <label class="block text-gray-700 mb-2">Password</label>
-              <input
-                v-model="loginForm.password"
-                type="password"
-                class="w-full border rounded px-3 py-2"
-                data-testid="login-password"
-              />
+              <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-2"
+                data-testid="login-password" />
             </div>
-            <button
-              type="submit"
-              class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
-              data-testid="login-submit"
-            >
+            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
+              data-testid="login-submit">
               Login
             </button>
             <div v-if="loginError" class="text-red-600 mt-2 text-center">
@@ -68,8 +56,7 @@ ap<template>
         <!-- Current Week at the top -->
         <div class="bg-white shadow-lg rounded-lg mb-10 border-2 border-blue-200" data-testid="current-week-section">
           <div
-            class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg"
-          >
+            class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg">
             <div>
               <h3 class="text-2xl leading-6 font-bold text-blue-900">
                 Current Week
@@ -93,12 +80,8 @@ ap<template>
               <form class="mb-6 flex gap-4 items-end" @submit.prevent="submitPick">
                 <div class="flex-1">
                   <label class="block text-gray-700 mb-1">Your Pick for Current Week</label>
-                  <input
-                    v-model="pickForm.symbol"
-                    class="w-full border rounded px-3 py-2"
-                    placeholder="e.g. AAPL"
-                    data-testid="pick-symbol"
-                  />
+                  <input v-model="pickForm.symbol" class="w-full border rounded px-3 py-2" placeholder="e.g. AAPL"
+                    data-testid="pick-symbol" />
                 </div>
                 <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">
                   Submit Pick
@@ -109,10 +92,7 @@ ap<template>
               </div>
             </div>
             <div v-if="!isAuthenticated && canPickCurrentWeek" class="mb-6 flex gap-4 items-end justify-center">
-              <button
-                class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                @click="openLoginModal"
-              >
+              <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" @click="openLoginModal">
                 Login to
                 Make Pick
               </button>
@@ -127,19 +107,14 @@ ap<template>
               </div>
             </div>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div
-                v-for="pick in currentWeek?.picks || []"
-                :key="pick.id"
-                class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow"
-              >
+              <div v-for="pick in currentWeek?.picks || []" :key="pick.id"
+                class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="text-sm font-medium text-gray-900">
                     {{ pick.user.username }}
                   </h4>
-                  <span
-                    v-if="currentWeek?.winnerId === pick.userId"
-                    class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold"
-                  >Winner</span>
+                  <span v-if="currentWeek?.winnerId === pick.userId"
+                    class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold">Winner</span>
                 </div>
                 <div class="text-sm text-gray-500">
                   <p><b>Stock:</b> {{ pick.symbol }}</p>
@@ -155,11 +130,8 @@ ap<template>
                 </div>
                 <div v-if="pick.dailyPriceData" class="mt-2">
                   <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
-                    <div
-                      v-if="priceData && typeof day === 'string'"
-                      class="daily-price-row"
-                      :data-testid="`daily-price-${day}`"
-                    >
+                    <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
+                      :data-testid="`daily-price-${day}`">
                       <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
                       <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
                       <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
@@ -174,29 +146,24 @@ ap<template>
         <!-- Next Week Pick Box -->
         <div v-if="showNextWeekPickBox" class="mb-10 flex flex-col items-center">
           <div
-            class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200"
-          >
+            class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-              }})</span>
+                }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
               <span v-if="userNextWeekPick">{{ userNextWeekPick.symbol }}</span>
               <span v-else>None</span>
             </div>
-            <button
-              v-if="isAuthenticated"
+            <button v-if="isAuthenticated"
               class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
-              @click="showNextWeekModal = true"
-            >
+              @click="showNextWeekModal = true">
               {{ userNextWeekPick ? 'CHANGE PICK' : 'MAKE PICK' }}
             </button>
-            <button
-              v-else
+            <button v-else
               class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-indigo-700"
-              @click="openLoginModal"
-            >
+              @click="openLoginModal">
               Login to Make Pick
             </button>
           </div>
@@ -213,11 +180,8 @@ ap<template>
           </template>
           <template #body>
             <form @submit.prevent="submitNextWeekPick">
-              <input
-                v-model="nextWeekPickForm.symbol"
-                class="border rounded px-3 py-2 w-full mb-4"
-                placeholder="e.g. AAPL"
-              />
+              <input v-model="nextWeekPickForm.symbol" class="border rounded px-3 py-2 w-full mb-4"
+                placeholder="e.g. AAPL" />
               <div v-if="nextWeekPickError" class="text-red-600 mb-2">
                 {{ nextWeekPickError }}
               </div>
@@ -259,14 +223,10 @@ ap<template>
             will
             appear here.
           </div>
-          <div
-            v-for="week in completedWeeks"
-            :key="week.id"
-            class="bg-white shadow rounded-lg mb-6 border border-gray-100 hover:shadow-md transition-shadow"
-          >
+          <div v-for="week in completedWeeks" :key="week.id"
+            class="bg-white shadow rounded-lg mb-6 border border-gray-100 hover:shadow-md transition-shadow">
             <div
-              class="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg"
-            >
+              class="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
               <div>
                 <h3 class="text-lg leading-6 font-bold text-gray-900">
                   Week {{ week.weekNum }}
@@ -283,19 +243,14 @@ ap<template>
             </div>
             <div class="px-4 py-5 sm:p-6">
               <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div
-                  v-for="pick in week.picks"
-                  :key="pick.id"
-                  class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow"
-                >
+                <div v-for="pick in week.picks" :key="pick.id"
+                  class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
                   <div class="flex items-center justify-between mb-2">
                     <h4 class="text-sm font-medium text-gray-900">
                       {{ pick.user.username }}
                     </h4>
-                    <span
-                      v-if="week.winnerId === pick.userId"
-                      class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold"
-                    >Winner</span>
+                    <span v-if="week.winnerId === pick.userId"
+                      class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold">Winner</span>
                   </div>
                   <div class="text-sm text-gray-500">
                     <p><b>Stock:</b> {{ pick.symbol }}</p>
@@ -311,11 +266,8 @@ ap<template>
                   </div>
                   <div v-if="pick.dailyPriceData" class="mt-2">
                     <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
-                      <div
-                        v-if="priceData && typeof day === 'string'"
-                        class="daily-price-row"
-                        :data-testid="`daily-price-${day}`"
-                      >
+                      <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
+                        :data-testid="`daily-price-${day}`">
                         <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
                         <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
                         <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
@@ -333,16 +285,13 @@ ap<template>
   <div style="margin-top: 3rem;" />
   <button
     style="margin-bottom: 1rem; padding: 0.5rem 1.2rem; background: #1890ff; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;"
-    @click="copyDebugInfo"
-  >
+    @click="copyDebugInfo">
     Copy
     Debug Info
   </button>
   <span v-if="debugCopied" style="color: #52c41a; margin-left: 1rem; font-weight: bold;">Copied!</span>
-  <div
-    class="debug-box"
-    style="background:#fffbe6;border:1px solid #ffe58f;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;"
-  >
+  <div class="debug-box"
+    style="background:#fffbe6;border:1px solid #ffe58f;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>DEBUG INFO</b><br />
     <div>Current Time: {{ new Date().toString() }}</div>
     <div>Username: {{ auth.user?.username }}</div>
@@ -350,14 +299,12 @@ ap<template>
     <div>currentWeek.startDate: {{ currentWeek?.startDate }}</div>
     <div>currentWeek.endDate: {{ currentWeek?.endDate }}</div>
     <div>
-      alreadyPicked: {{ (currentWeek?.picks ?? []).some(p => p.user.username === auth.user?.username).toString() }}
+      alreadyPicked: {{(currentWeek?.picks ?? []).some(p => p.user.username === auth.user?.username).toString()}}
     </div>
     <div>canPickCurrentWeek: {{ canPickCurrentWeek.toString() }}</div>
   </div>
-  <div
-    class="debug-box"
-    style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;"
-  >
+  <div class="debug-box"
+    style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>NEXT WEEK DEBUG</b><br />
     <div>nextWeek.startDate: {{ nextWeek?.startDate }}</div>
     <div>nextWeek.endDate: {{ nextWeek?.endDate }}</div>
@@ -368,7 +315,7 @@ ap<template>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineProps, defineEmits } from 'vue';
+import { ref, computed, onMounted, defineProps, defineEmits, watch } from 'vue';
 import { useGameStore } from '../stores/game';
 import axios from 'axios';
 import Modal from '../components/Modal.vue';
@@ -570,8 +517,17 @@ function dayLabel(day: string) {
 }
 
 onMounted(async () => {
-  await gameStore.fetchAll();
-  await fetchNextWeek();
+  if (isAuthenticated.value) {
+    await gameStore.fetchAll();
+    await fetchNextWeek();
+  }
+});
+
+watch(isAuthenticated, async (isAuth) => {
+  if (isAuth) {
+    await gameStore.fetchAll();
+    await fetchNextWeek();
+  }
 });
 </script>
 
