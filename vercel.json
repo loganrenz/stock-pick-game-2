@@ -1,4 +1,32 @@
 {
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
   "env": {
     "DATABASE_URL_PROD": "libsql://prod-loganrenz.aws-us-east-1.turso.io",
     "DATABASE_AUTH_TOKEN_PROD": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJleHAiOjE3ODE1NDgzNDIsImlhdCI6MTc1MDAxMjM0MiwiaWQiOiJmNTFjMGYwZi05ZGUzLTQ4MjUtOGE4YS1kNmFhNDc4Y2QyMmEiLCJyaWQiOiJiYWUzNTVmMC0yMTY5LTRkZjItYjA3Mi05MTExYWVlMWQ1MmEifQ.0Wo5TrPgTxCt1tywzu4-lzO3PDb6x1-iZP9Idz2okKZw_n1ucDSGAgcrGQTiPtxlomfbG73c3d-Ug-Wt-BGnCA",

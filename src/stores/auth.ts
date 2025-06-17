@@ -13,7 +13,7 @@ interface AuthState {
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5173',
+  baseURL: '/',  // Use relative URLs
   headers: {
     'Content-Type': 'application/json'
   }
@@ -28,11 +28,26 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Add response interceptor to handle 401 errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    token: localStorage.getItem('token'),
-    user: null
-  }),
+  state: (): AuthState => {
+    const token = localStorage.getItem('token');
+    return {
+      token,
+      user: null
+    };
+  },
 
   getters: {
     isAuthenticated: (state): boolean => !!state.token,
@@ -47,6 +62,8 @@ export const useAuthStore = defineStore('auth', {
         this.token = token;
         this.user = user;
         localStorage.setItem('token', token);
+        // Set the token in axios defaults
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } catch (error) {
         console.error('Login failed:', error);
         throw error;
@@ -64,6 +81,8 @@ export const useAuthStore = defineStore('auth', {
         this.token = null;
         this.user = null;
         localStorage.removeItem('token');
+        // Remove the token from axios defaults
+        delete api.defaults.headers.common['Authorization'];
       }
     },
 
@@ -76,7 +95,27 @@ export const useAuthStore = defineStore('auth', {
         this.token = null;
         this.user = null;
         localStorage.removeItem('token');
+        // Remove the token from axios defaults
+        delete api.defaults.headers.common['Authorization'];
         throw error;
+      }
+    },
+
+    // Initialize auth state
+    async initialize(): Promise<void> {
+      const token = localStorage.getItem('token');
+      if (token) {
+        this.token = token;
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        try {
+          await this.fetchUser();
+        } catch (error) {
+          // If fetchUser fails, clear the token
+          this.token = null;
+          this.user = null;
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
+        }
       }
     }
   }

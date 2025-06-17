@@ -4,8 +4,15 @@ import router from './router'
 import './style.css'
 import App from './App.vue'
 import './utils/axios' // Import axios configuration
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
-app.mount('#app')
+
+// Initialize auth store
+const authStore = useAuthStore()
+authStore.initialize().finally(() => {
+  app.mount('#app')
+})

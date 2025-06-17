@@ -21,9 +21,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
-          const info = assetInfo.name.split('.');
+          const info = assetInfo.name?.split('.') ?? [];
           const ext = info[info.length - 1];
-          if (/\.(css)$/.test(assetInfo.name)) {
+          if (assetInfo.name && /\.(css)$/.test(assetInfo.name)) {
             return `assets/[name]-[hash].css`;
           }
           return `assets/[name]-[hash].${ext}`;

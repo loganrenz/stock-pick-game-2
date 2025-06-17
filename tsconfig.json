@@ -1,7 +1,12 @@
 {
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["ES2017"]
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.api.json" }
   ]
 }

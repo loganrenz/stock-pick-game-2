@@ -6,7 +6,9 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "target": "ES2017",
+    "lib": ["ES2017"]
   },
   "include": ["vite.config.ts"]
 } 

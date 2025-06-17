@@ -1,11 +1,17 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "outDir": "./dist",
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "lib": ["ES2017", "DOM"],
+    "target": "ES2017"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
 } 

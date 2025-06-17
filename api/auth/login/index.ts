@@ -18,6 +18,7 @@ export default async function handler(
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
+  console.log('Login request received');
   // Handle preflight request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
