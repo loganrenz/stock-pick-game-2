@@ -1,4 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/db';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';

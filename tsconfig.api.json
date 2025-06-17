@@ -22,6 +22,7 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "types": ["node", "@vercel/node"],
     "paths": {
       "@/*": ["./src/*"],
       "@api/*": ["./api/*"]
