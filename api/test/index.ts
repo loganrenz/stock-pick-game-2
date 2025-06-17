@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../lib/db.js';
-import { migrate } from '../lib/migrate.js';
-import { seed } from '../lib/seed.js';
+import { db } from '../../api-helpers/lib/db.js';
+import { migrate } from '../../api-helpers/lib/migrate.js';
+import { seed } from '../../api-helpers/lib/seed.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS

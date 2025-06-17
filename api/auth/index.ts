@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { db } from '../lib/db.js';
-import { users } from '../lib/schema.js';
+import { db } from '../../api-helpers/lib/db.js';
+import { users } from '../../api-helpers/lib/schema.js';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 

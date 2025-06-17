@@ -20,8 +20,8 @@
   ],
   "rewrites": [
     {
-      "source": "/api/auth/:path*",
-      "destination": "/api/auth/:path*/index.ts"
+      "source": "/api/auth/login",
+      "destination": "/api/auth/index.ts"
     },
     {
       "source": "/api/picks/:path*",

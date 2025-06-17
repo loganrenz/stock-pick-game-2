@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../lib/db.js';
-import { users } from '../lib/schema.js';
+import { db } from '../../api-helpers/lib/db.js';
+import { users } from '../../api-helpers/lib/schema.js';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
+import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS

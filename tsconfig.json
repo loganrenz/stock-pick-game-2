@@ -1,19 +1,42 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["ES2017", "DOM"],
+    "lib": [
+      "ES2017",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["./api/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@api/*": [
+        "./api/*"
+      ]
     }
   },
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" },
-    { "path": "./tsconfig.api.json" }
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.api.json"
+    }
   ],
-  "include": ["./api/auth/login/index.ts", "./api/lib/db.ts", "./api/lib/auth.ts", "./api/lib/schema.ts"]
+  "include": [
+    "./api-helpers/**/*.ts",
+    "./api-helpers/lib/db.ts",
+    "./api-helpers/lib/auth.ts",
+    "./api-helpers/lib/schema.ts",
+    "./api-helpers/lib/auth.ts",
+    "./api-helpers/lib/db.ts",
+    "./api-helpers/lib/schema.ts",
+    "./api-helpers/lib/migrate.ts",
+    "./api-helpers/lib/seed.ts"
+  ]
 }

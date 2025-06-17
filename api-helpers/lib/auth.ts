@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 import { db } from './db.js';
 import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
-import type { User } from '../../src/types/index.js';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
