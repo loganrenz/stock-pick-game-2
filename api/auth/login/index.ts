@@ -40,7 +40,7 @@ export default async function handler(
     }
 
     console.log('Attempting to find user in database...');
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { username: String(username) },
       select: {
         id: true,
