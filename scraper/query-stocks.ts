@@ -1,63 +1,51 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
 
-// Dynamically import schema for ESM compatibility
-const schema = await import('../api/lib/schema.js');
-
-// Initialize Turso client
-const turso = createClient({
-  url: process.env.TURSO_DB_URL!,
-  authToken: process.env.TURSO_DB_TOKEN,
-});
-
-const db = drizzle(turso, { schema });
-
-async function getStockData() {
-  try {
-    // Get all stock symbols from picks
-    const allSymbols = await db.query.picks.findMany({
-      columns: {
-        symbol: true,
-      },
-    });
-    // Deduplicate symbols in JS
-    const uniqueSymbols = Array.from(new Set(allSymbols.map((p: { symbol: string }) => p.symbol)));
-    console.log('Found unique symbols:', uniqueSymbols);
-
-    // Get all picks with their associated data
-    const picks = await db.query.picks.findMany({
-      with: {
-        week: true,
-        user: true,
-      },
-      orderBy: (picks, { desc }) => [desc(picks.createdAt)],
-    });
-
-    console.log('\nHistorical Pick Data:');
-    console.log('====================');
+async function main() {
     
-    for (const pick of picks) {
-      console.log(`\nWeek ${pick.week.weekNum} (${pick.week.startDate}):`);
-      console.log(`User: ${pick.user.username}`);
-      console.log(`Symbol: ${pick.symbol}`);
-      console.log(`Entry Price: $${pick.entryPrice}`);
-      if (pick.currentValue) {
-        console.log(`Current Value: $${pick.currentValue}`);
-        console.log(`Week Return: $${pick.weekReturn}`);
-        console.log(`Return Percentage: ${pick.returnPercentage}%`);
-      }
-      if (pick.dailyPriceData) {
-        console.log('Daily Price Data:', pick.dailyPriceData);
-      }
-    }
+  const dbUrl = process.env['TURSO_DB_URL'];
+  const dbToken = process.env['TURSO_DB_TOKEN'];
+  if (!dbUrl || !dbToken) {
+    throw new Error('Missing TURSO_DB_URL or TURSO_DB_TOKEN in environment');
+  }
 
+  const client = createClient({
+    url: dbUrl,
+    authToken: dbToken,
+  });
+
+  try {
+    // Query picks with missing dailyPriceData, joining weeks for the date range
+    const sql = `
+      SELECT Pick.id as pickId, Pick.symbol, Week.startDate, Week.endDate
+      FROM Pick
+      JOIN Week ON Pick.weekId = Week.id
+      WHERE Pick.dailyPriceData IS NULL OR Pick.dailyPriceData = ''
+    `;
+    const result = await client.execute(sql);
+    const missing = result.rows.map((row: any) => ({
+      pickId: row.pickId,
+      symbol: row.symbol,
+      startDate: row.startDate,
+      endDate: row.endDate,
+    }));
+    console.log('Missing price data (symbol, startDate, endDate, pickId):');
+    console.log(JSON.stringify(missing, null, 2));
+    // Write to file
+    fs.writeFileSync(path.resolve(__dirname, 'missing_price_data.json'), JSON.stringify(missing, null, 2));
+    console.log('Wrote missing data to missing_price_data.json');
+    return missing;
   } catch (error) {
     console.error('Error querying database:', error);
   } finally {
-    await turso.close();
+    await client.close();
   }
 }
 
-// Run the query
-await getStockData(); 
+main().catch((err) => {
+  console.error('Uncaught error in main:', err);
+}); 
