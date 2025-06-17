@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
-import { prisma } from './db';
+import { db } from './db';
+import { users } from './schema';
+import { eq } from 'drizzle-orm';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
@@ -27,8 +29,8 @@ export const requireAuth = async (
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; exp: number };
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, decoded.userId)
     });
 
     if (!user || user.jwtToken !== token) {
@@ -40,10 +42,9 @@ export const requireAuth = async (
     const now = Math.floor(Date.now() / 1000);
     if (decoded.exp - now < JWT_REFRESH_THRESHOLD / 1000) {
       const newToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { jwtToken: newToken }
-      });
+      await db.update(users)
+        .set({ jwtToken: newToken })
+        .where(eq(users.id, user.id));
       res.setHeader('X-New-Token', newToken);
     }
 

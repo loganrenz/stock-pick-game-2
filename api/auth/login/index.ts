@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../lib/db.js';
+import { db } from '../../lib/db.js';
+import { users } from '../../lib/schema.js';
+import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
@@ -40,15 +42,10 @@ export default async function handler(
     }
 
     console.log('Attempting to find user in database...');
-    const user = await prisma.user.findFirst({
-      where: { username: String(username) },
-      select: {
-        id: true,
-        username: true,
-        password: true
-      }
+    const user = await db.query.users.findFirst({
+      where: eq(users.username, username)
     });
-    console.log('User query result:', user);
+    console.log('Query result:', user);
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -62,10 +59,9 @@ export default async function handler(
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 
     // Store the token in the database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { jwtToken: token }
-    });
+    await db.update(users)
+      .set({ jwtToken: token })
+      .where(eq(users.id, user.id));
 
     return res.status(200).json({
       token,

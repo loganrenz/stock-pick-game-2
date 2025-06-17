@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../lib/db';
+import { db } from '../../lib/db';
+import { users } from '../../lib/schema';
+import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -35,8 +37,8 @@ export default async function handler(
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, decoded.userId)
     });
 
     if (!user || user.jwtToken !== token) {

@@ -1,24 +1,11 @@
-import { PrismaClient } from '@prisma/client';
-import { PrismaLibSQL } from '@prisma/adapter-libsql';
+import 'dotenv/config';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
+import * as schema from './schema.js';
 
-const isProd = process.env.NODE_ENV === 'production';
-const dbUrl = process.env.TURSO_DB_URL
-const dbToken = process.env.TURSO_DB_TOKEN
-
-if (!dbUrl) {
-  throw new Error('Database URL is not defined');
-}
-
-if (!dbToken) {
-  throw new Error('Database auth token is not defined');
-}
-
-// Create the libsql adapter for Prisma
-const adapter = new PrismaLibSQL({
-  url: dbUrl,
-  authToken: dbToken,
+export const turso = createClient({
+  url: process.env.TURSO_DB_URL!,
+  authToken: process.env.TURSO_DB_TOKEN,
 });
 
-// Export a single PrismaClient instance for the whole app
-console.log('Creating PrismaClient instance with dbUrl:', dbUrl, 'and dbToken:', dbToken)
-export const prisma = new PrismaClient({ adapter });
+export const db = drizzle(turso, { schema });

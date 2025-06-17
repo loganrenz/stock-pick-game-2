@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../lib/db';
+import { db } from '../lib/db';
+import { weeks, picks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { eq } from 'drizzle-orm';
 import axios from 'axios';
 
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
@@ -18,11 +20,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      const week = await prisma.week.findUnique({
-        where: { id: weekId },
-        include: {
+      const week = await db.query.weeks.findFirst({
+        where: eq(weeks.id, weekId),
+        with: {
           picks: {
-            include: {
+            with: {
               user: true
             }
           }
@@ -40,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (!currentPrice) {
             return { ...pick, return: 0 };
           }
-          const returnPercentage = ((currentPrice - pick.price) / pick.price) * 100;
+          const returnPercentage = ((currentPrice - pick.entryPrice) / pick.entryPrice) * 100;
           return { ...pick, return: returnPercentage };
         })
       );
@@ -51,14 +53,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
 
       // Update week with winner
-      const updatedWeek = await prisma.week.update({
-        where: { id: weekId },
-        data: {
-          winnerId: winner.userId
-        },
-        include: {
+      const [updatedWeek] = await db.update(weeks)
+        .set({ winnerId: winner.userId })
+        .where(eq(weeks.id, weekId))
+        .returning();
+
+      // Fetch the updated week with all relations
+      const weekWithRelations = await db.query.weeks.findFirst({
+        where: eq(weeks.id, weekId),
+        with: {
           picks: {
-            include: {
+            with: {
               user: true
             }
           },
@@ -66,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      res.json(updatedWeek);
+      res.json(weekWithRelations);
     } catch (error) {
       console.error('Error calculating winner:', error);
       res.status(500).json({ error: 'Failed to calculate winner' });

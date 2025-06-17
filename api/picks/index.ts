@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../lib/db';
+import { db } from '../lib/db';
+import { picks, weeks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { eq, and } from 'drizzle-orm';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST' && req.method !== 'PUT') {
@@ -17,8 +19,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       // Check if week exists and is current week
-      const week = await prisma.week.findUnique({
-        where: { id: weekId }
+      const week = await db.query.weeks.findFirst({
+        where: eq(weeks.id, weekId)
       });
 
       if (!week) {
@@ -26,39 +28,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const now = new Date();
-      if (now < week.startDate || now > week.endDate) {
+      if (now < new Date(week.startDate) || (week.endDate && now > new Date(week.endDate))) {
         return res.status(400).json({ error: 'Cannot make picks outside of current week' });
       }
 
       // Check if user already has a pick for this week
-      const existingPick = await prisma.pick.findFirst({
-        where: {
-          weekId,
-          userId
-        }
+      const existingPick = await db.query.picks.findFirst({
+        where: and(
+          eq(picks.weekId, weekId),
+          eq(picks.userId, userId)
+        )
       });
 
       if (existingPick) {
         // Update existing pick
-        const updatedPick = await prisma.pick.update({
-          where: { id: existingPick.id },
-          data: {
+        const [updatedPick] = await db.update(picks)
+          .set({
             symbol,
-            price: parseFloat(price)
-          }
-        });
+            entryPrice: parseFloat(price)
+          })
+          .where(eq(picks.id, existingPick.id))
+          .returning();
         return res.json(updatedPick);
       }
 
       // Create new pick
-      const newPick = await prisma.pick.create({
-        data: {
+      const [newPick] = await db.insert(picks)
+        .values({
           weekId,
           userId,
           symbol,
-          price: parseFloat(price)
-        }
-      });
+          entryPrice: parseFloat(price)
+        })
+        .returning();
 
       res.json(newPick);
     } catch (error) {

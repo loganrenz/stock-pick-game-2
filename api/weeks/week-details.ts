@@ -1,6 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../lib/db';
+import { db } from '../lib/db';
+import { weeks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { eq } from 'drizzle-orm';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -15,13 +17,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      const week = await prisma.week.findUnique({
-        where: {
-          id: parseInt(id)
-        },
-        include: {
+      const week = await db.query.weeks.findFirst({
+        where: eq(weeks.id, parseInt(id)),
+        with: {
           picks: {
-            include: {
+            with: {
               user: true
             }
           }
