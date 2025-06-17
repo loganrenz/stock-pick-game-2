@@ -20,44 +20,28 @@
   ],
   "rewrites": [
     {
-      "source": "/api/weeks/current",
-      "destination": "/api/weeks/current"
-    },
-    {
-      "source": "/api/weeks/:path*",
-      "destination": "/api/weeks/:path*"
-    },
-    {
       "source": "/api/auth/:path*",
-      "destination": "/api/auth/:path*"
+      "destination": "/api/auth/:path*/index.ts"
     },
     {
       "source": "/api/picks/:path*",
-      "destination": "/api/picks/:path*"
+      "destination": "/api/picks/:path*/index.ts"
     },
     {
       "source": "/api/stocks/:path*",
-      "destination": "/api/stocks/:path*"
+      "destination": "/api/stocks/:path*/index.ts"
+    },
+    {
+      "source": "/api/test/:path*",
+      "destination": "/api/test/:path*/index.ts"
     },
     {
       "source": "/api/users/:path*",
-      "destination": "/api/users/:path*"
+      "destination": "/api/users/:path*/index.ts"
     },
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/assets/:path*",
-      "destination": "/assets/:path*"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/api/test/setup",
-      "destination": "/api/test/setup/index.ts"
+      "source": "/api/weeks/:path*",
+      "destination": "/api/weeks/:path*/index.ts"
     }
   ],
   "env": {
