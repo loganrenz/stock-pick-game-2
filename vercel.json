@@ -61,8 +61,8 @@
     }
   ],
   "env": {
-    "TURSO_DB_URL": "libsql://dev-loganrenz.aws-us-east-1.turso.io",
-    "TURSO_DB_TOKEN": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NTAwMTI0MjUsImlkIjoiNTZkY2NlMjMtYmRkZC00YzExLWFhYzUtYjI2YWY5NTU1ZTFmIiwicmlkIjoiOTkyYTZkNDMtZGQyOS00ZWNkLWJiM2EtNjVjMGM3MzZhMmM4In0.mmcHbaaQvF_zDx_xaMedcCQs_xjrTVk9mOlKfMyPeUCq_GNxZ-AhjWeHPpckjWxNUOometC_zYuYHaMNMUWEAA",
+    "TURSO_DB_URL": "libsql://test-loganrenz.aws-us-east-1.turso.io",
+    "TURSO_DB_TOKEN": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NTAxOTI4MTksImlkIjoiMGRkN2NmYWQtMzQwYS00ZjBiLWI1ODQtMjg3NDFkZTg4ZWE0IiwicmlkIjoiYjg1MWY0NTEtZGE3Ni00N2UyLWI1YjItMzRjOTI5NWVlNjE2In0.ekuKzfEc8tStTaCwgO7qcaEqfuv1xURSwaoTNYfJX8Wn5Ixp7J1qP-fmsktV7VNnPuK4yC8tvyFTChyikF_ZAQ",
     "JWT_SECRET": "d88b53617d7d6285011cef2ea542c53d08c6864a1e92b045d108a4b5db37f600936f8cf756ea2e1404ff9ab215a1c2e5603b47e36ae6ef3d7ba78c6cb36e6525",
     "ALPHA_VANTAGE_API_KEY": "J135CCG2DDOQOM6D",
     "NODE_ENV": "development"

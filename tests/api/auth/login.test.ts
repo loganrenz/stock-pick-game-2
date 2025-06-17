@@ -1,15 +1,23 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { TestServer } from '../../helpers/test-server.js';
+import { db } from '../../../api/lib/db.js';
 
 describe('POST /api/auth/login', () => {
   const testServer = new TestServer();
-  let testUser: { username: string; password: string };
+  let testUser: { username: string; password: string } = {
+    username: 'logan',
+    password: 'loganpw'
+  };
+  let db, weeks;
 
   beforeAll(async () => {
-    testUser = await testServer.createTestUser({
-      username: 'testuser',
-      password: 'testpass'
-    });
+    console.log('[TEST] Environment variables:', process.env);
+    console.log('[TEST] Starting test server...');
+    await testServer.start();
+    console.log('[TEST] Test server started at', testServer.baseUrl);
+    db = (await import('../../../api/lib/db.js')).db;
+    weeks = (await import('../../../api/lib/schema.js')).weeks;
+    console.log('[TEST] DB and schema loaded');
   });
 
   afterAll(async () => {
@@ -17,7 +25,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('should return 400 when no credentials are provided', async () => {
-    const response = await fetch('http://localhost:3004/api/auth/login', {
+    const response = await fetch(`${testServer.baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -28,7 +36,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('should return 400 when only username is provided', async () => {
-    const response = await fetch('http://localhost:3004/api/auth/login', {
+    const response = await fetch(`${testServer.baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

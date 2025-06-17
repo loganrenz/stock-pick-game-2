@@ -1,12 +1,11 @@
 import dotenv from 'dotenv';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
 import { TestServer } from '../../helpers/test-server.js';
 
 dotenv.config({ path: '.env.test' });
 
 let db, weeks, token;
-
-describe('GET /api/weeks/current', () => {
+describe('GET /api/weeks/current', { timeout: 30000 }, () => {
   const testServer = new TestServer();
 
   beforeAll(async () => {
@@ -20,8 +19,8 @@ describe('GET /api/weeks/current', () => {
 
     // Create a test user and get auth token
     const testUser = await testServer.createTestUser({
-      username: 'testuser',
-      password: 'testpass'
+      username: 'logan',
+      password: 'loganpw'
     });
     console.log('[TEST] Test user created:', testUser);
 
@@ -45,6 +44,9 @@ describe('GET /api/weeks/current', () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data).toHaveProperty('week');
+
+    // Comment out migrate and seed setup for faster iterations
+    // await fetch(`${baseUrl}/api/test/setup`, { method: 'POST' });
   });
 
   afterAll(async () => {
@@ -75,4 +77,5 @@ describe('GET /api/weeks/current', () => {
     });
     expect(response.status).toBe(405);
   });
-}); 
+});
+

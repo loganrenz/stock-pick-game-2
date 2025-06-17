@@ -22,11 +22,16 @@ export async function main() {
       username: 'logan',
       password: await bcrypt.hash('loganpw', 10),
     },
+    {
+      username: 'testuser',
+      password: await bcrypt.hash('testuserpw', 10),
+    }
   ];
 
   console.log('Creating test users...');
   
   for (const user of testUsers) {
+    console.log('Seeding user:', user.username, 'with hashed password:', user.password);
     const existingUser = await db.query.users.findFirst({
       where: eq(users.username, user.username)
     });

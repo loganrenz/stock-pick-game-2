@@ -5,7 +5,7 @@ import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
 import type { User } from '../../src/types/index.js';
 
-export const JWT_SECRET = process.env.VERCEL_JWT_SECRET || 'your-secret-key';
+export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
 export const JWT_REFRESH_THRESHOLD = 7 * 24 * 60 * 60; // 7 days in seconds
 
@@ -22,6 +22,7 @@ export const requireAuth = async (
   next: () => void
 ): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1];
+  console.log('[requireAuth] Received token:', token);
   
   if (!token) {
     res.status(401).json({ error: 'No token provided' });
@@ -30,11 +31,14 @@ export const requireAuth = async (
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; exp: number };
+    console.log('[requireAuth] Decoded token:', decoded);
     const user = await db.query.users.findFirst({
       where: eq(users.id, decoded.userId)
     });
+    console.log('[requireAuth] User from DB:', user);
 
     if (!user || user.jwtToken !== token) {
+      console.log('[requireAuth] Token mismatch or user not found. user.jwtToken:', user?.jwtToken, 'token:', token);
       res.status(401).json({ error: 'Invalid token' });
       return;
     }
@@ -58,6 +62,7 @@ export const requireAuth = async (
     };
     next();
   } catch (error) {
+    console.error('[requireAuth] Error during token verification or user lookup:', error);
     res.status(401).json({ error: 'Invalid token' });
   }
 };

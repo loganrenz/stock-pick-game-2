@@ -6,6 +6,7 @@ import type { Week as WeekType, Pick as PickType, User as UserType, DailyPrice }
 import { db } from '../../lib/db.js';
 import { weeks } from '../../lib/schema.js';
 import { requireAuth, AuthenticatedRequest } from '../../lib/auth.js';
+import jwt from 'jsonwebtoken';
 
 console.log('[API] TURSO_DB_URL:', process.env.TURSO_DB_URL);
 
@@ -13,8 +14,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Current week request received:', {
     method: req.method,
     headers: req.headers,
-    url: req.url,
+    url: req.url
   });
+
+  // Get the authorization header
+  const authHeader = req.headers.authorization;
+  console.log('Authorization header:', authHeader);
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'No token provided' });
+    return;
+  }
+
+  const token = authHeader.split(' ')[1];
+  console.log('Token:', token);
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    console.log('Decoded token:', decoded);
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+    return;
+  }
 
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -113,11 +135,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         console.log('Returning newly created week:', weekWithPicks);
-        return res.status(200).json(weekWithPicks);
+        return res.status(200).json({ week: weekWithPicks });
       }
 
       console.log('Returning existing current week:', currentWeek);
-      res.status(200).json(currentWeek);
+      res.status(200).json({ week: currentWeek });
     } catch (error) {
       console.error('Error fetching current week:', error);
       res.status(500).json({ error: 'Failed to fetch current week', details: error instanceof Error ? error.message : error });

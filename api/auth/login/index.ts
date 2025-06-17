@@ -23,6 +23,7 @@ export default async function handler(
   );
 
   console.log('Login request received');
+  console.log('DB URL:', process.env.TURSO_DB_URL);
   // Handle preflight request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -49,25 +50,35 @@ export default async function handler(
     console.log('Query result:', user);
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
     if (!user.password) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Verify password using bcrypt
-    const isValidPassword = bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    // Compare password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', passwordMatch);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid username or password' });
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 
-    // Store the token in the database
-    await db.update(users)
-      .set({ jwtToken: token })
-      .where(eq(users.id, user.id));
+    let updateResult;
+    try {
+      updateResult = await db.update(users)
+        .set({ jwtToken: token })
+        .where(eq(users.id, user.id));
+      console.log('Update result:', updateResult);
+    } catch (updateError) {
+      console.error('Error updating jwtToken in DB:', updateError);
+    }
+
+    // Fetch user again to check jwtToken
+    const userAfterUpdate = await db.query.users.findFirst({ where: eq(users.id, user.id) });
+    console.log('User after update:', userAfterUpdate);
 
     console.log('Token issued with expiration:', JWT_EXPIRY);
     console.log('Token payload:', { userId: user.id, exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60 });

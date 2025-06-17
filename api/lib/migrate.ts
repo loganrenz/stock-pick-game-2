@@ -4,6 +4,8 @@ import { db } from './db.js';
 import { users, weeks, picks } from './schema.js';
 import { sql } from 'drizzle-orm';
 
+console.log('[MIGRATE] TURSO_DB_URL:', process.env.TURSO_DB_URL);
+
 export async function main() {
   try {
     // Test connection
