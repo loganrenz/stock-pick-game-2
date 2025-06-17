@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../lib/db';
+import { prisma } from '@api/lib/db';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
@@ -9,6 +9,7 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');

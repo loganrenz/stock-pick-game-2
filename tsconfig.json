@@ -1,12 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["ES2017"]
+    "lib": ["ES2017", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "paths": {
+      //"@/*": ["./src/*"]
+    }
   },
-  "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.api.json" }
-  ]
+  ],
+  "include": ["./api/auth/login/index.ts", "./api/lib/db.ts"]
 }
