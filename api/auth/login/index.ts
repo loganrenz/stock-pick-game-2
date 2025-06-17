@@ -33,6 +33,7 @@ export default async function handler(
   try {
     const { username, password } = req.body;
     console.log('Login attempt for username:', username);
+    console.log('username type:', typeof username, 'value:', username);
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
@@ -40,9 +41,7 @@ export default async function handler(
 
     console.log('Attempting to find user in database...');
     const user = await prisma.user.findUnique({
-      where: { 
-        username: username.toString() // Ensure username is a string
-      },
+      where: { username: String(username) },
       select: {
         id: true,
         username: true,
