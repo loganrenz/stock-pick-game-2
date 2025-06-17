@@ -32,14 +32,24 @@ export default async function handler(
 
   try {
     const { username, password } = req.body;
+    console.log('Login attempt for username:', username);
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
+    console.log('Attempting to find user in database...');
     const user = await prisma.user.findUnique({
-      where: { username }
+      where: { 
+        username: username.toString() // Ensure username is a string
+      },
+      select: {
+        id: true,
+        username: true,
+        password: true
+      }
     });
+    console.log('User query result:', user);
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -67,6 +77,13 @@ export default async function handler(
     });
   } catch (error) {
     console.error('Login error:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
     return res.status(500).json({ error: 'Internal server error' });
   }
 } 
