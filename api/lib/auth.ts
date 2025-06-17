@@ -2,8 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import { prisma } from './db';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRY = '365d'; // 1 year
+export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+export const JWT_EXPIRY = '365d'; // 1 year
 const JWT_REFRESH_THRESHOLD = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
 export interface AuthenticatedRequest extends NextApiRequest {

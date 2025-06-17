@@ -11,6 +11,23 @@ interface AuthState {
   user: User | null;
 }
 
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5173',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add request interceptor to add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: localStorage.getItem('token'),
@@ -25,11 +42,11 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async login(username: string, password: string): Promise<void> {
       try {
-        const response = await axios.post('/api/auth/login', { username, password });
-        const { token } = response.data;
+        const response = await api.post('/api/auth/login', { username, password });
+        const { token, user } = response.data;
         this.token = token;
+        this.user = user;
         localStorage.setItem('token', token);
-        await this.fetchUser();
       } catch (error) {
         console.error('Login failed:', error);
         throw error;
@@ -38,7 +55,9 @@ export const useAuthStore = defineStore('auth', {
 
     async logout(): Promise<void> {
       try {
-        await axios.post('/api/auth/logout');
+        if (this.token) {
+          await api.post('/api/auth/logout');
+        }
       } catch (error) {
         console.error('Logout failed:', error);
       } finally {
@@ -50,7 +69,7 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchUser(): Promise<void> {
       try {
-        const response = await axios.get('/api/auth/me');
+        const response = await api.get('/api/auth/me');
         this.user = response.data;
       } catch (error) {
         console.error('Failed to fetch user:', error);

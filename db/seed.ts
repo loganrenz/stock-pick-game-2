@@ -132,22 +132,70 @@ async function main() {
     select: { weekNum: true }
   });
 
-  const weeksToCreate = weeks.filter(
-    week => !existingWeeks.some(existing => existing.weekNum === week.weekNum)
-  );
+  const weeksToCreate: SimpleWeek[] = [];
+
+  for (const pick of weeks.flatMap(week => week.picks)) {
+    const pickDate = new Date(pick.createdAt);
+    const weekStartDate = startOfWeek(pickDate, { weekStartsOn: 1 }); // Monday
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekEndDate.getDate() + 6);
+    weekEndDate.setHours(23, 59, 59, 999);
+
+    if (!currentWeekStartDate || weekStartDate.getTime() !== currentWeekStartDate.getTime()) {
+      currentWeekStartDate = weekStartDate;
+      weeksToCreate.push({
+        weekNum: weeksToCreate.length + 1,
+        startDate: weekStartDate,
+        endDate: weekEndDate,
+        picks: [],
+      });
+    }
+
+    const currentWeek = weeksToCreate[weeksToCreate.length - 1];
+    currentWeek.picks.push({
+      userId: pick.userId,
+      symbol: pick.symbol,
+      entryPrice: pick.entryPrice,
+      createdAt: pickDate,
+      weekNum: currentWeek.weekNum,
+    });
+  }
+
+  // Copy picks from the previous week if a week has no picks
+  for (let i = 1; i < weeksToCreate.length; i++) {
+    if (weeksToCreate[i].picks.length === 0 && weeksToCreate[i - 1].picks.length > 0) {
+      weeksToCreate[i].picks = weeksToCreate[i - 1].picks.map(pick => ({
+        ...pick,
+        weekNum: weeksToCreate[i].weekNum,
+      }));
+    }
+  }
 
   console.log('Weeks to create:', JSON.stringify(weeksToCreate, null, 2));
 
+  // Get all weeks (including newly created ones) for pick creation
+  const allExistingWeeks = await prisma.week.findMany({ select: { weekNum: true, startDate: true } });
+
   // Create weeks one at a time to handle winner relationship
   for (const week of weeksToCreate) {
-    await prisma.week.create({
-      data: {
-        weekNum: week.weekNum,
-        startDate: week.startDate,
-        endDate: week.endDate,
-        winnerId: Number.isFinite(week.winnerId) ? week.winnerId : 0,
-      }
-    });
+    // Check if week already exists
+    const exists = allExistingWeeks.some(
+      w => w.weekNum === week.weekNum || new Date(w.startDate).getTime() === new Date(week.startDate).getTime()
+    );
+    if (exists) {
+      console.log(`Skipping weekNum ${week.weekNum} (already exists)`);
+      continue;
+    }
+    const weekData: any = {
+      weekNum: week.weekNum,
+      startDate: week.startDate,
+      endDate: week.endDate,
+    };
+    if (typeof week.winnerId === 'number' && Number.isInteger(week.winnerId) && week.winnerId > 0) {
+      weekData.winnerId = week.winnerId;
+    }
+    console.log('Creating week with data:', JSON.stringify(weekData));
+    await prisma.week.create({ data: weekData });
   }
   console.log(`Created ${weeksToCreate.length} new weeks`);
 
@@ -155,7 +203,7 @@ async function main() {
   const allWeeks = await prisma.week.findMany();
   
   // Prepare picks data
-  const picksToCreate = weeks.flatMap(week => {
+  const picksToCreate = weeksToCreate.flatMap(week => {
     const dbWeek = allWeeks.find(w => w.weekNum === week.weekNum);
     if (!dbWeek) return [];
     
