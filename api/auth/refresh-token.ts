@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { prisma } from '@api/lib/db';
-import { requireAuth, AuthenticatedRequest } from '@api/lib/auth';
+import { prisma } from '../lib/db';
+import { requireAuth, AuthenticatedRequest } from '../lib/auth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
