@@ -1,45 +1,24 @@
-import pluginVue from 'eslint-plugin-vue'
-import globals from 'globals'
-import tseslint from '@typescript-eslint/eslint-plugin'
-import tsParser from '@typescript-eslint/parser'
-import eslintConfigPrettier from 'eslint-config-prettier'
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import eslintPluginVue from 'eslint-plugin-vue';
+import globals from 'globals';
 
-export default [
+export default tseslint.config(
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    ignores: [
-      'old/backend/generated/',
-      'old/backend/prisma/generated/',
-      'dist/',
-      'build/',
-      'node_modules/',
-      'coverage/',
-      '.cache/',
-      '.eslintcache',
-      '.env*',
-    ],
-  },
-  ...pluginVue.configs['flat/recommended'],
-  {
-    files: ['**/*.{ts,tsx,cts,mts,vue}'],
+    files: ['**/*.{js,ts,vue}'],
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
       globals: {
         ...globals.browser,
-        __APP_VERSION__: 'readonly',
-        __BUILD_TIME__: 'readonly',
-      },
+        ...globals.node
+      }
     },
     plugins: {
-      '@typescript-eslint': tseslint,
+      vue: eslintPluginVue
     },
     rules: {
-      ...tseslint.configs.recommended.rules,
-      // Add your custom TypeScript rules here
-    },
-  },
-  eslintConfigPrettier,
-]; 
+      'vue/multi-word-component-names': 'off'
+    }
+  }
+); 

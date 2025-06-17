@@ -7,7 +7,7 @@ import { db } from '../../lib/db.js';
 import { weeks } from '../../lib/schema.js';
 import { requireAuth, AuthenticatedRequest } from '../../lib/auth.js';
 
-
+console.log('[API] TURSO_DB_URL:', process.env.TURSO_DB_URL);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Current week request received:', {

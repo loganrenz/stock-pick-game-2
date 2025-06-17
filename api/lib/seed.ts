@@ -1,9 +1,9 @@
 import { db } from './db.js';
-import { users } from './schema';
+import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 
-async function main() {
+export async function main() {
   // Create test users
   const testUsers = [
     {
@@ -42,5 +42,10 @@ async function main() {
   }
 }
 
-// Run the seed function
-main().catch(console.error); 
+// Only run if this file is being run directly
+if (import.meta.url === `file://${process.argv[1]}` || import.meta.url === process.argv[1]) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+} 

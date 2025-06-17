@@ -1,6 +1,62 @@
 # Stock Pick Game
 
-A web application for tracking and managing a weekly stock picking competition between friends.
+A web application where users can pick stocks and compete with others.
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Set up environment variables:
+
+```bash
+cp .env.example .env
+```
+
+3. Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+4. Start the development server:
+
+```bash
+npm run dev
+```
+
+## Development
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run test` - Run tests
+- `npm run lint` - Run linter
+- `npm run type-check` - Run type checking
+
+## Database
+
+The application uses Turso as its database. Make sure to set the following environment variables:
+
+- `TURSO_DB_URL` - Your Turso database URL
+- `TURSO_DB_TOKEN` - Your Turso authentication token
+
+## Testing
+
+Run tests with:
+
+```bash
+npm run test
+```
+
+For end-to-end tests:
+
+```bash
+npm run test:e2e
+```
 
 ## Features
 

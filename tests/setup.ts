@@ -26,6 +26,25 @@ if (process.env.VITEST_ENV === 'jsdom') {
       dispatchEvent: vi.fn(),
     })),
   });
+
+  // Mock window
+  global.window = {
+    ...global.window,
+    localStorage: localStorageMock,
+    location: {
+      href: 'http://localhost',
+      pathname: '/',
+    },
+  };
+
+  // Mock document
+  global.document = {
+    ...global.document,
+    createElement: vi.fn(),
+    getElementById: vi.fn(),
+    querySelector: vi.fn(),
+    querySelectorAll: vi.fn(),
+  };
 }
 
 // Configure Vue Test Utils

@@ -1,1 +1,1 @@
-DROP INDEX IF EXISTS `User_jwtToken_unique`; 
+DROP INDEX IF EXISTS "User_jwtToken_unique"; 

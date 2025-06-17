@@ -54,6 +54,10 @@
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/test/setup",
+      "destination": "/api/test/setup/index.ts"
     }
   ],
   "env": {

@@ -1,39 +1,41 @@
-CREATE TABLE `Pick` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`userId` integer NOT NULL,
-	`weekId` integer NOT NULL,
-	`symbol` text NOT NULL,
-	`entryPrice` real NOT NULL,
-	`createdAt` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updatedAt` text,
-	`dailyPriceData` text,
-	`currentValue` real,
-	`weekReturn` real,
-	`returnPercentage` real,
-	FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action,
-	FOREIGN KEY (`weekId`) REFERENCES `Week`(`id`) ON UPDATE no action ON DELETE no action
+CREATE TABLE "Pick" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	"userId" INTEGER NOT NULL,
+	"weekId" INTEGER NOT NULL,
+	"symbol" TEXT NOT NULL,
+	"entryPrice" REAL NOT NULL,
+	"createdAt" TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"updatedAt" TEXT,
+	"dailyPriceData" TEXT,
+	"currentValue" REAL,
+	"weekReturn" REAL,
+	"returnPercentage" REAL,
+	FOREIGN KEY ("userId") REFERENCES "User"("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+	FOREIGN KEY ("weekId") REFERENCES "Week"("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 --> statement-breakpoint
-CREATE TABLE `User` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`username` text NOT NULL,
-	`password` text,
-	`jwtToken` text,
-	`createdAt` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updatedAt` text
+CREATE TABLE "User" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	"username" TEXT NOT NULL,
+	"password" TEXT,
+	"jwtToken" TEXT,
+	"createdAt" TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"updatedAt" TEXT
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `User_username_unique` ON `User` (`username`);--> statement-breakpoint
-CREATE UNIQUE INDEX `User_jwtToken_unique` ON `User` (`jwtToken`);--> statement-breakpoint
-CREATE TABLE `Week` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`weekNum` integer NOT NULL,
-	`startDate` text NOT NULL,
-	`endDate` text,
-	`winnerId` integer,
-	`createdAt` text DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	`updatedAt` text,
-	FOREIGN KEY (`winnerId`) REFERENCES `User`(`id`) ON UPDATE no action ON DELETE no action
+CREATE UNIQUE INDEX "User_username_unique" ON "User" ("username");
+--> statement-breakpoint
+CREATE UNIQUE INDEX "User_jwtToken_unique" ON "User" ("jwtToken");
+--> statement-breakpoint
+CREATE TABLE "Week" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	"weekNum" INTEGER NOT NULL,
+	"startDate" TEXT NOT NULL,
+	"endDate" TEXT,
+	"winnerId" INTEGER,
+	"createdAt" TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	"updatedAt" TEXT,
+	FOREIGN KEY ("winnerId") REFERENCES "User"("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `Week_startDate_unique` ON `Week` (`startDate`);
+CREATE UNIQUE INDEX "Week_startDate_unique" ON "Week" ("startDate");
