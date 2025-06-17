@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../lib/db.js';
 import { users } from '../lib/schema';
 import { eq } from 'drizzle-orm';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year

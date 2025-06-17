@@ -1,9 +1,8 @@
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { eq, lte, gte, asc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import type { Week as WeekType, Pick as PickType, User as UserType } from '../../../src/types/index.js';
+import type { Week as WeekType, Pick as PickType, User as UserType, DailyPrice } from '../../../src/types/index.js';
 import { db } from '../../lib/db.js';
 import { weeks } from '../../lib/schema.js';
 import { requireAuth, AuthenticatedRequest } from '../../lib/auth.js';
@@ -46,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday
       const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // End on Sunday
 
-      const currentWeek = await db.query.weeks.findFirst({
+      const currentWeekRaw = await db.query.weeks.findFirst({
         where: and(
           lte(weeks.startDate, today.toISOString()),
           gte(weeks.endDate, today.toISOString())
@@ -58,7 +57,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           }
         }
-      }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
+      }) as unknown;
+
+      let currentWeek: (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType; dailyPriceData?: { [key: string]: DailyPrice } })[] }) | null = null;
+
+      if (currentWeekRaw) {
+        currentWeek = {
+          ...(currentWeekRaw as object),
+          picks: (currentWeekRaw as any).picks.map((pick: any) => ({
+            ...pick,
+            dailyPriceData: pick.dailyPriceData ? JSON.parse(pick.dailyPriceData) : undefined
+          }))
+        } as unknown as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType; dailyPriceData?: { [key: string]: DailyPrice } })[] });
+      }
 
       console.log('Current week query result:', currentWeek);
 
@@ -74,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .returning();
 
         // Fetch the newly created week with its picks and users
-        const weekWithPicks = await db.query.weeks.findFirst({
+        const weekWithPicksRaw = await db.query.weeks.findFirst({
           where: eq(weeks.id, newWeek.id),
           with: {
             picks: {
@@ -83,7 +94,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               }
             }
           }
-        }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
+        }) as unknown;
+
+        let weekWithPicks: (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType; dailyPriceData?: { [key: string]: DailyPrice } })[] }) | null = null;
+        if (weekWithPicksRaw) {
+          weekWithPicks = {
+            ...(weekWithPicksRaw as object),
+            picks: (weekWithPicksRaw as any).picks.map((pick: any) => ({
+              ...pick,
+              dailyPriceData: pick.dailyPriceData ? JSON.parse(pick.dailyPriceData) : undefined
+            }))
+          } as unknown as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType; dailyPriceData?: { [key: string]: DailyPrice } })[] });
+        }
 
         if (!weekWithPicks) {
           console.error('Failed to fetch newly created week');

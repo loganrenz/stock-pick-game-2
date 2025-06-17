@@ -6,7 +6,7 @@ export const users = sqliteTable('User', (table) => ({
   id: integer('id').primaryKey(),
   username: text('username').notNull().unique(),
   password: text('password'),
-  jwtToken: text('jwtToken').unique(),
+  jwtToken: text('jwtToken'),
   createdAt: text('createdAt').notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updatedAt'),
 }));
@@ -42,8 +42,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   picks: many(picks),
 }));
 
-export const weeksRelations = relations(weeks, ({ many }) => ({
+export const weeksRelations = relations(weeks, ({ many, one }) => ({
   picks: many(picks),
+  winner: one(users, {
+    fields: [weeks.winnerId],
+    references: [users.id],
+  }),
 }));
 
 export const picksRelations = relations(picks, ({ one }) => ({

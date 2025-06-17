@@ -1,6 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
-  testEnvironment: 'jsdom',
+  testEnvironment: 'node',
   moduleFileExtensions: ['js', 'json', 'vue', 'ts'],
   transform: {
     '^.+\\.vue$': 'vue-jest',
@@ -9,4 +9,9 @@ module.exports = {
   },
   setupFilesAfterEnv: ['@testing-library/jest-dom'],
   snapshotSerializers: ['jest-serializer-vue'],
+  testMatch: ['**/tests/**/*.test.ts'],
+  testPathIgnorePatterns: ['/node_modules/'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
+  }
 };

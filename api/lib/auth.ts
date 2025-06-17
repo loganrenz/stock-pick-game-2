@@ -7,7 +7,7 @@ import type { User } from '../../src/types/index.js';
 
 export const JWT_SECRET = process.env.VERCEL_JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
-export const JWT_REFRESH_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+export const JWT_REFRESH_THRESHOLD = 7 * 24 * 60 * 60; // 7 days in seconds
 
 export interface AuthenticatedRequest extends VercelRequest {
   user?: {
@@ -39,14 +39,17 @@ export const requireAuth = async (
       return;
     }
 
-    // Check if token needs refresh (if less than 30 days until expiry)
+    // Check if token needs refresh (if less than 7 days until expiry)
     const now = Math.floor(Date.now() / 1000);
-    if (decoded.exp - now < JWT_REFRESH_THRESHOLD / 1000) {
+    if (decoded.exp - now < JWT_REFRESH_THRESHOLD) {
+      console.log('Token refresh needed. Current time:', new Date(now * 1000).toISOString());
+      console.log('Token expires at:', new Date(decoded.exp * 1000).toISOString());
       const newToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
       await db.update(users)
         .set({ jwtToken: newToken })
         .where(eq(users.id, user.id));
       res.setHeader('X-New-Token', newToken);
+      console.log('New token issued with expiration:', new Date((now + 365 * 24 * 60 * 60) * 1000).toISOString());
     }
 
     req.user = {

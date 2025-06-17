@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../lib/db.js';
 import { weeks, picks, users } from '../../lib/schema.js';
-import { requireAuth, AuthenticatedRequest } from '../../lib/auth';
+import { requireAuth, AuthenticatedRequest } from '../../lib/auth.js';
 import { desc } from 'drizzle-orm';
 import type { Week as WeekType, Pick as PickType, User as UserType } from '../../../src/types/index';
 
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           winner: true
         },
         orderBy: [desc(weeks.startDate)]
-      }) as (Omit<WeekType, 'picks' | 'winner'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[]; winner: UserType | null })[];
+      }) as unknown as (Omit<WeekType, 'picks' | 'winner'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[]; winner: UserType | null })[];
 
       // Format weeks data with type guards
       const formattedWeeks = allWeeks.map(week => ({
@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       res.status(200).json(formattedWeeks);
     } catch (error) {
-      console.error('Error fetching weeks:', error);
+      console.error('Error fetching weeks:', error, error instanceof Error ? error.stack : '');
       res.status(500).json({ error: 'Failed to fetch weeks', details: error instanceof Error ? error.message : error });
     }
   });

@@ -69,6 +69,9 @@ export default async function handler(
       .set({ jwtToken: token })
       .where(eq(users.id, user.id));
 
+    console.log('Token issued with expiration:', JWT_EXPIRY);
+    console.log('Token payload:', { userId: user.id, exp: Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60 });
+
     return res.status(200).json({
       token,
       user: {
