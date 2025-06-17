@@ -15,5 +15,5 @@
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.api.json" }
   ],
-  "include": ["./api/auth/login/index.ts", "./api/lib/db.ts"]
+  "include": ["./api/auth/login/index.ts", "./api/lib/db.ts", "./api/lib/auth.ts", "./api/lib/schema.ts"]
 }

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text, real, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { relations } from 'drizzle-orm';
 
 export const users = sqliteTable('User', (table) => ({
   id: integer('id').primaryKey(),
@@ -35,4 +36,23 @@ export const picks = sqliteTable('Pick', (table) => ({
 }));
 
 // Define unique constraint separately
-export const picksUniqueIndex = uniqueIndex('picks_user_week_unique').on(picks.userId, picks.weekId); 
+export const picksUniqueIndex = uniqueIndex('picks_user_week_unique').on(picks.userId, picks.weekId);
+
+export const usersRelations = relations(users, ({ many }) => ({
+  picks: many(picks),
+}));
+
+export const weeksRelations = relations(weeks, ({ many }) => ({
+  picks: many(picks),
+}));
+
+export const picksRelations = relations(picks, ({ one }) => ({
+  user: one(users, {
+    fields: [picks.userId],
+    references: [users.id],
+  }),
+  week: one(weeks, {
+    fields: [picks.weekId],
+    references: [weeks.id],
+  }),
+})); 

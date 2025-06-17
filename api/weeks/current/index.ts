@@ -1,13 +1,22 @@
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { startOfWeek, endOfWeek } from 'date-fns';
-import { db } from '../lib/db.js';
-import { weeks, picks, users } from '../lib/schema.js';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
 import { eq, lte, gte, asc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import type { Week as WeekType, Pick as PickType, User as UserType } from '../../src/types/index';
+import type { Week as WeekType, Pick as PickType, User as UserType } from '../../../src/types/index.js';
+import { db } from '../../lib/db.js';
+import { weeks } from '../../lib/schema.js';
+import { requireAuth, AuthenticatedRequest } from '../../lib/auth.js';
+
+
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('Current week request received:', {
+    method: req.method,
+    headers: req.headers,
+    url: req.url,
+  });
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,16 +29,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Handle preflight request
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
     res.status(200).end();
     return;
   }
 
   if (req.method !== 'GET') {
+    console.log('Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   return requireAuth(req as AuthenticatedRequest, res, async () => {
     try {
+      console.log('Auth successful, fetching current week');
       const today = new Date();
       const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday
       const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // End on Sunday
@@ -48,7 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
 
+      console.log('Current week query result:', currentWeek);
+
       if (!currentWeek) {
+        console.log('No current week found, creating new week');
         // Create new week if none exists
         const [newWeek] = await db.insert(weeks)
           .values({
@@ -71,12 +86,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
 
         if (!weekWithPicks) {
+          console.error('Failed to fetch newly created week');
           throw new Error('Failed to fetch newly created week');
         }
 
+        console.log('Returning newly created week:', weekWithPicks);
         return res.status(200).json(weekWithPicks);
       }
 
+      console.log('Returning existing current week:', currentWeek);
       res.status(200).json(currentWeek);
     } catch (error) {
       console.error('Error fetching current week:', error);

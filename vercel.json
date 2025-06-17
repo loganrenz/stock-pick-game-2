@@ -19,9 +19,42 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/assets/(.*)", "destination": "/assets/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/weeks/current",
+      "destination": "/api/weeks/current"
+    },
+    {
+      "source": "/api/weeks/:path*",
+      "destination": "/api/weeks/:path*"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
+    },
+    {
+      "source": "/api/picks/:path*",
+      "destination": "/api/picks/:path*"
+    },
+    {
+      "source": "/api/stocks/:path*",
+      "destination": "/api/stocks/:path*"
+    },
+    {
+      "source": "/api/users/:path*",
+      "destination": "/api/users/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ],
   "env": {
     "TURSO_DB_URL": "libsql://dev-loganrenz.aws-us-east-1.turso.io",

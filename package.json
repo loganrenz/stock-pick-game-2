@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev -p 5173",
+    "dev": "vercel dev -p 3004",
     "dev:vite": "vite",
     "dev:vercel": "vercel dev",
     "db:reset": "npx ts-node db/reset.ts",

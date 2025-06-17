@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 import { db } from './db.js';
-import { users } from './schema';
+import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
+import type { User } from '../../src/types/index.js';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+export const JWT_SECRET = process.env.VERCEL_JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
-const JWT_REFRESH_THRESHOLD = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+export const JWT_REFRESH_THRESHOLD = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 export interface AuthenticatedRequest extends VercelRequest {
   user?: {
@@ -56,4 +57,8 @@ export const requireAuth = async (
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
   }
-}; 
+};
+
+export function generateToken(userId: number): string {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+} 
