@@ -1,45 +1,49 @@
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
-generator client {
-  provider = "prisma-client-js"
+datasource db {
+  provider = "sqlite"
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
   password  String?
-  jwtToken  String?
+  jwtToken  String?   @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
   picks     Pick[]
-  wins      Week[]   @relation("Winner")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  wins      Week[]    @relation("Winner")
 }
 
 model Week {
-  id        Int      @id @default(autoincrement())
-  startDate DateTime
-  endDate   DateTime
-  weekNumber Int
-  picks     Pick[]
-  winner    User?    @relation("Winner", fields: [winnerId], references: [id])
+  id        Int       @id @default(autoincrement())
+  weekNum   Int
+  startDate DateTime  @unique
+  endDate   DateTime?
   winnerId  Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  picks     Pick[]
+  winner    User?     @relation("Winner", fields: [winnerId], references: [id])
 }
 
 model Pick {
-  id        Int      @id @default(autoincrement())
-  symbol    String
-  price     Float
-  week      Week     @relation(fields: [weekId], references: [id])
-  weekId    Int
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               Int       @id @default(autoincrement())
+  userId           Int
+  weekId           Int
+  symbol           String
+  entryPrice       Float
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @updatedAt
+  dailyPriceData   String?
+  currentValue     Float?
+  weekReturn       Float?
+  returnPercentage Float?
+  week             Week      @relation(fields: [weekId], references: [id])
+  user             User      @relation(fields: [userId], references: [id])
 
-  @@unique([weekId, userId])
-} 
+  @@unique([userId, weekId])
+}
