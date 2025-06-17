@@ -29,6 +29,6 @@
       "@api/*": ["./api/*"]
     }
   },
-  "include": ["api/**/*.ts"],
+  "include": ["api/**/*.ts", "src/types/**/*.ts"],
   "exclude": ["node_modules"]
 } 

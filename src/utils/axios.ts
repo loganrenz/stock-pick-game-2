@@ -26,7 +26,7 @@ axios.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login if unauthorized
+      // Clear token and redirect to home page if unauthorized
       localStorage.removeItem('token');
       window.location.href = '/';
     }

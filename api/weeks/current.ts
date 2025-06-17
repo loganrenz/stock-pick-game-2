@@ -1,12 +1,29 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { startOfWeek, endOfWeek } from 'date-fns';
-import { db } from '../lib/db';
-import { weeks, picks, users } from '../lib/schema';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth';
-import { eq, lte, gte, asc } from 'drizzle-orm';
+import { db } from '../lib/db.js';
+import { weeks, picks, users } from '../lib/schema.js';
+import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
+import { eq, lte, gte, asc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import type { Week as WeekType, Pick as PickType, User as UserType } from '../../src/types/index';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+  res.setHeader('Content-Type', 'application/json');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -29,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           }
         }
-      });
+      }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
 
       if (!currentWeek) {
         // Create new week if none exists
@@ -51,15 +68,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               }
             }
           }
-        });
+        }) as (Omit<WeekType, 'picks'> & { picks: (Omit<PickType, 'user'> & { user: UserType })[] }) | null;
 
-        return res.json(weekWithPicks);
+        if (!weekWithPicks) {
+          throw new Error('Failed to fetch newly created week');
+        }
+
+        return res.status(200).json(weekWithPicks);
       }
 
-      res.json(currentWeek);
+      res.status(200).json(currentWeek);
     } catch (error) {
       console.error('Error fetching current week:', error);
-      res.status(500).json({ error: 'Failed to fetch current week' });
+      res.status(500).json({ error: 'Failed to fetch current week', details: error instanceof Error ? error.message : error });
     }
   });
 }

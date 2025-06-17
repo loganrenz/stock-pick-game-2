@@ -1,10 +1,10 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../lib/db';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { db } from '../lib/db.js';
 import { picks, weeks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
 import { eq, and } from 'drizzle-orm';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST' && req.method !== 'PUT') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

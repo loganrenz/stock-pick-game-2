@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { db } from '../../lib/db.js';
 import { users } from '../../lib/schema.js';
 import { eq } from 'drizzle-orm';
+import * as bcrypt from 'bcrypt';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '365d'; // 1 year
@@ -51,8 +52,13 @@ export default async function handler(
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // In a real application, you should use bcrypt or similar to hash passwords
-    if (user.password !== password) {
+    if (!user.password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Verify password using bcrypt
+    const isValidPassword = bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

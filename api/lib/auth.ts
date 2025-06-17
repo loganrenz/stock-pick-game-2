@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { db } from './db';
+import { db } from './db.js';
 import { users } from './schema';
 import { eq } from 'drizzle-orm';
 
@@ -8,7 +8,7 @@ export const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 export const JWT_EXPIRY = '365d'; // 1 year
 const JWT_REFRESH_THRESHOLD = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
-export interface AuthenticatedRequest extends NextApiRequest {
+export interface AuthenticatedRequest extends VercelRequest {
   user?: {
     id: number;
     username: string;
@@ -17,7 +17,7 @@ export interface AuthenticatedRequest extends NextApiRequest {
 
 export const requireAuth = async (
   req: AuthenticatedRequest,
-  res: NextApiResponse,
+  res: VercelResponse,
   next: () => void
 ): Promise<void> => {
   const token = req.headers.authorization?.split(' ')[1];

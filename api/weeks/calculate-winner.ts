@@ -1,5 +1,5 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { db } from '../lib/db';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { db } from '../lib/db.js';
 import { weeks, picks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
 import { eq } from 'drizzle-orm';
@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

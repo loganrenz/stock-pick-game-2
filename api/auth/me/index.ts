@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { db } from '../../lib/db';
-import { users } from '../../lib/schema';
+import { db } from '../../lib/db.js';
+import { users } from '../../lib/schema.js';
 import { eq } from 'drizzle-orm';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
