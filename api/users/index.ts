@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../lib/db.js';
-import { users, picks, weeks } from '../lib/schema.js';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { users } from '../lib/schema.js';
 import { eq } from 'drizzle-orm';
+import * as bcrypt from 'bcrypt';
+import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -20,45 +21,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  const path = req.url?.split('/').pop() || '';
 
-  return requireAuth(req as AuthenticatedRequest, res, async () => {
-    try {
-      const allUsers = await db.query.users.findMany({
-        with: {
-          picks: {
-            with: {
-              week: true
-            }
+  switch (path) {
+    case 'register':
+      if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      try {
+        const { username, password } = req.body;
+        if (!username || !password) {
+          return res.status(400).json({ error: 'Username and password are required' });
+        }
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.username, username)
+        });
+        if (existingUser) {
+          return res.status(400).json({ error: 'Username already exists' });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const [newUser] = await db.insert(users).values({
+          username,
+          password: hashedPassword
+        }).returning();
+        return res.status(201).json({
+          id: newUser.id,
+          username: newUser.username
+        });
+      } catch (error) {
+        console.error('Registration error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+    case 'profile':
+      if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      return requireAuth(req as AuthenticatedRequest, res, async () => {
+        try {
+          const user = await db.query.users.findFirst({
+            where: eq(users.id, (req as AuthenticatedRequest).user!.id)
+          });
+          if (!user) {
+            return res.status(404).json({ error: 'User not found' });
           }
+          return res.status(200).json({
+            id: user.id,
+            username: user.username
+          });
+        } catch (error) {
+          console.error('Profile error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
         }
       });
 
-      // Calculate stats for each user
-      const usersWithStats = allUsers.map(user => {
-        const wins = user.picks.filter(pick => 
-          pick.week?.winnerId === user.id
-        ).length;
-
-        const totalPicks = user.picks.length;
-        const winRate = totalPicks > 0 ? (wins / totalPicks) * 100 : 0;
-
-        return {
-          id: user.id,
-          username: user.username,
-          wins,
-          totalPicks,
-          winRate,
-          createdAt: user.createdAt
-        };
-      });
-
-      res.json(usersWithStats);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      res.status(500).json({ error: 'Failed to fetch users' });
-    }
-  });
+    default:
+      return res.status(404).json({ error: 'Not found' });
+  }
 } 

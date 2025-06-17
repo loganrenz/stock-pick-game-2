@@ -1,71 +1,110 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../lib/db.js';
-import { picks, weeks } from '../lib/schema';
-import { requireAuth, AuthenticatedRequest } from '../lib/auth';
+import { picks } from '../lib/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { requireAuth, AuthenticatedRequest } from '../lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST' && req.method !== 'PUT') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
-  return requireAuth(req as AuthenticatedRequest, res, async () => {
-    const { weekId, symbol, price } = req.body;
-    const userId = (req as AuthenticatedRequest).user!.id;
+  const path = req.url?.split('/').pop() || '';
 
-    if (!weekId || !symbol || !price) {
-      return res.status(400).json({ error: 'Week ID, symbol, and price are required' });
-    }
-
-    try {
-      // Check if week exists and is current week
-      const week = await db.query.weeks.findFirst({
-        where: eq(weeks.id, weekId)
-      });
-
-      if (!week) {
-        return res.status(404).json({ error: 'Week not found' });
+  switch (path) {
+    case 'create':
+      if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
       }
-
-      const now = new Date();
-      if (now < new Date(week.startDate) || (week.endDate && now > new Date(week.endDate))) {
-        return res.status(400).json({ error: 'Cannot make picks outside of current week' });
-      }
-
-      // Check if user already has a pick for this week
-      const existingPick = await db.query.picks.findFirst({
-        where: and(
-          eq(picks.weekId, weekId),
-          eq(picks.userId, userId)
-        )
-      });
-
-      if (existingPick) {
-        // Update existing pick
-        const [updatedPick] = await db.update(picks)
-          .set({
+      return requireAuth(req as AuthenticatedRequest, res, async () => {
+        try {
+          const { weekId, symbol, entryPrice } = req.body;
+          if (!weekId || !symbol || !entryPrice) {
+            return res.status(400).json({ error: 'Missing required fields' });
+          }
+          const [pick] = await db.insert(picks).values({
+            userId: (req as AuthenticatedRequest).user!.id,
+            weekId,
             symbol,
-            entryPrice: parseFloat(price)
-          })
-          .where(eq(picks.id, existingPick.id))
-          .returning();
-        return res.json(updatedPick);
+            entryPrice
+          }).returning();
+          return res.status(201).json(pick);
+        } catch (error) {
+          console.error('Create pick error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+      });
+
+    case 'update':
+      if (req.method !== 'PUT') {
+        return res.status(405).json({ error: 'Method not allowed' });
       }
+      return requireAuth(req as AuthenticatedRequest, res, async () => {
+        try {
+          const { pickId, dailyPriceData, currentValue, weekReturn, returnPercentage } = req.body;
+          if (!pickId) {
+            return res.status(400).json({ error: 'Pick ID is required' });
+          }
+          const [updatedPick] = await db.update(picks)
+            .set({
+              dailyPriceData,
+              currentValue,
+              weekReturn,
+              returnPercentage
+            })
+            .where(and(
+              eq(picks.id, pickId),
+              eq(picks.userId, (req as AuthenticatedRequest).user!.id)
+            ))
+            .returning();
+          if (!updatedPick) {
+            return res.status(404).json({ error: 'Pick not found' });
+          }
+          return res.status(200).json(updatedPick);
+        } catch (error) {
+          console.error('Update pick error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+      });
 
-      // Create new pick
-      const [newPick] = await db.insert(picks)
-        .values({
-          weekId,
-          userId,
-          symbol,
-          entryPrice: parseFloat(price)
-        })
-        .returning();
+    case 'delete':
+      if (req.method !== 'DELETE') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      return requireAuth(req as AuthenticatedRequest, res, async () => {
+        try {
+          const { pickId } = req.body;
+          if (!pickId) {
+            return res.status(400).json({ error: 'Pick ID is required' });
+          }
+          const [deletedPick] = await db.delete(picks)
+            .where(and(
+              eq(picks.id, pickId),
+              eq(picks.userId, (req as AuthenticatedRequest).user!.id)
+            ))
+            .returning();
+          if (!deletedPick) {
+            return res.status(404).json({ error: 'Pick not found' });
+          }
+          return res.status(200).json({ message: 'Pick deleted successfully' });
+        } catch (error) {
+          console.error('Delete pick error:', error);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+      });
 
-      res.json(newPick);
-    } catch (error) {
-      console.error('Error creating/updating pick:', error);
-      res.status(500).json({ error: 'Failed to create/update pick' });
-    }
-  });
+    default:
+      return res.status(404).json({ error: 'Not found' });
+  }
 } 
