@@ -143,13 +143,13 @@ ap<template>
           </div>
         </div>
 
-        <!-- Next Week Pick Box (restored and updated) -->
-        <div v-if="showNextWeekPickBox" class="mb-10 flex flex-col items-center">
+        <!-- Next Week Pick Box (always visible) -->
+        <div class="mb-10 flex flex-col items-center">
           <div
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-                }})</span>
+              }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
@@ -158,14 +158,17 @@ ap<template>
             </div>
             <button v-if="!isAuthenticated"
               class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-indigo-700"
-              @click="openLoginModal">
+              @click="openLoginModal" :disabled="nextAvailableWeekPickLocked">
               Login to Make Next Week's Pick
             </button>
             <button v-else
               class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
-              @click="showNextWeekModal = true">
+              @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
               {{ userNextWeekPick ? 'Update Pick' : 'Make Pick' }}
             </button>
+            <div v-if="nextAvailableWeekPickLocked" class="mt-2 text-red-600">
+              Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
+            </div>
           </div>
         </div>
         <Modal v-if="showNextWeekModal && isAuthenticated" @close="showNextWeekModal = false">
@@ -184,7 +187,8 @@ ap<template>
               <div v-if="nextWeekPickError" class="text-red-600 mb-2">
                 {{ nextWeekPickError }}
               </div>
-              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full"
+                :disabled="nextAvailableWeekPickLocked">
                 {{ userNextWeekPick ? 'Update Pick' : 'Submit Pick' }}
               </button>
             </form>
@@ -310,7 +314,7 @@ ap<template>
     <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
     <div>nextAvailableWeek.startDate: {{ nextAvailableWeek?.startDate }}</div>
   </div>
-  <div class="debug-box"  
+  <div class="debug-box"
     style="background:#ffe6e6;border:1px solid #ff7875;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>COMPLETED WEEKS DEBUG</b><br />
     <div>Total weeks in store: {{ allWeeks.length }}</div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import TopBar from './components/TopBar.vue';
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useAuthStore } from './stores/auth';
 
 const showLoginModal = ref(false);
@@ -9,17 +9,8 @@ const auth = useAuthStore();
 const appVersion = __APP_VERSION__;
 const buildTime = __BUILD_TIME__;
 
-onMounted(async () => {
-  if (auth.token) {
-    try {
-      await auth.fetchUser();
-    } catch {
-      showLoginModal.value = true; // Show login modal if fetch fails
-    }
-  } else {
-    showLoginModal.value = true; // Show login modal if no token
-  }
-});
+// Remove automatic modal opening on mount
+// Only open modal if user clicks login
 </script>
 
 <template>

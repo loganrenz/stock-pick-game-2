@@ -30,8 +30,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!allWeeks.length) {
       return res.status(404).json({ error: 'No weeks found' });
     }
-    // Assume the first is the next week (highest weekNum)
-    const nextWeek = allWeeks[0];
+    let nextWeek = allWeeks[0];
+    const now = new Date();
+    // If the next week is locked (startDate <= now), create a new week
+    if (new Date(nextWeek.startDate) <= now) {
+      const newStart = new Date(nextWeek.startDate);
+      newStart.setDate(newStart.getDate() + 7);
+      const newEnd = new Date(nextWeek.endDate);
+      newEnd.setDate(newEnd.getDate() + 7);
+      const [created] = await db.insert(weeks).values({
+        weekNum: nextWeek.weekNum + 1,
+        startDate: newStart.toISOString(),
+        endDate: newEnd.toISOString()
+      }).returning();
+      nextWeek = created;
+    }
     return res.status(200).json(nextWeek);
   } catch (error) {
     console.error('Next week error:', error);
