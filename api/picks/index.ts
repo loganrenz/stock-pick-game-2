@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return requireAuth(req as AuthenticatedRequest, res, async () => {
         try {
           const { weekId, symbol, entryPrice } = req.body;
-          if (!weekId || !symbol || !entryPrice) {
+          if (weekId == null || symbol == null || entryPrice == null) {
             return res.status(400).json({ error: 'Missing required fields' });
           }
           const [pick] = await db.insert(picks).values({
@@ -53,17 +53,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return requireAuth(req as AuthenticatedRequest, res, async () => {
         try {
-          const { pickId, dailyPriceData, currentValue, weekReturn, returnPercentage } = req.body;
+          const { pickId, symbol, entryPrice, dailyPriceData, currentValue, weekReturn, returnPercentage } = req.body;
           if (!pickId) {
             return res.status(400).json({ error: 'Pick ID is required' });
           }
+          const updateFields: any = {};
+          if (symbol !== undefined) updateFields.symbol = symbol;
+          if (entryPrice !== undefined) updateFields.entryPrice = entryPrice;
+          if (dailyPriceData !== undefined) updateFields.dailyPriceData = dailyPriceData;
+          if (currentValue !== undefined) updateFields.currentValue = currentValue;
+          if (weekReturn !== undefined) updateFields.weekReturn = weekReturn;
+          if (returnPercentage !== undefined) updateFields.returnPercentage = returnPercentage;
+          if (Object.keys(updateFields).length === 0) {
+            return res.status(400).json({ error: 'No values to update' });
+          }
           const [updatedPick] = await db.update(picks)
-            .set({
-              dailyPriceData,
-              currentValue,
-              weekReturn,
-              returnPercentage
-            })
+            .set(updateFields)
             .where(and(
               eq(picks.id, pickId),
               eq(picks.userId, (req as AuthenticatedRequest).user!.id)

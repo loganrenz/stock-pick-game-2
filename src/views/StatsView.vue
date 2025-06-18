@@ -10,10 +10,8 @@
       <div class="mb-4 text-center text-gray-500">
         Debug: {{ users.length }} users, {{ allWeeks.length }} weeks, {{ allPicks.length }} picks
       </div>
-      <div
-        v-if="users.length === 0 || allWeeks.length === 0 || allPicks.length === 0"
-        class="text-center text-red-500 mb-8"
-      >
+      <div v-if="users.length === 0 || allWeeks.length === 0 || allPicks.length === 0"
+        class="text-center text-red-500 mb-8">
         No stats data available. Make sure there are completed weeks and picks for Patrick, Taylor, or Logan.
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
@@ -73,40 +71,38 @@
           <tbody>
             <tr v-for="user in users" :key="user.id + '-rows'">
               <template v-for="pick in allPicksForUser(user)" :key="user.id + '-' + pick.weekNum">
-                <tr>
-                  <td class="px-2 py-1">
-                    {{ user.username }}
-                  </td>
-                  <td class="px-2 py-1">
-                    {{ pick.weekNum }}
-                  </td>
-                  <td class="px-2 py-1">
-                    {{ pick.symbol }}
-                  </td>
-                  <td class="px-2 py-1">
-                    {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2) +
-                      '%' : 'N/A' }}
-                  </td>
-                  <td class="px-2 py-1">
-                    <span
-                      v-if="pick.isWinner"
-                      class="bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold"
-                    >Win</span>
-                    <span v-else class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">-</span>
-                  </td>
-                </tr>
-              </template>
+            <tr>
+              <td class="px-2 py-1">
+                {{ user.username }}
+              </td>
+              <td class="px-2 py-1">
+                {{ pick.weekNum }}
+              </td>
+              <td class="px-2 py-1">
+                {{ pick.symbol }}
+              </td>
+              <td class="px-2 py-1">
+                {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2) +
+                  '%' : 'N/A' }}
+              </td>
+              <td class="px-2 py-1">
+                <span v-if="pick.isWinner"
+                  class="bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">Win</span>
+                <span v-else class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full">-</span>
+              </td>
             </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="text-center mt-8">
-        <router-link to="/" class="text-blue-600 underline">
-          Back to Game
-        </router-link>
-      </div>
-    </div>
-  </div>
+</template>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="text-center mt-8">
+  <router-link to="/" class="text-blue-600 underline">
+    Back to Game
+  </router-link>
+</div>
+</div>
+</div>
 </template>
 
 <script setup lang="ts">
@@ -207,7 +203,7 @@ onMounted(async () => {
   users.value = Array.isArray(res.data.users) ? res.data.users.filter((u: any) => playerNames.includes(u.username.toLowerCase())) : [];
   stats.value = calculateStats(users.value, res.data.weeks, res.data.picks);
   allWeeks.value = res.data.weeks;
-  allPicks.value = Array.isArray(res.data.picks) ? res.data.picks.filter((p: any) => playerNames.includes(p.user.username.toLowerCase())) : [];
+  allPicks.value = Array.isArray(res.data.picks) ? res.data.picks.filter((p: any) => users.value.some(u => u.id === p.userId)) : [];
   loading.value = false;
 });
 </script>

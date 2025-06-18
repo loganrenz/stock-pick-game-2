@@ -100,12 +100,6 @@ ap<template>
             <div v-if="nextAvailableWeekPickLocked" class="mb-4 text-center text-red-600">
               Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
             </div>
-            <div v-if="userNextAvailableWeekPick">
-              <div class="mb-2 text-blue-700 font-semibold">
-                Your pick for week {{ nextAvailableWeek?.weekNum }}: {{
-                  userNextAvailableWeekPick.symbol }}
-              </div>
-            </div>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="pick in currentWeek?.picks || []" :key="pick.id"
                 class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
@@ -148,13 +142,17 @@ ap<template>
           <div
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
             <div class="text-lg font-semibold text-blue-900 mb-2">
-              Next Week <span v-if="nextWeek">({{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
+              Next Week <span v-if="gameStore.nextWeek">({{ formatDate(gameStore.nextWeek?.startDate) }} - {{
+                formatDate(gameStore.nextWeek?.endDate)
               }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
               <span v-if="userNextWeekPick">{{ userNextWeekPick.symbol }}</span>
               <span v-else>None</span>
+            </div>
+            <div v-if="userNextWeekPick" class="mb-2 text-blue-700 font-semibold">
+              Your pick for week {{ gameStore.nextWeek?.weekNum }}: {{ userNextWeekPick.symbol }}
             </div>
             <button v-if="!isAuthenticated"
               class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-indigo-700"
@@ -164,7 +162,7 @@ ap<template>
             <button v-else
               class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
               @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
-              {{ userNextWeekPick ? 'Update Pick' : 'Make Pick' }}
+              {{ userNextWeekPick ? 'Change Pick' : 'Make Pick' }}
             </button>
             <div v-if="nextAvailableWeekPickLocked" class="mt-2 text-red-600">
               Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
@@ -177,7 +175,7 @@ ap<template>
               {{ userNextWeekPick ? 'Update' : 'Make' }} Your Pick for Next Week
             </div>
             <div class="text-gray-500 text-sm">
-              {{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate) }}
+              {{ formatDate(gameStore.nextWeek?.startDate) }} - {{ formatDate(gameStore.nextWeek?.endDate) }}
             </div>
           </template>
           <template #body>
@@ -308,11 +306,12 @@ ap<template>
   <div class="debug-box"
     style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>NEXT WEEK DEBUG</b><br />
-    <div>nextWeek.startDate: {{ nextWeek?.startDate }}</div>
-    <div>nextWeek.endDate: {{ nextWeek?.endDate }}</div>
-    <div>showNextWeekPickBox: {{ showNextWeekPickBox.toString() }}</div>
+    <div>nextWeek.startDate: {{ gameStore.nextWeek?.startDate }}</div>
+    <div>nextWeek.endDate: {{ gameStore.nextWeek?.endDate }}</div>
+    <div>nextWeek.id: {{ gameStore.nextWeek?.id }}</div>
+    <div>nextWeek.picks: {{ gameStore.nextWeek?.picks ? JSON.stringify(gameStore.nextWeek.picks) : 'null' }}</div>
     <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
-    <div>nextAvailableWeek.startDate: {{ nextAvailableWeek?.startDate }}</div>
+    <div>currentUser: {{ auth.user ? JSON.stringify(auth.user) : 'null' }}</div>
   </div>
   <div class="debug-box"
     style="background:#ffe6e6;border:1px solid #ff7875;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
@@ -373,7 +372,6 @@ const pickError = ref('');
 const nextWeekPickForm = ref({ symbol: '' });
 const nextWeekPickError = ref('');
 const showNextWeekModal = ref(false);
-const nextWeek = ref<any>(null);
 const scoreboard = ref<any[]>([]);
 const debugCopied = ref(false);
 
@@ -417,8 +415,10 @@ const showNextWeekPickBox = computed(() => {
 });
 
 const userNextWeekPick = computed(() => {
-  if (!isAuthenticated.value || !nextWeek.value) return null;
-  return (nextWeek.value.picks ?? []).find((p: Pick) => p.user.username === auth.user?.username) || null;
+  if (!isAuthenticated.value || !gameStore.nextWeek) return null;
+  return (gameStore.nextWeek.picks ?? []).find(
+    (p) => p.user.username?.toLowerCase().trim() === auth.user?.username?.toLowerCase().trim()
+  ) || null;
 });
 
 const isAdmin = computed(() => auth.user?.username === 'admin');
@@ -446,11 +446,6 @@ const nextAvailableWeekPickLocked = computed(() => {
   sunday.setDate(sunday.getDate() + 6);
   sunday.setHours(23, 59, 59, 999);
   return now > sunday;
-});
-
-const userNextAvailableWeekPick = computed(() => {
-  if (!isAuthenticated.value || !nextAvailableWeek.value) return null;
-  return nextAvailableWeek.value.picks?.find(p => p.user.username === auth.user?.username) || null;
 });
 
 function formatDate(dateString?: string) {
@@ -494,15 +489,6 @@ async function submitPick() {
   }
 }
 
-async function fetchNextWeek() {
-  try {
-    const res = await axios.get('/api/next-week');
-    nextWeek.value = res.data;
-  } catch (err) {
-    nextWeek.value = null;
-  }
-}
-
 async function submitNextWeekPick() {
   nextWeekPickError.value = '';
   if (!nextWeekPickForm.value.symbol) {
@@ -514,11 +500,10 @@ async function submitNextWeekPick() {
     return;
   }
   try {
-    await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol, nextAvailableWeek.value.id);
+    await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol, nextAvailableWeek.value.id, auth.user);
     nextWeekPickForm.value.symbol = '';
     showNextWeekModal.value = false;
     await gameStore.fetchAll();
-    await fetchNextWeek();
   } catch (err) {
     nextWeekPickError.value = 'Failed to submit pick';
   }
@@ -577,12 +562,10 @@ function dayLabel(day: string) {
 
 onMounted(async () => {
   await gameStore.fetchAll();
-  await fetchNextWeek();
 });
 
 watch(isAuthenticated, async (isAuth) => {
   await gameStore.fetchAll();
-  await fetchNextWeek();
 });
 </script>
 

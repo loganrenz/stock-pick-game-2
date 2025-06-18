@@ -109,11 +109,26 @@ export const useGameStore = defineStore('game', {
         this.loading = false;
       }
     },
-    async submitNextWeekPick(symbol: string, weekId: number) {
+    async submitNextWeekPick(symbol: string, weekId: number, user: any) {
       this.loading = true;
       this.error = null;
       try {
-        await axios.post('/api/weeks/next/picks', { symbol, weekId });
+        // Find if the user already has a pick for this week
+        const nextWeek = this.nextWeek;
+        let userPick = null;
+        if (user && nextWeek && Array.isArray(nextWeek.picks)) {
+          userPick = nextWeek.picks.find(
+            (p: any) => p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim()
+          );
+        }
+        console.log('[submitNextWeekPick] user:', user, 'userPick:', userPick);
+        if (userPick) {
+          // Update existing pick
+          await axios.put('/api/picks/update', { pickId: userPick.id, symbol, entryPrice: 0 });
+        } else {
+          // Create new pick
+          await axios.post('/api/picks/create', { symbol, weekId, entryPrice: 0 });
+        }
         await this.fetchWeeks();
         await this.fetchCurrentWeek();
       } catch (err) {
@@ -140,5 +155,13 @@ export const useGameStore = defineStore('game', {
     getWeekById: (state) => (id: number) => state.weeks.find(w => w.id === id),
     getCurrentWeekPicks: (state) => state.currentWeek ? state.currentWeek.picks : [],
     getHistoricalWeeks: (state) => [...state.weeks].sort((a, b) => b.weekNum - a.weekNum),
+    nextWeek: (state) => {
+      if (!state.currentWeek || !Array.isArray(state.weeks)) return null;
+      // Find the week with the next highest weekNum after currentWeek
+      const next = state.weeks
+        .filter(w => w.weekNum > state.currentWeek!.weekNum)
+        .sort((a, b) => a.weekNum - b.weekNum)[0];
+      return next || null;
+    },
   },
 }); 
