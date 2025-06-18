@@ -23,7 +23,7 @@
             <div class="text-lg font-bold text-emerald-700 mb-1">${{ stats[user.username]?.portfolioValue?.toFixed(2) }}
             </div>
             <div class="text-xs text-slate-500 mb-2">Total Invested: ${{ stats[user.username]?.totalInvested?.toFixed(2)
-            }}</div>
+              }}</div>
             <div class="flex space-x-2 mb-2">
               <span v-if="stats[user.username]?.totalReturnPct > 0"
                 class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold text-xs">+{{
