@@ -1,48 +1,48 @@
-ap<template>
+<template>
   <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       <!-- Scoreboard in upper left corner, hidden on small screens -->
       <!-- Removed scoreboard-top-left div as requested -->
 
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-          Stock Pick Game
-        </h1>
-        <p class="mt-5 max-w-xl mx-auto text-xl text-gray-500">
-          Make your weekly stock predictions and compete with others!
-        </p>
-        <div v-if="isAuthenticated" class="mt-2 text-blue-700 text-lg font-semibold">
-          Logged in as: {{ auth.user?.username }}
-        </div>
-      </div>
 
       <!-- Login Modal -->
       <Modal v-if="props.showLoginModal" @close="closeLoginModal">
         <template #header>
-          <div class="text-2xl font-bold mb-2">
+          <div class="text-2xl font-bold mb-2 text-center sm:text-left">
             Login
           </div>
         </template>
         <template #body>
-          <form @submit.prevent="login">
-            <div class="mb-4">
-              <label class="block text-gray-700 mb-2">Username</label>
-              <input v-model="loginForm.username" type="text" class="w-full border rounded px-3 py-2"
-                placeholder="Enter your username" data-testid="login-username" />
+          <div class="relative">
+            <form @submit.prevent="login" class="space-y-4">
+              <div>
+                <label class="block text-gray-700 mb-2">Username</label>
+                <input v-model="loginForm.username" type="text" class="w-full border rounded px-3 py-3 text-lg"
+                  placeholder="Enter your username" data-testid="login-username" />
+              </div>
+              <div>
+                <label class="block text-gray-700 mb-2">Password</label>
+                <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-3 text-lg"
+                  data-testid="login-password" />
+              </div>
+              <button type="submit"
+                class="w-full bg-blue-700 text-white py-3 rounded-lg text-lg font-bold shadow-lg hover:bg-blue-900 transition-colors"
+                data-testid="login-submit">
+                Login
+              </button>
+              <div v-if="loginError" class="text-red-600 mt-2 text-center">
+                {{ loginError }}
+              </div>
+            </form>
+            <div v-if="pickLoading"
+              class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-lg z-10">
+              <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
             </div>
-            <div class="mb-4">
-              <label class="block text-gray-700 mb-2">Password</label>
-              <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-2"
-                data-testid="login-password" />
-            </div>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700"
-              data-testid="login-submit">
-              Login
-            </button>
-            <div v-if="loginError" class="text-red-600 mt-2 text-center">
-              {{ loginError }}
-            </div>
-          </form>
+          </div>
         </template>
       </Modal>
 
@@ -102,35 +102,27 @@ ap<template>
             </div>
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div v-for="pick in currentWeek?.picks || []" :key="pick.id"
-                class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
+                class="bg-white border-2 border-slate-800 rounded-xl shadow-lg p-4 hover:shadow-2xl transition-shadow">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-sm font-medium text-gray-900">
-                    {{ pick.user.username }}
+                  <h4 class="text-base font-extrabold text-slate-800">
+                    {{ pick.user.username.toUpperCase() }}
                   </h4>
                   <span v-if="currentWeek?.winnerId === pick.userId"
-                    class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold">Winner</span>
+                    class="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-extrabold tracking-wide">{{
+                      pick.user.username.toUpperCase() }} WON</span>
                 </div>
-                <div class="text-sm text-gray-500">
-                  <p><b>Stock:</b> {{ pick.symbol }}</p>
-                  <p><b>Pick Price (Mon Open):</b> {{ pick.entryPrice }}</p>
-                  <p v-if="pick.currentValue">
-                    <b>Current Price:</b> {{ pick.currentValue }}
+                <div class="text-sm text-slate-700">
+                  <p class="mb-2"><b>Stock:</b> <span class="block text-3xl font-black text-slate-900">{{
+                    pick.symbol.toUpperCase() }}</span></p>
+                  <p class="mb-1 font-semibold"><b>Start Price:</b> <span class="font-bold">{{ pick.entryPrice }}</span>
                   </p>
-                  <p>
-                    <b>Return %:</b> {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2) +
-                      '%' :
-                      'N/A' }}
-                  </p>
-                </div>
-                <div v-if="pick.dailyPriceData" class="mt-2">
-                  <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
-                    <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
-                      :data-testid="`daily-price-${day}`">
-                      <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
-                      <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
-                      <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
-                    </div>
-                  </template>
+                  <p class="mb-1 font-semibold"><b>Last Close:</b> <span class="font-bold">{{ pick.currentValue
+                  }}</span></p>
+                  <p class="mb-1 font-semibold"><b>Return %:</b> <span
+                      :class="pick.returnPercentage > 0 ? 'bg-green-100 text-green-700' : pick.returnPercentage < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'"
+                      class="font-bold px-2 py-1 rounded">
+                      {{ pick.returnPercentage ? pick.returnPercentage.toFixed(2) + '%' : 'N/A' }}
+                    </span></p>
                 </div>
               </div>
             </div>
@@ -140,14 +132,14 @@ ap<template>
         <!-- Next Week Pick Box (always visible) -->
         <div class="mb-10 flex flex-col items-center">
           <div
-            class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
-            <div class="text-lg font-semibold text-blue-900 mb-2">
+            class="w-full max-w-xl bg-blue-50 border-2 border-blue-800 rounded-xl shadow-lg p-8 flex flex-col items-center">
+            <div class="text-lg font-extrabold text-blue-900 mb-2">
               Next Week <span v-if="gameStore.nextWeek">({{ formatDate(gameStore.nextWeek?.startDate) }} - {{
                 formatDate(gameStore.nextWeek?.endDate)
                 }})</span>
               <span v-else>(-)</span>
             </div>
-            <div class="text-2xl font-bold text-blue-800 mb-4">
+            <div class="text-3xl font-black text-blue-800 mb-4">
               <span v-if="userNextWeekPick">{{ userNextWeekPick.symbol }}</span>
               <span v-else>None</span>
             </div>
@@ -155,12 +147,12 @@ ap<template>
               Your pick for week {{ gameStore.nextWeek?.weekNum }}: {{ userNextWeekPick.symbol }}
             </div>
             <button v-if="!isAuthenticated"
-              class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-indigo-700"
+              class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
               @click="openLoginModal" :disabled="nextAvailableWeekPickLocked">
               Login to Make Next Week's Pick
             </button>
             <button v-else
-              class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
+              class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
               @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
               {{ userNextWeekPick ? 'Change Pick' : 'Make Pick' }}
             </button>
@@ -171,25 +163,36 @@ ap<template>
         </div>
         <Modal v-if="showNextWeekModal && isAuthenticated" @close="showNextWeekModal = false">
           <template #header>
-            <div class="text-xl font-bold">
+            <div class="text-xl font-bold text-center sm:text-left">
               {{ userNextWeekPick ? 'Update' : 'Make' }} Your Pick for Next Week
             </div>
-            <div class="text-gray-500 text-sm">
+            <div class="text-gray-500 text-sm text-center sm:text-left">
               {{ formatDate(gameStore.nextWeek?.startDate) }} - {{ formatDate(gameStore.nextWeek?.endDate) }}
             </div>
           </template>
           <template #body>
-            <form @submit.prevent="submitNextWeekPick">
-              <input v-model="nextWeekPickForm.symbol" class="border rounded px-3 py-2 w-full mb-4"
-                placeholder="e.g. AAPL" />
-              <div v-if="nextWeekPickError" class="text-red-600 mb-2">
-                {{ nextWeekPickError }}
+            <div class="relative">
+              <form @submit.prevent="submitNextWeekPick" class="space-y-4">
+                <input v-model="nextWeekPickForm.symbol" class="border rounded px-3 py-3 w-full mb-4 text-lg"
+                  placeholder="e.g. AAPL" />
+                <div v-if="nextWeekPickError" class="text-red-600 mb-2">
+                  {{ nextWeekPickError }}
+                </div>
+                <button type="submit"
+                  class="w-full bg-blue-700 text-white py-3 rounded-lg text-lg font-bold shadow-lg hover:bg-blue-900 transition-colors"
+                  :disabled="nextAvailableWeekPickLocked">
+                  {{ userNextWeekPick ? 'Update Pick' : 'Submit Pick' }}
+                </button>
+              </form>
+              <div v-if="pickLoading"
+                class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-lg z-10">
+                <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+                  viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
               </div>
-              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full"
-                :disabled="nextAvailableWeekPickLocked">
-                {{ userNextWeekPick ? 'Update Pick' : 'Submit Pick' }}
-              </button>
-            </form>
+            </div>
           </template>
         </Modal>
 
@@ -213,69 +216,74 @@ ap<template>
         </div>
 
         <!-- History: only show weeks that have ended (endDate in the past and/or winner assigned) -->
-        <div>
-          <h2 class="text-2xl font-bold mb-4">
-            History
-          </h2>
-          <div>Debug: {{ completedWeeks.length }} completed weeks</div>
+        <div class="mt-12">
+          <h2 class="text-3xl font-extrabold text-slate-900 mb-6">History</h2>
           <div v-if="completedWeeks.length === 0" class="text-gray-500 text-center mb-8">
-            No history yet. Completed weeks
-            will
-            appear here.
+            No history yet. Completed weeks will appear here.
           </div>
-          <div v-for="week in completedWeeks" :key="week.id"
-            class="bg-white shadow rounded-lg mb-6 border border-gray-100 hover:shadow-md transition-shadow">
+          <div v-for="week in completedWeeks" :key="week.id" class="mb-10">
             <div
-              class="px-4 py-5 sm:px-6 border-b border-gray-200 flex justify-between items-center bg-gray-50 rounded-t-lg">
+              class="bg-slate-50 border border-slate-200 rounded-2xl shadow p-6 mb-2 flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 class="text-lg leading-6 font-bold text-gray-900">
-                  Week {{ week.weekNum }}
-                </h3>
-                <p class="mt-1 text-sm text-gray-500">
-                  {{ formatDate(week.startDate) }} - {{ formatDate(week.endDate) }}
-                </p>
-              </div>
-              <div v-if="week.winner">
-                <span class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-bold text-lg">
-                  Winner: {{ week.winner.username }}
-                </span>
-              </div>
-            </div>
-            <div class="px-4 py-5 sm:p-6">
-              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                <div v-for="pick in week.picks" :key="pick.id"
-                  class="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
-                  <div class="flex items-center justify-between mb-2">
-                    <h4 class="text-sm font-medium text-gray-900">
-                      {{ pick.user.username }}
-                    </h4>
-                    <span v-if="week.winnerId === pick.userId"
-                      class="bg-green-200 text-green-900 px-2 py-1 rounded-full text-xs font-bold">Winner</span>
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    <p><b>Stock:</b> {{ pick.symbol }}</p>
-                    <p><b>Pick Price (Mon Open):</b> {{ pick.entryPrice }}</p>
-                    <p v-if="pick.currentValue">
-                      <b>Current Price:</b> {{ pick.currentValue }}
-                    </p>
-                    <p>
-                      <b>Return %:</b> {{ typeof pick.returnPercentage === 'number' ? pick.returnPercentage.toFixed(2)
-                        + '%'
-                        : 'N/A' }}
-                    </p>
-                  </div>
-                  <div v-if="pick.dailyPriceData" class="mt-2">
-                    <template v-for="(priceData, day) in pick.dailyPriceData" :key="day">
-                      <div v-if="priceData && typeof day === 'string'" class="daily-price-row"
-                        :data-testid="`daily-price-${day}`">
-                        <span :data-testid="`weekday-label-${day}`">{{ dayLabel(day as string) }}</span>
-                        <span :data-testid="`open-price-${day}`">Open {{ priceData.open ?? '-' }}</span>
-                        <span :data-testid="`close-price-${day}`">Close {{ priceData.close ?? '-' }}</span>
-                      </div>
-                    </template>
-                  </div>
+                <div class="text-xl font-bold text-blue-900">Week {{ week.weekNum }}</div>
+                <div class="text-sm text-slate-600 mb-1">{{ formatDate(week.startDate) }} - {{ formatDate(week.endDate)
+                }}
+                </div>
+                <div v-if="week.winner"
+                  class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-sm mt-1">
+                  <svg class="w-4 h-4 mr-1 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.707 6.293a1 1 0 00-1.414 0L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z" />
+                  </svg>
+                  Winner: {{ week.winner.username.toUpperCase() }}
                 </div>
               </div>
+              <div class="mt-4 md:mt-0 text-sm text-slate-500">Total Picks: <span class="font-bold text-slate-700">{{
+                week.picks.length }}</span></div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm text-left border-separate border-spacing-y-2">
+                <thead>
+                  <tr class="text-slate-700">
+                    <th class="px-3 py-2">User</th>
+                    <th class="px-3 py-2">Stock</th>
+                    <th class="px-3 py-2">Start Price</th>
+                    <th class="px-3 py-2">Last Close</th>
+                    <th class="px-3 py-2">Return %</th>
+                    <th class="px-3 py-2">Pick Time</th>
+                    <th class="px-3 py-2">Best</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="pick in orderedPicks(week.picks)" :key="pick.id"
+                    :class="[week.winnerId === pick.userId ? 'bg-emerald-50' : '', 'hover:bg-slate-100 transition']">
+                    <td class="px-3 py-2 font-bold text-slate-900">{{ pick.user.username.toUpperCase() }}</td>
+                    <td class="px-3 py-2 font-black text-xl text-blue-800">{{ pick.symbol.toUpperCase() }}</td>
+                    <td class="px-3 py-2">{{ pick.entryPrice }}</td>
+                    <td class="px-3 py-2">{{ pick.currentValue ?? '-' }}</td>
+                    <td class="px-3 py-2">
+                      <span
+                        :class="pick.returnPercentage > 0 ? 'bg-emerald-100 text-emerald-700' : pick.returnPercentage < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'"
+                        class="font-bold px-2 py-1 rounded">
+                        {{ pick.returnPercentage != null ? pick.returnPercentage.toFixed(2) + '%' : '-' }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2 text-xs text-slate-500">{{ pick.createdAt ? new
+                      Date(pick.createdAt).toLocaleString()
+                      : '-' }}</td>
+                    <td class="px-3 py-2">
+                      <span v-if="isBestPick(week.picks, pick)"
+                        class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-bold text-xs">
+                        <svg class="w-4 h-4 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.967c.3.921-.755 1.688-1.54 1.118l-3.38-2.455a1 1 0 00-1.176 0l-3.38 2.455c-.784.57-1.838-.197-1.54-1.118l1.287-3.967a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z" />
+                        </svg>
+                        Best
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -290,7 +298,7 @@ ap<template>
     Debug Info
   </button>
   <span v-if="debugCopied" style="color: #52c41a; margin-left: 1rem; font-weight: bold;">Copied!</span>
-  <div class="debug-box"
+  <div v-if="showDebug" class="debug-box"
     style="background:#fffbe6;border:1px solid #ffe58f;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>DEBUG INFO</b><br />
     <div>Current Time: {{ new Date().toString() }}</div>
@@ -303,7 +311,7 @@ ap<template>
     </div>
     <div>canPickCurrentWeek: {{ canPickCurrentWeek.toString() }}</div>
   </div>
-  <div class="debug-box"
+  <div v-if="showDebug" class="debug-box"
     style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>NEXT WEEK DEBUG</b><br />
     <div>nextWeek.startDate: {{ gameStore.nextWeek?.startDate }}</div>
@@ -313,7 +321,7 @@ ap<template>
     <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
     <div>currentUser: {{ auth.user ? JSON.stringify(auth.user) : 'null' }}</div>
   </div>
-  <div class="debug-box"
+  <div v-if="showDebug" class="debug-box"
     style="background:#ffe6e6;border:1px solid #ff7875;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>COMPLETED WEEKS DEBUG</b><br />
     <div>Total weeks in store: {{ allWeeks.length }}</div>
@@ -348,6 +356,20 @@ ap<template>
       </ul>
     </div>
   </div>
+  <div v-if="gameStore.loading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
+    <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+      viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+  </div>
+  <div v-if="pickLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
+    <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+      viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+    </svg>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -374,6 +396,7 @@ const nextWeekPickError = ref('');
 const showNextWeekModal = ref(false);
 const scoreboard = ref<any[]>([]);
 const debugCopied = ref(false);
+const showDebug = false;
 
 const gameStore = useGameStore();
 const auth = useAuthStore();
@@ -475,6 +498,7 @@ function logout() {
   auth.logout();
 }
 
+const pickLoading = ref(false);
 async function submitPick() {
   pickError.value = '';
   if (!pickForm.value.symbol) {
@@ -482,10 +506,13 @@ async function submitPick() {
     return;
   }
   try {
+    pickLoading.value = true;
     await gameStore.submitPick(pickForm.value.symbol);
     pickForm.value.symbol = '';
   } catch (err) {
     pickError.value = 'Failed to submit pick';
+  } finally {
+    pickLoading.value = false;
   }
 }
 
@@ -500,12 +527,15 @@ async function submitNextWeekPick() {
     return;
   }
   try {
+    pickLoading.value = true;
     await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol, nextAvailableWeek.value.id, auth.user);
     nextWeekPickForm.value.symbol = '';
     showNextWeekModal.value = false;
     await gameStore.fetchAll();
   } catch (err) {
     nextWeekPickError.value = 'Failed to submit pick';
+  } finally {
+    pickLoading.value = false;
   }
 }
 
@@ -560,6 +590,16 @@ function dayLabel(day: string) {
   return map[day] || day;
 }
 
+function isBestPick(picks, pick) {
+  if (!Array.isArray(picks) || picks.length === 0) return false;
+  const best = [...picks].filter(p => typeof p.returnPercentage === 'number').sort((a, b) => b.returnPercentage - a.returnPercentage)[0];
+  return best && best.id === pick.id;
+}
+
+function orderedPicks(picks) {
+  return [...picks].sort((a, b) => (b.returnPercentage ?? -Infinity) - (a.returnPercentage ?? -Infinity));
+}
+
 onMounted(async () => {
   await gameStore.fetchAll();
 });
@@ -569,52 +609,6 @@ watch(isAuthenticated, async (isAuth) => {
 });
 </script>
 
-<style scoped>
-input,
-select {
-  outline: none;
-}
-
-.scoreboard-top-left {
-  /* Removed: position: absolute; top: 0; left: 0; z-index: 20; display: block; */
-}
-
-.scoreboard-box {
-  background: #f3f4f6;
-  border-radius: 6px;
-  padding: 2px 8px;
-  min-width: 40px;
-  text-align: center;
-  font-size: 0.85rem;
-  margin-right: 2px;
-}
-
-.scoreboard-user {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.scoreboard-wins {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #2563eb;
-}
-
-.scoreboard-link {
-  color: #2563eb;
-  font-size: 0.7rem;
-  text-decoration: underline;
-}
-
-@media (max-width: 700px) {
-  .scoreboard-top-left {
-    display: none !important;
-  }
-}
-
-.winner-banner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+<style>
+/* Remove all scoped CSS. Use only Tailwind in the template. */
 </style>

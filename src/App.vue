@@ -6,9 +6,6 @@ import { useAuthStore } from './stores/auth';
 const showLoginModal = ref(false);
 const auth = useAuthStore();
 
-const appVersion = __APP_VERSION__;
-const buildTime = __BUILD_TIME__;
-
 // Remove automatic modal opening on mount
 // Only open modal if user clicks login
 </script>
@@ -22,9 +19,6 @@ const buildTime = __BUILD_TIME__;
           @update:show-login-modal="showLoginModal = $event" />
       </router-view>
     </main>
-    <div class="version-badge">
-      v{{ appVersion }}<span> &bull; </span>{{ buildTime }}
-    </div>
   </div>
 </template>
 

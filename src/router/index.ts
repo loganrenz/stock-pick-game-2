@@ -23,6 +23,11 @@ const routes: RouteRecordRaw[] = [
     name: 'Stats',
     component: () => import('../views/StatsView.vue'),
   },
+  {
+    path: '/test-apple-signin',
+    name: 'TestAppleSignIn',
+    component: () => import('../views/TestAppleSignIn.vue'),
+  },
 ];
 
 const router = createRouter({

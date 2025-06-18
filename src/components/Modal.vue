@@ -68,7 +68,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   background: rgba(30, 41, 59, 0.08);
-  /* subtle blue-gray overlay */
 }
 
 .modal-content {
@@ -80,6 +79,7 @@ onUnmounted(() => {
   padding: 2.5rem 2rem 2rem 2rem;
   position: relative;
   animation: modal-pop 0.18s cubic-bezier(.4, 0, .2, 1);
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
 @keyframes modal-pop {
@@ -101,12 +101,17 @@ onUnmounted(() => {
   background: none;
   border: none;
   font-size: 1.6rem;
-  color: #64748b;
+  color: #1d4ed8;
   cursor: pointer;
   transition: color 0.15s;
+  font-weight: bold;
 }
 
 .modal-close:hover {
   color: #334155;
+}
+
+.mb-4 {
+  margin-bottom: 1.5rem;
 }
 </style>
