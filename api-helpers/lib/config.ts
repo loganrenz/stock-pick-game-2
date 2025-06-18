@@ -15,4 +15,9 @@ export const config = {
     apiKey: process.env.ALPHA_VANTAGE_API_KEY || (isDevelopment ? devConfig.ALPHA_VANTAGE_API_KEY : ''),
   },
   isDevelopment,
-}; 
+};
+
+// Log configuration values
+console.log('[CONFIG] Environment:', isDevelopment ? 'development' : 'production');
+console.log('[CONFIG] Database URL:', config.database.url);
+console.log('[CONFIG] Database token present:', !!config.database.token); 

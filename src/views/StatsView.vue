@@ -107,6 +107,58 @@
             </svg>
             <div class="text-xs text-slate-400 text-center mt-1">Portfolio Value Over Time</div>
           </div>
+          <!-- Collapsible Portfolio Section -->
+          <button @click="togglePortfolio(user.username)"
+            class="mt-4 w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition">
+            <span>{{ openPortfolios[user.username] ? 'Hide' : 'Show' }} Portfolio</span>
+            <svg :class="{ 'rotate-180': openPortfolios[user.username] }" class="w-4 h-4 transition-transform"
+              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <transition name="fade">
+            <div v-if="openPortfolios[user.username]"
+              class="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 overflow-x-auto">
+              <table class="min-w-full text-xs text-left">
+                <thead>
+                  <tr class="text-slate-700">
+                    <th class="px-2 py-1">Week</th>
+                    <th class="px-2 py-1">Symbol</th>
+                    <th class="px-2 py-1">Entry</th>
+                    <th class="px-2 py-1">Last Close</th>
+                    <th class="px-2 py-1">Return %</th>
+                    <th class="px-2 py-1">Win</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="pick in userPortfolio(user)" :key="pick.id"
+                    :class="[pick.weekWinner ? 'bg-emerald-50' : '', 'hover:bg-slate-100 transition']">
+                    <td class="px-2 py-1 font-bold">{{ pick.weekNum }}</td>
+                    <td class="px-2 py-1 font-black text-blue-800">{{ pick.symbol.toUpperCase() }}</td>
+                    <td class="px-2 py-1">{{ pick.entryPrice }}</td>
+                    <td class="px-2 py-1">{{ pick.currentValue ?? '-' }}</td>
+                    <td class="px-2 py-1">
+                      <span
+                        :class="pick.returnPercentage > 0 ? 'bg-emerald-100 text-emerald-700' : pick.returnPercentage < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'"
+                        class="font-bold px-2 py-1 rounded">
+                        {{ pick.returnPercentage != null ? pick.returnPercentage.toFixed(2) + '%' : '-' }}
+                      </span>
+                    </td>
+                    <td class="px-2 py-1">
+                      <span v-if="pick.weekWinner"
+                        class="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
+                        <svg class="w-4 h-4 mr-1 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.707 6.293a1 1 0 00-1.414 0L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z" />
+                        </svg>
+                        WIN
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </transition>
         </div>
       </div>
       <div class="text-center mt-8">
@@ -128,6 +180,7 @@ const loading = ref(true);
 const allWeeks = ref<any[]>([]);
 const allPicks = ref<any[]>([]);
 const playerNames = ['patrick', 'taylor', 'logan'];
+const openPortfolios = ref<Record<string, boolean>>({});
 
 function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
   const statsObj: Record<string, any> = {};
@@ -208,6 +261,24 @@ function portfolioChartPoints(history: number[] = []) {
   return history.map((v, i) => `${i * (180 / (history.length - 1 || 1))},${60 - (v / (max + 1) * 50) * 0.9}`).join(' ');
 }
 
+function userPortfolio(user: any) {
+  return allPicks.value
+    .filter((p: any) => p.userId === user.id)
+    .map((pick: any) => {
+      const week = allWeeks.value.find((w: any) => w.id === pick.weekId);
+      return {
+        ...pick,
+        weekNum: week?.weekNum,
+        weekWinner: week?.winnerId === user.id
+      };
+    })
+    .sort((a, b) => (a.weekNum ?? 0) - (b.weekNum ?? 0));
+}
+
+function togglePortfolio(username: string) {
+  openPortfolios.value[username] = !openPortfolios.value[username];
+}
+
 onMounted(async () => {
   loading.value = true;
   const res = await axios.get('/api/stats');
@@ -221,4 +292,21 @@ onMounted(async () => {
 
 <style>
 /* Remove all scoped CSS. Use only Tailwind in the template. */
+.fade-enter-active,
+.fade-leave-active {
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.fade-enter-to,
+.fade-leave-from {
+  max-height: 500px;
+  opacity: 1;
+}
 </style>

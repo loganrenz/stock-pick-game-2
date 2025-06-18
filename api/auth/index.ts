@@ -37,7 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!username || !password) {
           return res.status(400).json({ error: 'Username and password are required' });
         }
-        console.log('[LOGIN] DB URL:', config.database.url);
+        console.log('[AUTH] Environment:', config.isDevelopment ? 'development' : 'production');
+        console.log('[AUTH] Database URL:', config.database.url);
+        console.log('[AUTH] Database token present:', !!config.database.token);
         const user = await db.query.users.findFirst({
           where: eq(users.username, username)
         });
