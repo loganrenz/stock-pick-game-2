@@ -40,6 +40,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       try {
         console.log('[WEEKS] Fetching current week');
+        console.log('[WEEKS] DB URL:', process.env.TURSO_DB_URL);
+        console.log('[WEEKS] DB Token:', process.env.TURSO_DB_TOKEN);
         const now = new Date();
         const currentWeek = await db.query.weeks.findFirst({
           where: and(

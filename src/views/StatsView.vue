@@ -23,7 +23,7 @@
             <div class="text-lg font-bold text-emerald-700 mb-1">${{ stats[user.username]?.portfolioValue?.toFixed(2) }}
             </div>
             <div class="text-xs text-slate-500 mb-2">Total Invested: ${{ stats[user.username]?.totalInvested?.toFixed(2)
-              }}</div>
+            }}</div>
             <div class="flex space-x-2 mb-2">
               <span v-if="stats[user.username]?.totalReturnPct > 0"
                 class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold text-xs">+{{
@@ -42,124 +42,92 @@
           </div>
         </div>
       </div>
-      <!-- Player Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div v-for="user in users" :key="user.id"
-          class="bg-white border-2 border-slate-200 rounded-2xl shadow-lg p-6 flex flex-col items-center">
-          <div
-            class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-extrabold text-blue-700 mb-2">
-            {{ user.username.slice(0, 2).toUpperCase() }}
-          </div>
-          <div class="text-xl font-black text-blue-900 mb-1">{{ user.username.toUpperCase() }}</div>
-          <div class="text-lg font-bold text-emerald-700 mb-1">Portfolio: ${{
-            stats[user.username]?.portfolioValue?.toFixed(2) }}</div>
-          <div class="text-xs text-slate-500 mb-2">Total Invested: ${{ stats[user.username]?.totalInvested?.toFixed(2)
-            }}</div>
-          <div class="flex space-x-2 mb-2">
-            <span v-if="stats[user.username]?.totalReturnPct > 0"
-              class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold text-xs">+{{
-                stats[user.username]?.totalReturnPct?.toFixed(2) }}%</span>
-            <span v-else-if="stats[user.username]?.totalReturnPct < 0"
-              class="bg-rose-100 text-rose-700 px-2 py-1 rounded-full font-bold text-xs">{{
-                stats[user.username]?.totalReturnPct?.toFixed(2) }}%</span>
-            <span v-else class="bg-slate-200 text-slate-700 px-2 py-1 rounded-full font-bold text-xs">0.00%</span>
-          </div>
-          <div class="flex flex-wrap gap-2 mb-2 justify-center">
-            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold text-xs">Wins: {{
-              stats[user.username]?.wins }}</span>
-            <span class="bg-zinc-100 text-zinc-700 px-2 py-1 rounded-full font-bold text-xs">Picks: {{
-              stats[user.username]?.totalPicks }}</span>
-            <span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold text-xs">Avg Return: {{
-              stats[user.username]?.avgReturn?.toFixed(2) }}%</span>
-            <span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-bold text-xs">Longest Streak: {{
-              stats[user.username]?.longestStreak }}</span>
-          </div>
-          <div class="mb-2 w-full">
-            <div class="text-xs text-slate-500">Best Pick: <span class="font-bold text-emerald-700">{{
-              stats[user.username]?.bestPick?.symbol }}</span> <span v-if="stats[user.username]?.bestPick">({{
-                  stats[user.username]?.bestPick?.returnPercentage?.toFixed(2) }}%)</span></div>
-            <div class="text-xs text-slate-500">Worst Pick: <span class="font-bold text-rose-700">{{
-              stats[user.username]?.worstPick?.symbol }}</span> <span v-if="stats[user.username]?.worstPick">({{
-                  stats[user.username]?.worstPick?.returnPercentage?.toFixed(2) }}%)</span></div>
-          </div>
-          <div class="mb-2 w-full">
-            <div class="text-xs text-slate-500">Current Streak: <span class="font-bold">{{
-              stats[user.username]?.currentStreak > 0 ? stats[user.username]?.currentStreak + ' Wins' :
-                stats[user.username]?.currentStreak < 0 ? Math.abs(stats[user.username]?.currentStreak) + ' Losses'
-                  : '0' }}</span>
-            </div>
-            <div v-if="stats[user.username]?.hotCold === 'hot'"
-              class="inline-flex items-center px-2 py-1 bg-emerald-200 text-emerald-800 rounded-full font-bold text-xs mt-1">
-              🔥 Hot Streak</div>
-            <div v-else-if="stats[user.username]?.hotCold === 'cold'"
-              class="inline-flex items-center px-2 py-1 bg-rose-200 text-rose-800 rounded-full font-bold text-xs mt-1">
-              ❄️ Cold Streak</div>
-          </div>
-          <!-- Mini Portfolio Chart -->
-          <div class="w-full mt-4">
-            <svg :width="180" :height="60" viewBox="0 0 180 60">
-              <polyline :points="portfolioChartPoints(stats[user.username]?.portfolioHistory)" fill="none"
-                stroke="#2563eb" stroke-width="3" />
-              <circle v-for="(pt, idx) in stats[user.username]?.portfolioHistory" :key="idx"
-                :cx="idx * (180 / (stats[user.username]?.portfolioHistory.length - 1 || 1))"
-                :cy="60 - (pt / (Math.max(...stats[user.username]?.portfolioHistory || [100]) + 1) * 50) * 50" r="2.5"
-                fill="#2563eb" />
-            </svg>
-            <div class="text-xs text-slate-400 text-center mt-1">Portfolio Value Over Time</div>
-          </div>
-          <!-- Collapsible Portfolio Section -->
-          <button @click="togglePortfolio(user.username)"
-            class="mt-4 w-full bg-blue-50 border border-blue-200 text-blue-900 font-bold py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-100 transition">
-            <span>{{ openPortfolios[user.username] ? 'Hide' : 'Show' }} Portfolio</span>
-            <svg :class="{ 'rotate-180': openPortfolios[user.username] }" class="w-4 h-4 transition-transform"
-              fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <transition name="fade">
-            <div v-if="openPortfolios[user.username]"
-              class="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 overflow-x-auto">
-              <table class="min-w-full text-xs text-left">
-                <thead>
-                  <tr class="text-slate-700">
-                    <th class="px-2 py-1">Week</th>
-                    <th class="px-2 py-1">Symbol</th>
-                    <th class="px-2 py-1">Entry</th>
-                    <th class="px-2 py-1">Last Close</th>
-                    <th class="px-2 py-1">Return %</th>
-                    <th class="px-2 py-1">Win</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="pick in userPortfolio(user)" :key="pick.id"
-                    :class="[pick.weekWinner ? 'bg-emerald-50' : '', 'hover:bg-slate-100 transition']">
-                    <td class="px-2 py-1 font-bold">{{ pick.weekNum }}</td>
-                    <td class="px-2 py-1 font-black text-blue-800">{{ pick.symbol.toUpperCase() }}</td>
-                    <td class="px-2 py-1">{{ pick.entryPrice }}</td>
-                    <td class="px-2 py-1">{{ pick.currentValue ?? '-' }}</td>
-                    <td class="px-2 py-1">
-                      <span
-                        :class="pick.returnPercentage > 0 ? 'bg-emerald-100 text-emerald-700' : pick.returnPercentage < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'"
-                        class="font-bold px-2 py-1 rounded">
-                        {{ pick.returnPercentage != null ? pick.returnPercentage.toFixed(2) + '%' : '-' }}
-                      </span>
-                    </td>
-                    <td class="px-2 py-1">
-                      <span v-if="pick.weekWinner"
-                        class="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-xs">
-                        <svg class="w-4 h-4 mr-1 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.707 6.293a1 1 0 00-1.414 0L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z" />
-                        </svg>
-                        WIN
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </transition>
-        </div>
+      <!-- Player Cards (now as horizontal table) -->
+      <div class="overflow-x-auto mb-12">
+        <table class="min-w-full bg-white border-2 border-slate-200 rounded-2xl shadow-lg">
+          <thead>
+            <tr>
+              <th class="px-4 py-3 text-left text-slate-700 font-bold text-lg">Stat</th>
+              <th v-for="user in users" :key="user.id" class="px-4 py-3 text-center text-blue-900 font-black text-lg">
+                {{ user.username.toUpperCase() }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Portfolio</td>
+              <td v-for="user in users" :key="user.id + '-portfolio'"
+                class="px-4 py-2 text-center text-emerald-700 font-bold">
+                ${{ stats[user.username]?.portfolioValue?.toFixed(2) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Total Invested</td>
+              <td v-for="user in users" :key="user.id + '-invested'" class="px-4 py-2 text-center text-slate-700">
+                ${{ stats[user.username]?.totalInvested?.toFixed(2) }}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Avg Return</td>
+              <td v-for="user in users" :key="user.id + '-avgreturn'" class="px-4 py-2 text-center">
+                <span
+                  :class="stats[user.username]?.avgReturn > 0 ? 'bg-emerald-100 text-emerald-700' : stats[user.username]?.avgReturn < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'"
+                  class="font-bold px-2 py-1 rounded">
+                  {{ stats[user.username]?.avgReturn?.toFixed(2) }}%
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Wins</td>
+              <td v-for="user in users" :key="user.id + '-wins'" class="px-4 py-2 text-center text-blue-700 font-bold">
+                {{ stats[user.username]?.wins }}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Picks</td>
+              <td v-for="user in users" :key="user.id + '-picks'" class="px-4 py-2 text-center text-zinc-700 font-bold">
+                {{ stats[user.username]?.totalPicks }}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Longest Streak</td>
+              <td v-for="user in users" :key="user.id + '-streak'"
+                class="px-4 py-2 text-center text-yellow-700 font-bold">
+                {{ stats[user.username]?.longestStreak }}
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Current Streak</td>
+              <td v-for="user in users" :key="user.id + '-curstreak'" class="px-4 py-2 text-center font-bold">
+                <span v-if="stats[user.username]?.currentStreak > 0">{{ stats[user.username]?.currentStreak }}
+                  Wins</span>
+                <span v-else-if="stats[user.username]?.currentStreak < 0">{{
+                  Math.abs(stats[user.username]?.currentStreak) }} Losses</span>
+                <span v-else>0</span>
+                <span v-if="stats[user.username]?.hotCold === 'hot'"
+                  class="ml-2 bg-emerald-200 text-emerald-800 rounded-full px-2 py-1 text-xs font-bold">🔥 Hot</span>
+                <span v-else-if="stats[user.username]?.hotCold === 'cold'"
+                  class="ml-2 bg-rose-200 text-rose-800 rounded-full px-2 py-1 text-xs font-bold">❄️ Cold</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Best Pick</td>
+              <td v-for="user in users" :key="user.id + '-best'" class="px-4 py-2 text-center">
+                <span class="font-bold text-emerald-700">{{ stats[user.username]?.bestPick?.symbol }}</span>
+                <span v-if="stats[user.username]?.bestPick"> ({{
+                  stats[user.username]?.bestPick?.returnPercentage?.toFixed(2) }}%)</span>
+              </td>
+            </tr>
+            <tr>
+              <td class="px-4 py-2 font-bold text-slate-700">Worst Pick</td>
+              <td v-for="user in users" :key="user.id + '-worst'" class="px-4 py-2 text-center">
+                <span class="font-bold text-rose-700">{{ stats[user.username]?.worstPick?.symbol }}</span>
+                <span v-if="stats[user.username]?.worstPick"> ({{
+                  stats[user.username]?.worstPick?.returnPercentage?.toFixed(2) }}%)</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div class="text-center mt-8">
         <router-link to="/" class="text-blue-600 underline text-lg font-bold">
