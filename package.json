@@ -15,8 +15,9 @@
     "test:e2e": "playwright test",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .gitignore",
-    "db:generate": "tsx api/lib/generate-migration.ts",
-    "db:migrate": "tsx api/lib/migrate.ts"
+    "db:generate": "tsx api-helpers/lib/generate-migration.ts",
+    "db:migrate": "tsx api-helpers/lib/migrate.ts",
+    "db:seed": "tsx api-helpers/lib/seed.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.15.9",

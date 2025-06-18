@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../../api-helpers/lib/db.js';
-import { migrate } from '../../api-helpers/lib/migrate.js';
-import { seed } from '../../api-helpers/lib/seed.js';
+import migrate from '../../api-helpers/lib/migrate.js';
+import seed  from '../../api-helpers/lib/seed.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -19,7 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const path = req.url?.split('/').pop() || '';
+  // Extract path segment robustly (ignore query string)
+  const path = req.url?.split('?')[0].split('/').pop() || '';
 
   switch (path) {
     case 'setup':

@@ -22,7 +22,7 @@ export const useGameStore = defineStore('game', {
       this.error = null;
       try {
         const res = await axios.get('/api/weeks');
-        this.weeks = res.data.map((week: any) => ({
+        this.weeks = res.data.weeks.map((week: any) => ({
           ...week,
           picks: week.picks.map((pick: any) => ({
             ...pick,
@@ -67,8 +67,26 @@ export const useGameStore = defineStore('game', {
           axios.get('/api/weeks'),
           axios.get('/api/weeks/current')
         ]);
-        this.weeks = weeksRes.data;
-        this.currentWeek = currentWeekRes.data;
+        this.weeks = weeksRes.data.weeks.map((week: any) => ({
+          ...week,
+          picks: week.picks.map((pick: any) => ({
+            ...pick,
+            entryPrice: pick.entryPrice ?? pick.priceAtPick,
+            currentValue: pick.currentValue ?? pick.currentPrice,
+            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
+            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+          }))
+        }));
+        this.currentWeek = {
+          ...currentWeekRes.data,
+          picks: currentWeekRes.data.picks.map((pick: any) => ({
+            ...pick,
+            entryPrice: pick.entryPrice ?? pick.priceAtPick,
+            currentValue: pick.currentValue ?? pick.currentPrice,
+            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
+            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+          }))
+        };
       } catch (err) {
         this.error = 'Failed to fetch data';
       } finally {

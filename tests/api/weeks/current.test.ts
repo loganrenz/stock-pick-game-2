@@ -1,8 +1,7 @@
-import dotenv from 'dotenv';
+
 import { describe, it, expect, beforeAll, afterAll, test } from 'vitest';
 import { TestServer } from '../../helpers/test-server.js';
 
-dotenv.config({ path: '.env.test' });
 
 let db, weeks, token;
 describe('GET /api/weeks/current', { timeout: 30000 }, () => {
@@ -13,8 +12,8 @@ describe('GET /api/weeks/current', { timeout: 30000 }, () => {
     console.log('[TEST] Starting test server...');
     await testServer.start();
     console.log('[TEST] Test server started at', testServer.baseUrl);
-    db = (await import('../../../api/lib/db.js')).db;
-    weeks = (await import('../../../api/lib/schema.js')).weeks;
+    db = (await import('../../../api-helpers/lib/db.js')).db;
+    weeks = (await import('../../../api-helpers/lib/schema.js')).weeks;
     console.log('[TEST] DB and schema loaded');
 
     // Create a test user and get auth token

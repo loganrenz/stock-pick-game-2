@@ -143,7 +143,7 @@ ap<template>
           </div>
         </div>
 
-        <!-- Next Week Pick Box -->
+        <!-- Next Week Pick Box (restored and updated) -->
         <div v-if="showNextWeekPickBox" class="mb-10 flex flex-col items-center">
           <div
             class="w-full max-w-xl bg-blue-50 rounded-xl shadow p-8 flex flex-col items-center border border-blue-200">
@@ -156,26 +156,25 @@ ap<template>
               <span v-if="userNextWeekPick">{{ userNextWeekPick.symbol }}</span>
               <span v-else>None</span>
             </div>
-            <button v-if="isAuthenticated"
-              class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
-              @click="showNextWeekModal = true">
-              {{ userNextWeekPick ? 'CHANGE PICK' : 'MAKE PICK' }}
-            </button>
-            <button v-else
+            <button v-if="!isAuthenticated"
               class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-indigo-700"
               @click="openLoginModal">
-              Login to Make Pick
+              Login to Make Next Week's Pick
+            </button>
+            <button v-else
+              class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-bold shadow hover:bg-blue-700"
+              @click="showNextWeekModal = true">
+              {{ userNextWeekPick ? 'Update Pick' : 'Make Pick' }}
             </button>
           </div>
         </div>
         <Modal v-if="showNextWeekModal && isAuthenticated" @close="showNextWeekModal = false">
           <template #header>
             <div class="text-xl font-bold">
-              {{ userNextWeekPick ? 'Change' : 'Make' }} Your Pick for Next Week
+              {{ userNextWeekPick ? 'Update' : 'Make' }} Your Pick for Next Week
             </div>
             <div class="text-gray-500 text-sm">
-              {{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate)
-              }}
+              {{ formatDate(nextWeek?.startDate) }} - {{ formatDate(nextWeek?.endDate) }}
             </div>
           </template>
           <template #body>
@@ -186,8 +185,7 @@ ap<template>
                 {{ nextWeekPickError }}
               </div>
               <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded w-full">
-                {{ userNextWeekPick ?
-                  'Change Pick' : 'Submit Pick' }}
+                {{ userNextWeekPick ? 'Update Pick' : 'Submit Pick' }}
               </button>
             </form>
           </template>
@@ -312,6 +310,41 @@ ap<template>
     <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
     <div>nextAvailableWeek.startDate: {{ nextAvailableWeek?.startDate }}</div>
   </div>
+  <div class="debug-box"  
+    style="background:#ffe6e6;border:1px solid #ff7875;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
+    <b>COMPLETED WEEKS DEBUG</b><br />
+    <div>Total weeks in store: {{ allWeeks.length }}</div>
+    <div>
+      <b>All weeks:</b>
+      <ul>
+        <li v-for="w in allWeeks" :key="w.id">
+          WeekNum: {{ w.weekNum }}, endDate: {{ w.endDate }}, ended: {{ w.endDate && new Date(w.endDate)
+            < new Date() }}, winnerId: {{ w.winnerId }}<br />
+          Picks: [<span v-for="p in w.picks" :key="p.id">{{ p.user.username }} </span>]
+        </li>
+      </ul>
+    </div>
+    <div>
+      <b>Completed weeks (after filter):</b> {{ completedWeeks.length }}<br />
+      <ul>
+        <li v-for="w in completedWeeks" :key="w.id">
+          WeekNum: {{ w.weekNum }}
+        </li>
+      </ul>
+    </div>
+    <div>
+      <b>Filter logic for each week:</b>
+      <ul>
+        <li v-for="w in allWeeks" :key="w.id">
+          WeekNum: {{ w.weekNum }} - ended: {{ w.endDate && new Date(w.endDate) < new Date() }}, winnerId: {{ w.winnerId
+            }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
+              users.includes(p.user.username?.toLowerCase().trim()))}}
+            => Included: {{(w.endDate && new Date(w.endDate) < new Date()) || w.winnerId ? (Array.isArray(w.picks) &&
+              w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim())) ? 'YES' : 'NO') : 'NO'}}
+        </li>
+      </ul>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -389,12 +422,13 @@ const isAdmin = computed(() => auth.user?.username === 'admin');
 const completedWeeks = computed(() => {
   // Only show weeks that have ended (endDate in the past and/or winner assigned)
   const now = new Date();
-  return (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
+  const completed = (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
     .filter((w: Week) => {
       const ended = w.endDate && new Date(w.endDate) < now;
-      return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => users.includes(p.user.username.toLowerCase()));
+      return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => users.includes(p.user.username?.toLowerCase().trim()));
     })
     .sort((a: Week, b: Week) => b.weekNum - a.weekNum);
+  return completed;
 });
 
 const today = new Date();
@@ -500,6 +534,27 @@ function copyDebugInfo() {
   const debugBoxes = document.querySelectorAll('.debug-box');
   let text = '';
   debugBoxes.forEach(box => { text += box.textContent + '\n'; });
+
+  // Add completed weeks debug info
+  text += '\n\n=== COMPLETED WEEKS DEBUG ===\n';
+  text += `Total weeks in store: ${allWeeks.value.length}\n`;
+  text += 'All weeks:\n';
+  allWeeks.value.forEach(w => {
+    text += `  WeekNum: ${w.weekNum}, endDate: ${w.endDate}, ended: ${w.endDate && new Date(w.endDate) < new Date()}, winnerId: ${w.winnerId}\n`;
+    text += `    Picks: [${(w.picks || []).map(p => p.user.username).join(', ')}]\n`;
+  });
+  text += `Completed weeks (after filter): ${completedWeeks.value.length}\n`;
+  completedWeeks.value.forEach(w => {
+    text += `  WeekNum: ${w.weekNum}\n`;
+  });
+  text += 'Filter logic for each week:\n';
+  allWeeks.value.forEach(w => {
+    const ended = w.endDate && new Date(w.endDate) < new Date();
+    const hasValidPick = Array.isArray(w.picks) && w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim()));
+    const included = (ended || w.winnerId) && hasValidPick;
+    text += `  WeekNum: ${w.weekNum} - ended: ${ended}, winnerId: ${w.winnerId}, hasValidPick: ${hasValidPick} => Included: ${included ? 'YES' : 'NO'}\n`;
+  });
+
   navigator.clipboard.writeText(text.trim());
   debugCopied.value = true;
   setTimeout(() => { debugCopied.value = false; }, 1200);
@@ -517,17 +572,13 @@ function dayLabel(day: string) {
 }
 
 onMounted(async () => {
-  if (isAuthenticated.value) {
-    await gameStore.fetchAll();
-    await fetchNextWeek();
-  }
+  await gameStore.fetchAll();
+  await fetchNextWeek();
 });
 
 watch(isAuthenticated, async (isAuth) => {
-  if (isAuth) {
-    await gameStore.fetchAll();
-    await fetchNextWeek();
-  }
+  await gameStore.fetchAll();
+  await fetchNextWeek();
 });
 </script>
 

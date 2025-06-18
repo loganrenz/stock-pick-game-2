@@ -3,10 +3,11 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 import { db } from './db.js';
 import { users, weeks, picks } from './schema.js';
 import { sql } from 'drizzle-orm';
+import { config } from './config.js';
 
-console.log('[MIGRATE] TURSO_DB_URL:', process.env.TURSO_DB_URL);
+console.log('[MIGRATE] TURSO_DB_URL:', config.database.url);
 
-export async function main() {
+async function main() {
   try {
     // Test connection
     await db.run(sql`SELECT 1;`);
@@ -72,6 +73,8 @@ export async function main() {
     throw err;
   }
 }
+
+export default main
 
 // Only run if this file is being run directly
 if (import.meta.url === `file://${process.argv[1]}` || import.meta.url === process.argv[1]) {

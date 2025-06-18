@@ -54,11 +54,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
     case 'profile':
-      if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-      }
-      return requireAuth(req as AuthenticatedRequest, res, async () => {
-        try {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+  return requireAuth(req as AuthenticatedRequest, res, async () => {
+    try {
           const user = await db.query.users.findFirst({
             where: eq(users.id, (req as AuthenticatedRequest).user!.id)
           });
@@ -66,10 +66,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(404).json({ error: 'User not found' });
           }
           return res.status(200).json({
-            id: user.id,
+          id: user.id,
             username: user.username
           });
-        } catch (error) {
+    } catch (error) {
           console.error('Profile error:', error);
           return res.status(500).json({ error: 'Internal server error' });
         }
@@ -77,5 +77,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     default:
       return res.status(404).json({ error: 'Not found' });
-  }
+    }
 } 

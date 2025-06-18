@@ -1,16 +1,26 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import { createClient } from '@libsql/client';
 
-async function main() {
-    
-  const dbUrl = process.env['TURSO_DB_URL'];
-  const dbToken = process.env['TURSO_DB_TOKEN'];
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+let dbUrl: string | undefined;
+let dbToken: string | undefined;
+try {
+  // Try to import config if available
+  // @ts-ignore
+  const { config } = await import('../../api-helpers/lib/config.js');
+  dbUrl = config?.database?.url;
+  dbToken = config?.database?.token;
+} catch (e) {
+  // fallback to env
+  dbUrl = process.env['TURSO_DB_URL'];
+  dbToken = process.env['TURSO_DB_TOKEN'];
+}
+
   if (!dbUrl || !dbToken) {
-    throw new Error('Missing TURSO_DB_URL or TURSO_DB_TOKEN in environment');
+  throw new Error('Missing TURSO_DB_URL or TURSO_DB_TOKEN in environment or config');
   }
 
   const client = createClient({
@@ -18,6 +28,7 @@ async function main() {
     authToken: dbToken,
   });
 
+async function main() {
   try {
     // Query picks with missing dailyPriceData, joining weeks for the date range
     const sql = `

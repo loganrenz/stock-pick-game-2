@@ -1,18 +1,17 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema.js';
+import { config } from './config.js';
 
-if (!process.env.TURSO_DB_URL) {
-  throw new Error('TURSO_DB_URL is required');
+if (!config.database.url) {
+  throw new Error('Database URL is required');
 }
 
-if (!process.env.TURSO_DB_TOKEN) {
-  throw new Error('TURSO_DB_TOKEN is required');
-}
-
+// For SQLite local database, we don't need a token
+const isLocalDatabase = config.database.url.startsWith('file:');
 const client = createClient({
-  url: process.env.TURSO_DB_URL,
-  authToken: process.env.TURSO_DB_TOKEN,
+  url: config.database.url,
+  authToken: isLocalDatabase ? undefined : config.database.token,
 });
 
 export const db = drizzle(client, { schema });
