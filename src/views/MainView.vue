@@ -144,7 +144,7 @@ ap<template>
             <div class="text-lg font-semibold text-blue-900 mb-2">
               Next Week <span v-if="gameStore.nextWeek">({{ formatDate(gameStore.nextWeek?.startDate) }} - {{
                 formatDate(gameStore.nextWeek?.endDate)
-              }})</span>
+                }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-2xl font-bold text-blue-800 mb-4">
@@ -340,7 +340,7 @@ ap<template>
       <ul>
         <li v-for="w in allWeeks" :key="w.id">
           WeekNum: {{ w.weekNum }} - ended: {{ w.endDate && new Date(w.endDate) < new Date() }}, winnerId: {{ w.winnerId
-            }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
+          }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
               users.includes(p.user.username?.toLowerCase().trim()))}}
             => Included: {{(w.endDate && new Date(w.endDate) < new Date()) || w.winnerId ? (Array.isArray(w.picks) &&
               w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim())) ? 'YES' : 'NO') : 'NO'}}
