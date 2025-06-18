@@ -117,7 +117,7 @@
                   <p class="mb-1 font-semibold"><b>Start Price:</b> <span class="font-bold">{{ pick.entryPrice }}</span>
                   </p>
                   <p class="mb-1 font-semibold"><b>Last Close:</b> <span class="font-bold">{{ pick.currentValue
-                  }}</span></p>
+                      }}</span></p>
                   <p class="mb-1 font-semibold"><b>Return %:</b> <span
                       :class="pick.returnPercentage > 0 ? 'bg-green-100 text-green-700' : pick.returnPercentage < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'"
                       class="font-bold px-2 py-1 rounded">
@@ -136,7 +136,7 @@
             <div class="text-lg font-extrabold text-blue-900 mb-2">
               Next Week <span v-if="gameStore.nextWeek">({{ formatDate(gameStore.nextWeek?.startDate) }} - {{
                 formatDate(gameStore.nextWeek?.endDate)
-                }})</span>
+              }})</span>
               <span v-else>(-)</span>
             </div>
             <div class="text-3xl font-black text-blue-800 mb-4">
@@ -227,7 +227,7 @@
               <div>
                 <div class="text-xl font-bold text-blue-900">Week {{ week.weekNum }}</div>
                 <div class="text-sm text-slate-600 mb-1">{{ formatDate(week.startDate) }} - {{ formatDate(week.endDate)
-                }}
+                  }}
                 </div>
                 <div v-if="week.winner"
                   class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-sm mt-1">
@@ -348,7 +348,7 @@
       <ul>
         <li v-for="w in allWeeks" :key="w.id">
           WeekNum: {{ w.weekNum }} - ended: {{ w.endDate && new Date(w.endDate) < new Date() }}, winnerId: {{ w.winnerId
-          }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
+            }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
               users.includes(p.user.username?.toLowerCase().trim()))}}
             => Included: {{(w.endDate && new Date(w.endDate) < new Date()) || w.winnerId ? (Array.isArray(w.picks) &&
               w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim())) ? 'YES' : 'NO') : 'NO'}}
