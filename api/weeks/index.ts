@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const [newWeek] = await db.insert(weeks).values({
             weekNum: 1,
             startDate: now.toISOString(),
-            endDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+            endDate: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString() // Monday to Friday (5 days)
           }).returning();
           return res.status(200).json(newWeek);
         }

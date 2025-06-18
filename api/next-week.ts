@@ -36,8 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (new Date(nextWeek.startDate) <= now) {
       const newStart = new Date(nextWeek.startDate);
       newStart.setDate(newStart.getDate() + 7);
-      const newEnd = new Date(nextWeek.endDate);
-      newEnd.setDate(newEnd.getDate() + 7);
+      const newEnd = new Date(newStart);
+      newEnd.setDate(newStart.getDate() + 4); // Monday to Friday (5 days)
       const [created] = await db.insert(weeks).values({
         weekNum: nextWeek.weekNum + 1,
         startDate: newStart.toISOString(),

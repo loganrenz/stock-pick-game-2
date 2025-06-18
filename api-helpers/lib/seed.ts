@@ -6,6 +6,8 @@ import { config } from './config.js';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
+import axios from 'axios';
+import { format } from 'date-fns';
 
 export default async function main() {
   console.log('Starting database seeding...');
@@ -14,9 +16,7 @@ export default async function main() {
   console.log('Clearing Picks, Weeks, and Users tables...');
   await db.delete(picks);
   await db.delete(weeks);
-  await db.delete(users, {
-    where: (u) => !['patrick', 'taylor', 'logan'].includes(u.username)
-  });
+  await db.delete(users);
 
   // Create test users
   const testUsers = [
@@ -57,7 +57,7 @@ export default async function main() {
 
   // Read and parse CSV data
   console.log('Reading CSV data...');
-  const csvPath = path.resolve(process.cwd(), 'numbers-data', 'originaldata.csv');
+  const csvPath = path.resolve(process.cwd(), 'numbers-data', 'originaldata2.csv');
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
   const records = parse(csvContent, {
     columns: true,
@@ -70,6 +70,38 @@ export default async function main() {
   let currentWeek = null;
   let currentWeekData = [];
   const weeksData = [];
+
+  // Helper to check if a price is valid
+  function isValidPrice(val: any) {
+    return val !== undefined && val !== null && val !== '' && val !== '-' && !isNaN(parseFloat(val.toString().replace('$', '')));
+  }
+
+  // Helper to convert MM/DD/YYYY or other formats to YYYY-MM-DD using date-fns
+  function toIsoDate(dateStr: string) {
+    if (!dateStr) return dateStr;
+    let parsed;
+    try {
+      parsed = parse(dateStr, 'MM/dd/yyyy', new Date());
+      if (isNaN(parsed.getTime())) {
+        parsed = new Date(dateStr); // fallback to Date constructor
+      }
+    } catch {
+      parsed = new Date(dateStr);
+    }
+    if (isNaN(parsed.getTime())) return dateStr; // fallback
+    return format(parsed, 'yyyy-MM-dd');
+  }
+
+  // Helper to fetch missing price from local server
+  async function fetchPriceFromServer(symbol: string, date: string) {
+    try {
+      const res = await axios.post('http://localhost:3456/api/stock', { symbol, date });
+      return res.data;
+    } catch (err) {
+      console.warn(`[seed] Failed to fetch price for ${symbol} on ${date}:`, err?.message || err);
+      return null;
+    }
+  }
 
   for (const record of records) {
     // Check if this is a week header
@@ -129,11 +161,11 @@ export default async function main() {
 
     let startDate = new Date(weekData.data[0].Date);
     let endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
+    endDate.setDate(startDate.getDate() + 4); // Friday is 4 days after Monday
     if (i === currentWeekIdx) {
       startDate = new Date(today);
       endDate = new Date(today);
-      endDate.setDate(startDate.getDate() + 6);
+      endDate.setDate(startDate.getDate() + 4);
     }
 
     const winner = weekData.data[0].Winner;
@@ -171,13 +203,24 @@ export default async function main() {
         continue;
       }
 
-      const dailyPriceData = {
-        Monday: { open: pickData.Mon || pickData['Price at Pick'], close: pickData.Mon || pickData['Price at Pick'] },
-        Tuesday: { open: pickData.Tue || pickData['Price at Pick'], close: pickData.Tue || pickData['Price at Pick'] },
-        Wednesday: { open: pickData.Wed || pickData['Price at Pick'], close: pickData.Wed || pickData['Price at Pick'] },
-        Thursday: { open: pickData.Thur || pickData['Price at Pick'], close: pickData.Thur || pickData['Price at Pick'] },
-        Friday: { open: pickData.Fri || pickData['Price at Pick'], close: pickData.Fri || pickData['Price at Pick'] }
-      };
+      // Build daily price data
+      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      const csvDays = ['Mon', 'Tue ', 'Wed ', 'Thur', 'Fri'];
+      const dailyPriceData: any = {};
+      for (let i = 0; i < days.length; i++) {
+        let price = pickData[csvDays[i]];
+        if (!isValidPrice(price)) {
+          // Try to fetch from server if missing
+          const date = pickData['Date'];
+          const symbol = pickData['Symbol'];
+          const isoDate = toIsoDate(date);
+          const ohlc = await fetchPriceFromServer(symbol, isoDate);
+          if (ohlc && isValidPrice(ohlc.close)) {
+            price = ohlc.close;
+          }
+        }
+        dailyPriceData[days[i]] = { open: price, close: price };
+      }
 
       const [pick] = await db.insert(picks)
         .values({

@@ -1,8 +1,9 @@
 import express from 'express';
 import { Builder, By, until, WebDriver } from 'selenium-webdriver';
 import * as chrome from 'selenium-webdriver/chrome';
+import { parse, format, isValid } from 'date-fns';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3456;
 const app = express();
 app.use(express.json());
 
@@ -28,8 +29,14 @@ async function startBrowser() {
   options.addArguments('--no-sandbox');
   options.addArguments('--disable-dev-shm-usage');
   options.addArguments('--window-size=1920,1080');
-  driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
-  console.log('[server] Browser started');
+  try {
+    driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
+    console.log('[server] Browser started');
+  } catch (err) {
+    console.error('[server] Failed to start browser:', err);
+    driver = null;
+    throw err;
+  }
 }
 
 async function stopBrowser() {
@@ -82,31 +89,72 @@ async function scrapeOhlc(symbol: string, date: string): Promise<OhlcValue> {
 
 app.locals.scrapeOhlc = scrapeOhlc;
 
+function robustNormalizeDate(dateStr: string): string {
+  if (!dateStr) return dateStr;
+  const formats = [
+    'yyyy-MM-dd',
+    'yyyy/MM/dd',
+    'MM/dd/yyyy',
+    'M/d/yyyy',
+    'MM-dd-yyyy',
+    'M-d-yyyy'
+  ];
+  for (const fmt of formats) {
+    try {
+      const parsed = parse(dateStr, fmt, new Date());
+      if (isValid(parsed)) {
+        return format(parsed, 'yyyy-MM-dd');
+      }
+    } catch {}
+  }
+  // fallback to Date constructor
+  const parsed = new Date(dateStr);
+  if (isValid(parsed)) {
+    return format(parsed, 'yyyy-MM-dd');
+  }
+  return dateStr;
+}
+
 app.post('/api/stock', async (req, res) => {
   const { symbol, date } = req.body;
-  if (!symbol || !date) {
+  console.log(`[api/stock] Incoming request: symbol=${symbol}, date=${date}`);
+  const normalizedDate = robustNormalizeDate(date);
+  if (!symbol || !normalizedDate) {
+    console.log('[api/stock] Missing symbol or date');
     res.status(400).json({ error: 'Missing symbol or date' });
     return;
   }
-  const cacheKey = `${symbol}:${date}`;
+  const cacheKey = `${symbol}:${normalizedDate}`;
   if (ohlcCache[cacheKey]) {
+    console.log(`[api/stock] Cache hit for ${cacheKey}`);
     res.json(ohlcCache[cacheKey]);
     return;
   }
   try {
-    const ohlc = await req.app.locals.scrapeOhlc(symbol, date);
+    const ohlc = await req.app.locals.scrapeOhlc(symbol, normalizedDate);
     ohlcCache[cacheKey] = ohlc;
+    console.log(`[api/stock] Scraped and returning data for ${cacheKey}:`, ohlc);
     res.json(ohlc);
   } catch (err: any) {
+    console.error(`[api/stock] Error for ${cacheKey}:`, err.message || err);
     res.status(500).json({ error: err.message || 'Scraping failed' });
   }
 });
 
 if (require.main === module) {
-  app.listen(PORT, async () => {
-    await startBrowser();
-    console.log(`[server] Listening on port ${PORT}`);
-  });
+  (async () => {
+    try {
+      await startBrowser();
+      app.listen(PORT, () => {
+        console.log(`[server] Listening on port ${PORT}`);
+      });
+      // Keep the process alive
+      setInterval(() => {}, 1000);
+    } catch (err) {
+      console.error('[server] Fatal error during startup:', err);
+      process.exit(1);
+    }
+  })();
 
   // Graceful shutdown
   process.on('SIGINT', async () => {
@@ -118,6 +166,10 @@ if (require.main === module) {
     console.log('[server] Shutting down...');
     await stopBrowser();
     process.exit(0);
+  });
+  process.on('exit', async () => {
+    console.log('[server] Process exit detected, cleaning up browser...');
+    await stopBrowser();
   });
 }
 
