@@ -107,8 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       try {
         console.log('[WEEKS] Fetching all weeks from root path');
-        console.log('[WEEKS] DB URL:', process.env.TURSO_DB_URL);
-        console.log('[WEEKS] DB Token:', process.env.TURSO_DB_TOKEN);
+        console.log('[WEEKS] TURSO_DB_URL:', process.env.TURSO_DB_URL);
+        console.log('[WEEKS] TURSO_DB_TOKEN:', process.env.TURSO_DB_TOKEN);
         // Fetch all weeks with picks and winner info
         const allWeeks = await db.query.weeks.findMany({
           orderBy: asc(weeks.weekNum),
