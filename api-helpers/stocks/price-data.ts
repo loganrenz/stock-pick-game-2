@@ -4,8 +4,22 @@ import axios from 'axios';
 const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
 const FMP_API_KEY = process.env.FINANCIAL_MODELING_PREP_API_KEY;
 
+// Validate API keys
+if (!ALPHA_VANTAGE_API_KEY) {
+  console.error('[PRICE-DATA] ALPHA_VANTAGE_API_KEY is not set');
+}
+if (!FMP_API_KEY) {
+  console.error('[PRICE-DATA] FINANCIAL_MODELING_PREP_API_KEY is not set');
+}
+
 async function fetchAlphaVantage(symbol: string) {
+  if (!ALPHA_VANTAGE_API_KEY) {
+    console.error('[fetchAlphaVantage] No API key available');
+    return { currentPrice: null, dailyPriceData: null };
+  }
+
   try {
+    console.log(`[fetchAlphaVantage] Fetching data for ${symbol} with API key: ${ALPHA_VANTAGE_API_KEY.substring(0, 4)}...`);
     // Current price
     const quoteResp = await axios.get(
       `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
@@ -29,14 +43,22 @@ async function fetchAlphaVantage(symbol: string) {
         };
       }
     }
+    console.log(`[fetchAlphaVantage] Result for ${symbol}: currentPrice=${currentPrice}, dailyPriceData=${JSON.stringify(dailyPriceData)}`);
     return { currentPrice, dailyPriceData };
   } catch (error) {
+    console.log(`[fetchAlphaVantage] Error for ${symbol}:`, error?.message || error);
     return { currentPrice: null, dailyPriceData: null };
   }
 }
 
 async function fetchFMP(symbol: string) {
+  if (!FMP_API_KEY) {
+    console.error('[fetchFMP] No API key available');
+    return { currentPrice: null, dailyPriceData: null };
+  }
+
   try {
+    console.log(`[fetchFMP] Fetching data for ${symbol} with API key: ${FMP_API_KEY.substring(0, 4)}...`);
     // Current price
     const quoteResp = await axios.get(
       `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_API_KEY}`
@@ -59,10 +81,24 @@ async function fetchFMP(symbol: string) {
         };
       }
     }
+    console.log(`[fetchFMP] Result for ${symbol}: currentPrice=${currentPrice}, dailyPriceData=${JSON.stringify(dailyPriceData)}`);
     return { currentPrice, dailyPriceData };
   } catch (error) {
+    console.log(`[fetchFMP] Error for ${symbol}:`, error?.message || error);
     return { currentPrice: null, dailyPriceData: null };
   }
+}
+
+export async function fetchPriceData(symbol: string) {
+  // Try FMP first
+  let { currentPrice, dailyPriceData } = await fetchFMP(symbol);
+  // Fallback to Alpha Vantage if needed
+  if (!currentPrice || !dailyPriceData) {
+    const av = await fetchAlphaVantage(symbol);
+    if (!currentPrice) currentPrice = av.currentPrice;
+    if (!dailyPriceData) dailyPriceData = av.dailyPriceData;
+  }
+  return { currentPrice, dailyPriceData };
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -86,4 +122,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   return res.status(200).json({ symbol, currentPrice, dailyPriceData });
-} 
+}
+
+export { fetchAlphaVantage, fetchFMP }; 

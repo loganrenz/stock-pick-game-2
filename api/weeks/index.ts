@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../api-helpers/lib/db.js';
-import { weeks } from '../../api-helpers/lib/schema.js';
+import { weeks, picks } from '../../api-helpers/lib/schema.js';
 import { eq, lte, gte, asc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
+import { fetchPriceData } from '../../api-helpers/stocks/price-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('[WEEKS] Request received:', {
@@ -56,13 +57,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!currentWeek) {
           console.log('[WEEKS] No current week found, creating new week');
-          // Create a new week if none exists
+          // Find the most recent Monday
+          const today = new Date();
+          const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
+          const daysSinceMonday = (dayOfWeek + 6) % 7; // 0 if Mon, 1 if Tue, ... 6 if Sun
+          const monday = new Date(today);
+          monday.setDate(today.getDate() - daysSinceMonday);
+          monday.setHours(0, 0, 0, 0);
+          const friday = new Date(monday);
+          friday.setDate(monday.getDate() + 4);
+          friday.setHours(23, 59, 59, 999);
+          console.log(`[WEEKS][DEBUG] Today: ${today.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`);
+          console.log(`[WEEKS][DEBUG] Calculated Monday: ${monday.toISOString()} | Calculated Friday: ${friday.toISOString()}`);
           const [newWeek] = await db.insert(weeks).values({
             weekNum: 1,
-            startDate: now.toISOString(),
-            endDate: new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString() // Monday to Friday (5 days)
+            startDate: monday.toISOString(),
+            endDate: friday.toISOString()
           }).returning();
+          console.log('[WEEKS][DEBUG] Inserted new week:', newWeek);
           return res.status(200).json(newWeek);
+        }
+
+        // Update picks if needed (entryPrice or returnPercentage missing, or updatedAt > 20 min ago)
+        console.log('[WEEKS] Updating picks prices');
+        for (const pick of currentWeek.picks) {
+          const lastUpdate = pick.updatedAt ? new Date(pick.updatedAt) : null;
+          const nowTime = Date.now();
+          const needsUpdate =
+            !pick.entryPrice || pick.entryPrice === 0 ||
+            pick.returnPercentage == null ||
+            pick.dailyPriceData == null ||
+            !lastUpdate || (
+              (pick.dailyPriceData != null && pick.returnPercentage != null) &&
+              (nowTime - lastUpdate.getTime() > 20 * 60 * 1000)
+            );
+          if (needsUpdate) {
+            let dailyPriceData = null;
+            let currentPrice = null;
+            try {
+              const result = await fetchPriceData(pick.symbol);
+              dailyPriceData = result.dailyPriceData;
+              currentPrice = result.currentPrice;
+              console.log('[WEEKS] Daily price data:', dailyPriceData);
+              console.log('[WEEKS] Current price:', currentPrice);
+            } catch (error) {
+              console.error('[WEEKS] Error fetching price data:', error);
+              continue;
+            }
+
+            // Calculate entry price and current value
+            let entryPrice = pick.entryPrice;
+            let currentValue = currentPrice;
+            let returnPercentage = null;
+
+            if (dailyPriceData) {
+              // Find Monday open (first available day) for entry price
+              const dpd = dailyPriceData as Record<string, { open: number, close: number }>;
+              const days = Object.keys(dpd);
+              if (days.length > 0) {
+                entryPrice = dpd[days[0]].open;
+                // Use the latest available close price for current value
+                currentValue = dpd[days[days.length - 1]].close;
+              }
+            }
+
+            // Calculate return percentage if we have both prices
+            if (entryPrice && currentValue) {
+              returnPercentage = ((currentValue - entryPrice) / entryPrice) * 100;
+              console.log(`[WEEKS] Calculated return for ${pick.symbol}: ${returnPercentage.toFixed(2)}% (entry: ${entryPrice}, current: ${currentValue})`);
+            }
+
+            // Update pick with new data
+            if (entryPrice && currentValue && returnPercentage !== null) {
+              await db.update(picks)
+                .set({
+                  entryPrice,
+                  currentValue,
+                  returnPercentage,
+                  dailyPriceData: JSON.stringify(dailyPriceData),
+                  updatedAt: new Date().toISOString()
+                })
+                .where(eq(picks.id, pick.id));
+              console.log(`[WEEKS] Updated pick ${pick.id} (${pick.symbol}): entryPrice=${entryPrice}, currentValue=${currentValue}, returnPercentage=${returnPercentage.toFixed(2)}%`);
+            } else {
+              console.log(`[WEEKS] Skipping update for pick ${pick.id} (${pick.symbol}) - missing required data`);
+            }
+          }
         }
 
         // Fetch all users for mapping
@@ -92,7 +172,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const allWeeks = await db.query.weeks.findMany({
           orderBy: asc(weeks.weekNum)
         });
-        console.log('[WEEKS] Found weeks:', allWeeks);
+        //console.log('[WEEKS] Found weeks:', allWeeks);
         return res.status(200).json({ weeks: allWeeks });
       } catch (error) {
         console.error('[WEEKS] List weeks error:', error);
@@ -127,7 +207,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             user: allUsers.find(u => u.id === pick.userId) || { id: pick.userId, username: 'Unknown' }
           }))
         }));
-        console.log('[WEEKS] Found weeks:', weeksWithUserPicks);
+        //console.log('[WEEKS] Found weeks:', weeksWithUserPicks);
         return res.status(200).json({ weeks: weeksWithUserPicks });
       } catch (error) {
         console.error('[WEEKS] List weeks error:', error);
