@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import TopBar from './components/TopBar.vue';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from './stores/auth';
+import { useGameStore } from './stores/game';
 
 const showLoginModal = ref(false);
 const auth = useAuthStore();
+const game = useGameStore();
+
+onMounted(async () => {
+  await game.fetchWeeks();
+});
 
 // Remove automatic modal opening on mount
 // Only open modal if user clicks login

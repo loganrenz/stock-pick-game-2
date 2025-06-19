@@ -117,7 +117,7 @@
                   <p class="mb-1 font-semibold"><b>Start Price:</b> <span class="font-bold">{{ pick.entryPrice }}</span>
                   </p>
                   <p class="mb-1 font-semibold"><b>Last Close:</b> <span class="font-bold">{{ pick.currentValue
-                      }}</span></p>
+                  }}</span></p>
                   <p class="mb-1 font-semibold"><b>Return %:</b> <span
                       :class="pick.returnPercentage > 0 ? 'bg-green-100 text-green-700' : pick.returnPercentage < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'"
                       class="font-bold px-2 py-1 rounded">
@@ -131,33 +131,67 @@
 
         <!-- Next Week Pick Box (always visible) -->
         <div class="mb-10 flex flex-col items-center">
-          <div
-            class="w-full max-w-xl bg-blue-50 border-2 border-blue-800 rounded-xl shadow-lg p-8 flex flex-col items-center">
-            <div class="text-lg font-extrabold text-blue-900 mb-2">
-              Next Week <span v-if="gameStore.nextWeek">({{ formatDate(gameStore.nextWeek?.startDate) }} - {{
-                formatDate(gameStore.nextWeek?.endDate)
-              }})</span>
-              <span v-else>(-)</span>
+          <div class="w-full max-w-xl bg-white shadow-lg rounded-lg border-2 border-blue-200">
+            <!-- Header -->
+            <div
+              class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg">
+              <div>
+                <h3 class="text-2xl leading-6 font-bold text-blue-900">
+                  Next Week
+                </h3>
+                <p class="mt-1 text-md text-blue-700 font-semibold">
+                  <span v-if="gameStore.activeNextWeek">
+                    {{ formatDate(gameStore.activeNextWeek?.startDate) }} - {{
+                      formatDate(gameStore.activeNextWeek?.endDate)
+                    }}
+                  </span>
+                  <span v-else>(-)</span>
+                </p>
+                <div class="text-blue-700 font-bold mt-1 text-lg">
+                  Week {{ gameStore.activeNextWeek?.weekNum }}
+                </div>
+              </div>
+              <button @click="gameStore.toggleNextWeekPicksVisibility"
+                class="text-sm text-blue-600 hover:text-blue-800">
+                {{ gameStore.hideNextWeekPicks ? 'Show All Picks' : 'Hide All Picks' }}
+              </button>
             </div>
-            <div class="text-3xl font-black text-blue-800 mb-4">
-              <span v-if="userNextWeekPick">{{ userNextWeekPick.symbol }}</span>
-              <span v-else>None</span>
-            </div>
-            <div v-if="userNextWeekPick" class="mb-2 text-blue-700 font-semibold">
-              Your pick for week {{ gameStore.nextWeek?.weekNum }}: {{ userNextWeekPick.symbol }}
-            </div>
-            <button v-if="!isAuthenticated"
-              class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
-              @click="openLoginModal" :disabled="nextAvailableWeekPickLocked">
-              Login to Make Next Week's Pick
-            </button>
-            <button v-else
-              class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
-              @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
-              {{ userNextWeekPick ? 'Change Pick' : 'Make Pick' }}
-            </button>
-            <div v-if="nextAvailableWeekPickLocked" class="mt-2 text-red-600">
-              Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
+
+            <!-- Body -->
+            <div class="px-4 py-5 sm:p-6">
+              <!-- Show all users and their picks (or "No Pick") -->
+              <div class="grid grid-cols-1 gap-4">
+                <div v-for="user in users" :key="user.id"
+                  class="bg-white border-2 border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-base font-extrabold text-slate-800">
+                      {{ user.username.toUpperCase() }}
+                    </h4>
+                    <span v-if="!gameStore.hideNextWeekPicks || (userNextWeekPick?.user.username === user.username)"
+                      class="text-lg font-black text-slate-900">
+                      {{ getUserNextWeekPick(user)?.symbol || 'No Pick' }}
+                    </span>
+                    <span v-else class="text-slate-400 font-medium">Hidden</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Button -->
+              <div class="mt-6">
+                <button v-if="!isAuthenticated"
+                  class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
+                  @click="openLoginModal" :disabled="nextAvailableWeekPickLocked">
+                  Login to Make Next Week's Pick
+                </button>
+                <button v-else
+                  class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
+                  @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
+                  {{ userNextWeekPick ? 'Change Pick' : 'Make Pick' }}
+                </button>
+                <div v-if="nextAvailableWeekPickLocked" class="mt-2 text-center text-red-600">
+                  Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -167,7 +201,8 @@
               {{ userNextWeekPick ? 'Update' : 'Make' }} Your Pick for Next Week
             </div>
             <div class="text-gray-500 text-sm text-center sm:text-left">
-              {{ formatDate(gameStore.nextWeek?.startDate) }} - {{ formatDate(gameStore.nextWeek?.endDate) }}
+              {{ formatDate(gameStore.activeNextWeek?.startDate) }} - {{ formatDate(gameStore.activeNextWeek?.endDate)
+              }}
             </div>
           </template>
           <template #body>
@@ -208,11 +243,6 @@
               </div>
             </div>
           </div>
-          <div class="mt-1 text-center">
-            <router-link to="/stats" class="scoreboard-link">
-              View Stats
-            </router-link>
-          </div>
         </div>
 
         <!-- History: only show weeks that have ended (endDate in the past and/or winner assigned) -->
@@ -227,7 +257,7 @@
               <div>
                 <div class="text-xl font-bold text-blue-900">Week {{ week.weekNum }}</div>
                 <div class="text-sm text-slate-600 mb-1">{{ formatDate(week.startDate) }} - {{ formatDate(week.endDate)
-                  }}
+                }}
                 </div>
                 <div v-if="week.winner"
                   class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-sm mt-1">
@@ -314,10 +344,11 @@
   <div v-if="showDebug" class="debug-box"
     style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
     <b>NEXT WEEK DEBUG</b><br />
-    <div>nextWeek.startDate: {{ gameStore.nextWeek?.startDate }}</div>
-    <div>nextWeek.endDate: {{ gameStore.nextWeek?.endDate }}</div>
-    <div>nextWeek.id: {{ gameStore.nextWeek?.id }}</div>
-    <div>nextWeek.picks: {{ gameStore.nextWeek?.picks ? JSON.stringify(gameStore.nextWeek.picks) : 'null' }}</div>
+    <div>nextWeek.startDate: {{ gameStore.activeNextWeek?.startDate }}</div>
+    <div>nextWeek.endDate: {{ gameStore.activeNextWeek?.endDate }}</div>
+    <div>nextWeek.id: {{ gameStore.activeNextWeek?.id }}</div>
+    <div>nextWeek.picks: {{ gameStore.activeNextWeek?.picks ? JSON.stringify(gameStore.activeNextWeek.picks) : 'null' }}
+    </div>
     <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
     <div>currentUser: {{ auth.user ? JSON.stringify(auth.user) : 'null' }}</div>
   </div>
@@ -348,7 +379,7 @@
       <ul>
         <li v-for="w in allWeeks" :key="w.id">
           WeekNum: {{ w.weekNum }} - ended: {{ w.endDate && new Date(w.endDate) < new Date() }}, winnerId: {{ w.winnerId
-            }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
+          }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
               users.includes(p.user.username?.toLowerCase().trim()))}}
             => Included: {{(w.endDate && new Date(w.endDate) < new Date()) || w.winnerId ? (Array.isArray(w.picks) &&
               w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim())) ? 'YES' : 'NO') : 'NO'}}
@@ -382,29 +413,41 @@ import { capitalize } from '../utils/format';
 import type { Pick, Week, DailyPrice } from '../types';
 
 const props = defineProps({
-  showLoginModal: Boolean
+  showLoginModal: {
+    type: Boolean,
+    default: false
+  }
 });
+
 const emit = defineEmits(['update:show-login-modal']);
 
-const users = ['patrick', 'taylor', 'logan'];
+// Use hardcoded users array instead of API
+const users = [
+  { id: 16, username: 'patrick' },
+  { id: 17, username: 'taylor' },
+  { id: 18, username: 'logan' }
+];
+
 const loginForm = ref({ username: '', password: '' });
 const loginError = ref('');
-const pickForm = ref({ symbol: '' });
-const pickError = ref('');
+const showNextWeekModal = ref(false);
 const nextWeekPickForm = ref({ symbol: '' });
 const nextWeekPickError = ref('');
-const showNextWeekModal = ref(false);
-const scoreboard = ref<any[]>([]);
+const pickForm = ref({ symbol: '' });
+const pickError = ref('');
 const debugCopied = ref(false);
-const showDebug = false;
+const showDebug = ref(false);
 
-const gameStore = useGameStore();
 const auth = useAuthStore();
+const gameStore = useGameStore();
 
 const isAuthenticated = computed(() => auth.isAuthenticated);
 const currentWeek = computed(() => gameStore.currentWeek);
 const allWeeks = computed(() => gameStore.weeks);
 const historicalWeeks = computed(() => (Array.isArray(gameStore.getHistoricalWeeks) ? gameStore.getHistoricalWeeks : []).filter((w: any) => w.id !== currentWeek.value?.id));
+
+// Add scoreboard computed property
+const scoreboard = computed(() => gameStore.scoreboard);
 
 const canPickCurrentWeek = computed(() => {
   if (!isAuthenticated.value || !currentWeek.value) return false;
@@ -438,8 +481,8 @@ const showNextWeekPickBox = computed(() => {
 });
 
 const userNextWeekPick = computed(() => {
-  if (!isAuthenticated.value || !gameStore.nextWeek) return null;
-  return (gameStore.nextWeek.picks ?? []).find(
+  if (!isAuthenticated.value || !gameStore.activeNextWeek) return null;
+  return (gameStore.activeNextWeek.picks ?? []).find(
     (p) => p.user.username?.toLowerCase().trim() === auth.user?.username?.toLowerCase().trim()
   ) || null;
 });
@@ -449,10 +492,11 @@ const isAdmin = computed(() => auth.user?.username === 'admin');
 const completedWeeks = computed(() => {
   // Only show weeks that have ended (endDate in the past and/or winner assigned)
   const now = new Date();
+  const validUsernames = users.map(u => u.username.toLowerCase().trim());
   const completed = (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
     .filter((w: Week) => {
       const ended = w.endDate && new Date(w.endDate) < now;
-      return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => users.includes(p.user.username?.toLowerCase().trim()));
+      return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => validUsernames.includes(p.user.username?.toLowerCase().trim()));
     })
     .sort((a: Week, b: Week) => b.weekNum - a.weekNum);
   return completed;
@@ -600,6 +644,15 @@ function orderedPicks(picks) {
   return [...picks].sort((a, b) => (b.returnPercentage ?? -Infinity) - (a.returnPercentage ?? -Infinity));
 }
 
+// Helper function to get a user's next week pick
+function getUserNextWeekPick(user) {
+  if (!gameStore.activeNextWeek?.picks) return null;
+  return gameStore.activeNextWeek.picks.find(
+    (p) => p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim()
+  );
+}
+
+// Remove users store related code
 onMounted(async () => {
   await gameStore.fetchAll();
 });

@@ -8,6 +8,7 @@ interface GameState {
   loading: boolean;
   error: string | null;
   allWeeks: Week[];
+  hideNextWeekPicks: boolean;
 }
 
 export const useGameStore = defineStore('game', {
@@ -17,6 +18,7 @@ export const useGameStore = defineStore('game', {
     loading: false,
     error: null,
     allWeeks: [] as Week[],
+    hideNextWeekPicks: false,
   }),
   actions: {
     async fetchWeeks() {
@@ -119,7 +121,7 @@ export const useGameStore = defineStore('game', {
       this.error = null;
       try {
         // Find if the user already has a pick for this week
-        const nextWeek = this.nextWeek;
+        const nextWeek = this.activeNextWeek;
         let userPick = null;
         if (user && nextWeek && Array.isArray(nextWeek.picks)) {
           userPick = nextWeek.picks.find(
@@ -148,9 +150,11 @@ export const useGameStore = defineStore('game', {
       this.error = null;
       try {
         const res = await axios.get('/api/scoreboard');
+        this.scoreboard = res.data;
         return res.data;
       } catch (err) {
         this.error = 'Failed to fetch scoreboard';
+        this.scoreboard = [];
         return [];
       } finally {
         this.loading = false;
@@ -224,16 +228,48 @@ export const useGameStore = defineStore('game', {
         throw error;
       }
     },
+    toggleNextWeekPicksVisibility() {
+      this.hideNextWeekPicks = !this.hideNextWeekPicks;
+      // Save preference to localStorage
+      localStorage.setItem('hideNextWeekPicks', this.hideNextWeekPicks.toString());
+    },
+    async init() {
+      // Load preference from localStorage
+      const hideNextWeekPicks = localStorage.getItem('hideNextWeekPicks');
+      if (hideNextWeekPicks !== null) {
+        this.hideNextWeekPicks = hideNextWeekPicks === 'true';
+      }
+      await this.fetchCurrentWeek();
+      await this.fetchWeeks();
+    },
   },
   getters: {
     getWeekById: (state) => (id: number) => state.weeks.find((w) => w.id === id),
     getCurrentWeekPicks: (state) => (state.currentWeek ? state.currentWeek.picks : []),
-    getHistoricalWeeks: (state) => [...state.weeks].sort((a, b) => b.weekNum - a.weekNum),
+    getHistoricalWeeks: (state) => {
+      const now = new Date();
+      return [...state.weeks]
+        .filter((w) => {
+          const endDate = new Date(w.endDate);
+          return endDate < now;
+        })
+        .sort((a, b) => b.weekNum - a.weekNum);
+    },
     nextWeek: (state) => {
       if (!state.currentWeek || !Array.isArray(state.weeks)) return null;
+      const now = new Date();
       // Find the week with the next highest weekNum after currentWeek
       const next = state.weeks
-        .filter((w) => w.weekNum > state.currentWeek!.weekNum)
+        .filter((w) => w.weekNum > state.currentWeek!.weekNum && new Date(w.startDate) > now)
+        .sort((a, b) => a.weekNum - b.weekNum)[0];
+      return next || null;
+    },
+    activeNextWeek: (state) => {
+      if (!state.currentWeek || !Array.isArray(state.weeks)) return null;
+      const now = new Date();
+      // Find the week that starts after the current week ends
+      const next = state.weeks
+        .filter((w) => new Date(w.startDate) > new Date(state.currentWeek!.endDate))
         .sort((a, b) => a.weekNum - b.weekNum)[0];
       return next || null;
     },

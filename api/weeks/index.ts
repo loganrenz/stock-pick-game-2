@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../../api-helpers/lib/db.js';
 import { weeks, picks } from '../../api-helpers/lib/schema.js';
-import { eq, lte, gte, asc, and } from 'drizzle-orm';
+import { eq, lte, gte, asc, desc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
 import { getStockData } from '../../api-helpers/stocks/stock-data.js';
@@ -41,9 +41,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       try {
         console.log('[WEEKS] Fetching current week');
-        console.log('[WEEKS] DB URL:', process.env.TURSO_DB_URL);
-        console.log('[WEEKS] DB Token:', process.env.TURSO_DB_TOKEN);
         const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+        const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - daysSinceMonday);
+        monday.setHours(0, 0, 0, 0);
+        const friday = new Date(monday);
+        friday.setDate(monday.getDate() + 4);
+        friday.setHours(23, 59, 59, 999);
+
+        // Find current week by date range
         const currentWeek = await db.query.weeks.findFirst({
           where: and(
             lte(weeks.startDate, now.toISOString()),
@@ -57,18 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!currentWeek) {
           console.log('[WEEKS] No current week found, creating new week');
-          // Find the most recent Monday
-          const today = new Date();
-          const dayOfWeek = today.getDay(); // 0 (Sun) - 6 (Sat)
-          const daysSinceMonday = (dayOfWeek + 6) % 7; // 0 if Mon, 1 if Tue, ... 6 if Sun
-          const monday = new Date(today);
-          monday.setDate(today.getDate() - daysSinceMonday);
-          monday.setHours(0, 0, 0, 0);
-          const friday = new Date(monday);
-          friday.setDate(monday.getDate() + 4);
-          friday.setHours(23, 59, 59, 999);
+          // Get the highest week number
+          const lastWeek = await db.query.weeks.findFirst({
+            orderBy: [desc(weeks.weekNum)],
+          });
+          const nextWeekNum = lastWeek ? Number(lastWeek.weekNum) + 1 : 1;
+
           console.log(
-            `[WEEKS][DEBUG] Today: ${today.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`,
+            `[WEEKS][DEBUG] Today: ${now.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`,
           );
           console.log(
             `[WEEKS][DEBUG] Calculated Monday: ${monday.toISOString()} | Calculated Friday: ${friday.toISOString()}`,
@@ -76,13 +80,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const [newWeek] = await db
             .insert(weeks)
             .values({
-              weekNum: 1,
+              weekNum: nextWeekNum,
               startDate: monday.toISOString(),
               endDate: friday.toISOString(),
             })
             .returning();
           console.log('[WEEKS][DEBUG] Inserted new week:', newWeek);
           return res.status(200).json(newWeek);
+        }
+
+        // Update current week dates if they don't match
+        if (
+          currentWeek.startDate !== monday.toISOString() ||
+          currentWeek.endDate !== friday.toISOString()
+        ) {
+          console.log('[WEEKS] Updating current week dates');
+          await db
+            .update(weeks)
+            .set({
+              startDate: monday.toISOString(),
+              endDate: friday.toISOString(),
+            })
+            .where(eq(weeks.id, currentWeek.id));
+          currentWeek.startDate = monday.toISOString();
+          currentWeek.endDate = friday.toISOString();
         }
 
         // Update picks if needed (entryPrice or returnPercentage missing, or updatedAt > 20 min ago)
@@ -101,10 +122,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             let currentPrice = null;
             try {
               const result = await getStockData(pick.symbol);
-              dailyPriceData = result.dailyPriceData;
-              currentPrice = result.currentPrice;
-              console.log('[WEEKS] Daily price data:', dailyPriceData);
-              console.log('[WEEKS] Current price:', currentPrice);
+              if (result) {
+                dailyPriceData = result.dailyPriceData;
+                currentPrice = result.currentPrice;
+                console.log('[WEEKS] Daily price data:', dailyPriceData);
+                console.log('[WEEKS] Current price:', currentPrice);
+              }
             } catch (error) {
               console.error('[WEEKS] Error fetching price data:', error);
               continue;

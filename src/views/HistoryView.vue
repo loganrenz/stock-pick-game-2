@@ -5,7 +5,24 @@
         Stock Pick History
       </h1>
 
-      <div class="space-y-6">
+      <!-- Loading state -->
+      <div v-if="loading" class="text-center py-8">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
+        <p class="mt-4 text-gray-600">Loading history...</p>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <p class="text-red-700">{{ error }}</p>
+      </div>
+
+      <!-- No history -->
+      <div v-else-if="!sortedWeeks.length" class="text-center py-8">
+        <p class="text-gray-600">No historical weeks available yet.</p>
+      </div>
+
+      <!-- History list -->
+      <div v-else class="space-y-6">
         <div v-for="week in sortedWeeks" :key="week.id" class="bg-white shadow rounded-lg overflow-hidden">
           <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
             <h3 class="text-lg leading-6 font-medium text-gray-900">
@@ -14,18 +31,37 @@
             <p class="mt-1 max-w-2xl text-sm text-gray-500">
               {{ formatDate(week.startDate) }} - {{ formatDate(week.endDate) }}
             </p>
+            <div v-if="week.winner" class="mt-2">
+              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Winner: {{ week.winner.username }}
+              </span>
+            </div>
           </div>
 
           <div class="px-4 py-5 sm:p-6">
             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div v-for="pick in week.picks" :key="pick.id" class="bg-gray-50 rounded-lg p-4">
-                <div class="flex items-center mb-2">
-                  <h4 class="text-sm font-medium text-gray-900">
+              <div v-for="pick in week.picks" :key="pick.id" class="bg-gray-50 rounded-lg p-4 border-2"
+                :class="{ 'border-green-500': pick.userId === week.winnerId, 'border-gray-200': pick.userId !== week.winnerId }">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-bold text-gray-900">
                     {{ pick.user.username }}
                   </h4>
+                  <span v-if="pick.userId === week.winnerId" class="text-green-600 text-sm font-bold">Winner!</span>
                 </div>
-                <div class="text-sm text-gray-500">
-                  <p>Stock: {{ pick.symbol }}</p>
+                <div class="text-sm space-y-2">
+                  <p class="font-medium">Stock: <span class="text-blue-700">{{ pick.symbol }}</span></p>
+                  <p>Entry: ${{ pick.entryPrice?.toFixed(2) }}</p>
+                  <p>Close: ${{ pick.currentValue?.toFixed(2) }}</p>
+                  <p class="font-medium">
+                    Return:
+                    <span :class="{
+                      'text-green-600': pick.returnPercentage > 0,
+                      'text-red-600': pick.returnPercentage < 0,
+                      'text-gray-600': pick.returnPercentage === 0
+                    }">
+                      {{ pick.returnPercentage?.toFixed(2) }}%
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -42,7 +78,9 @@ import { useGameStore } from '../stores/game';
 
 const gameStore = useGameStore();
 
-const sortedWeeks = computed(() => gameStore.getHistoricalWeeks);
+const sortedWeeks = computed(() => {
+  return gameStore.getHistoricalWeeks;
+});
 const loading = computed(() => gameStore.loading);
 const error = computed(() => gameStore.error);
 
@@ -55,8 +93,8 @@ const formatDate = (dateString: string) => {
   });
 };
 
-onMounted(() => {
-  gameStore.fetchWeeks();
+onMounted(async () => {
+  await gameStore.fetchWeeks();
 });
 </script>
 

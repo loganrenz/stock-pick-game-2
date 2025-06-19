@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { db } from '../api-helpers/lib/db.js';
 import { weeks } from '../api-helpers/lib/schema.js';
-import { requireAuth, AuthenticatedRequest } from '../api-helpers/lib/auth.js';
-import { asc, desc, and, not } from 'drizzle-orm';
+import { desc, eq, gt, gte } from 'drizzle-orm';
+import { requireAuth } from '../api-helpers/lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
   );
 
   // Handle preflight request
@@ -20,34 +20,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    // Get all weeks ordered by weekNum descending
-    const allWeeks = await db.query.weeks.findMany({ orderBy: desc(weeks.weekNum) });
-    if (!allWeeks.length) {
-      return res.status(404).json({ error: 'No weeks found' });
-    }
-    let nextWeek = allWeeks[0];
+    // Get the current week first
     const now = new Date();
-    // If the next week is locked (startDate <= now), create a new week
-    if (new Date(nextWeek.startDate) <= now) {
-      const newStart = new Date(nextWeek.startDate);
-      newStart.setDate(newStart.getDate() + 7);
-      const newEnd = new Date(newStart);
-      newEnd.setDate(newStart.getDate() + 4); // Monday to Friday (5 days)
-      const [created] = await db.insert(weeks).values({
-        weekNum: nextWeek.weekNum + 1,
-        startDate: newStart.toISOString(),
-        endDate: newEnd.toISOString()
-      }).returning();
-      nextWeek = created;
+    const currentWeek = await db.query.weeks.findFirst({
+      where: gte(weeks.endDate, now.toISOString()),
+      orderBy: [desc(weeks.weekNum)],
+      with: {
+        picks: true,
+      },
+    });
+
+    if (!currentWeek) {
+      return res.status(404).json({ error: 'No current week found' });
     }
-    return res.status(200).json(nextWeek);
+
+    // Look for an existing next week
+    const nextWeek = await db.query.weeks.findFirst({
+      where: gt(weeks.weekNum, currentWeek.weekNum),
+      with: {
+        picks: true,
+      },
+    });
+
+    if (nextWeek) {
+      return res.status(200).json(nextWeek);
+    }
+
+    // Create next week if it doesn't exist
+    const nextStart = new Date(currentWeek.endDate);
+    nextStart.setDate(nextStart.getDate() + 3); // Friday + 3 days = Monday
+    nextStart.setHours(0, 0, 0, 0);
+    const nextEnd = new Date(nextStart);
+    nextEnd.setDate(nextStart.getDate() + 4); // Monday + 4 days = Friday
+    nextEnd.setHours(23, 59, 59, 999);
+
+    const [createdWeek] = await db
+      .insert(weeks)
+      .values({
+        weekNum: currentWeek.weekNum + 1,
+        startDate: nextStart.toISOString(),
+        endDate: nextEnd.toISOString(),
+      })
+      .returning();
+
+    return res.status(200).json(createdWeek);
   } catch (error) {
     console.error('Next week error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-} 
+}
