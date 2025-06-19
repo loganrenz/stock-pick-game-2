@@ -7,6 +7,7 @@ interface GameState {
   currentWeek: Week | null;
   loading: boolean;
   error: string | null;
+  allWeeks: Week[];
 }
 
 export const useGameStore = defineStore('game', {
@@ -15,6 +16,7 @@ export const useGameStore = defineStore('game', {
     currentWeek: null,
     loading: false,
     error: null,
+    allWeeks: [] as Week[],
   }),
   actions: {
     async fetchWeeks() {
@@ -30,7 +32,7 @@ export const useGameStore = defineStore('game', {
             currentValue: pick.currentValue ?? pick.currentPrice,
             returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
             dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
-          }))
+          })),
         }));
       } catch (err) {
         this.error = 'Failed to fetch weeks';
@@ -40,21 +42,24 @@ export const useGameStore = defineStore('game', {
     },
     async fetchCurrentWeek() {
       this.loading = true;
-      this.error = null;
       try {
-        const res = await axios.get('/api/weeks/current');
+        const response = await axios.get('/api/weeks/current');
+        const week = response.data;
+
+        // Transform picks to include user data and format daily prices
+        const formattedPicks = week.picks.map((pick: any) => ({
+          ...pick,
+          user: pick.user || { id: pick.userId, username: 'Unknown' },
+          dailyPriceData: null, // We'll get this from the stock data API if needed
+        }));
+
         this.currentWeek = {
-          ...res.data,
-          picks: res.data.picks.map((pick: any) => ({
-            ...pick,
-            entryPrice: pick.entryPrice ?? pick.priceAtPick,
-            currentValue: pick.currentValue ?? pick.currentPrice,
-            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
-            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
-          }))
+          ...week,
+          picks: formattedPicks,
         };
-      } catch (err) {
-        this.error = 'Failed to fetch current week';
+      } catch (error) {
+        console.error('Error fetching current week:', error);
+        this.error = error instanceof Error ? error.message : 'Failed to fetch current week';
       } finally {
         this.loading = false;
       }
@@ -65,7 +70,7 @@ export const useGameStore = defineStore('game', {
       try {
         const [weeksRes, currentWeekRes] = await Promise.all([
           axios.get('/api/weeks'),
-          axios.get('/api/weeks/current')
+          axios.get('/api/weeks/current'),
         ]);
         this.weeks = weeksRes.data.weeks.map((week: any) => ({
           ...week,
@@ -75,7 +80,7 @@ export const useGameStore = defineStore('game', {
             currentValue: pick.currentValue ?? pick.currentPrice,
             returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
             dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
-          }))
+          })),
         }));
         this.currentWeek = {
           ...currentWeekRes.data,
@@ -85,7 +90,7 @@ export const useGameStore = defineStore('game', {
             currentValue: pick.currentValue ?? pick.currentPrice,
             returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
             dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
-          }))
+          })),
         };
       } catch (err) {
         this.error = 'Failed to fetch data';
@@ -118,7 +123,8 @@ export const useGameStore = defineStore('game', {
         let userPick = null;
         if (user && nextWeek && Array.isArray(nextWeek.picks)) {
           userPick = nextWeek.picks.find(
-            (p: any) => p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim()
+            (p: any) =>
+              p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim(),
           );
         }
         console.log('[submitNextWeekPick] user:', user, 'userPick:', userPick);
@@ -149,19 +155,87 @@ export const useGameStore = defineStore('game', {
       } finally {
         this.loading = false;
       }
-    }
+    },
+    async fetchAllWeeks() {
+      this.loading = true;
+      try {
+        const response = await axios.get('/api/weeks');
+        const weeks = response.data.weeks || response.data;
+
+        // Transform picks to include user data
+        const formattedWeeks = weeks.map((week: any) => ({
+          ...week,
+          picks:
+            week.picks?.map((pick: any) => ({
+              ...pick,
+              user: pick.user || { id: pick.userId, username: 'Unknown' },
+              dailyPriceData: null, // We'll get this from the stock data API if needed
+            })) || [],
+        }));
+
+        this.allWeeks = formattedWeeks;
+      } catch (error) {
+        console.error('Error fetching all weeks:', error);
+        this.error = error instanceof Error ? error.message : 'Failed to fetch all weeks';
+      } finally {
+        this.loading = false;
+      }
+    },
+    async createPick(pickData: CreatePickData) {
+      try {
+        const response = await axios.post('/api/picks/create', pickData);
+        const newPick = {
+          ...response.data,
+          user: { id: response.data.userId, username: 'Current User' },
+          dailyPriceData: null, // We'll get this from the stock data API if needed
+        };
+
+        if (this.currentWeek) {
+          this.currentWeek.picks.push(newPick);
+        }
+        return newPick;
+      } catch (error) {
+        console.error('Error creating pick:', error);
+        throw error;
+      }
+    },
+    async updatePick(pickId: number, updateData: Partial<Pick>) {
+      try {
+        const response = await axios.put('/api/picks/update', {
+          pickId,
+          ...updateData,
+        });
+
+        // Update the pick in the current week
+        if (this.currentWeek) {
+          const pickIndex = this.currentWeek.picks.findIndex((p) => p.id === pickId);
+          if (pickIndex !== -1) {
+            this.currentWeek.picks[pickIndex] = {
+              ...this.currentWeek.picks[pickIndex],
+              ...response.data,
+              dailyPriceData: null, // We'll get this from the stock data API if needed
+            };
+          }
+        }
+
+        return response.data;
+      } catch (error) {
+        console.error('Error updating pick:', error);
+        throw error;
+      }
+    },
   },
   getters: {
-    getWeekById: (state) => (id: number) => state.weeks.find(w => w.id === id),
-    getCurrentWeekPicks: (state) => state.currentWeek ? state.currentWeek.picks : [],
+    getWeekById: (state) => (id: number) => state.weeks.find((w) => w.id === id),
+    getCurrentWeekPicks: (state) => (state.currentWeek ? state.currentWeek.picks : []),
     getHistoricalWeeks: (state) => [...state.weeks].sort((a, b) => b.weekNum - a.weekNum),
     nextWeek: (state) => {
       if (!state.currentWeek || !Array.isArray(state.weeks)) return null;
       // Find the week with the next highest weekNum after currentWeek
       const next = state.weeks
-        .filter(w => w.weekNum > state.currentWeek!.weekNum)
+        .filter((w) => w.weekNum > state.currentWeek!.weekNum)
         .sort((a, b) => a.weekNum - b.weekNum)[0];
       return next || null;
     },
   },
-}); 
+});

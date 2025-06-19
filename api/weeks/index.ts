@@ -4,14 +4,14 @@ import { weeks, picks } from '../../api-helpers/lib/schema.js';
 import { eq, lte, gte, asc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
-import { fetchPriceData } from '../../api-helpers/stocks/price-data.js';
+import { getStockData } from '../../api-helpers/stocks/stock-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('[WEEKS] Request received:', {
     method: req.method,
     url: req.url,
     path: req.url?.split('/').pop() || '',
-    headers: req.headers
+    headers: req.headers,
   });
 
   // Enable CORS
@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
   );
 
   // Handle preflight request
@@ -47,12 +47,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const currentWeek = await db.query.weeks.findFirst({
           where: and(
             lte(weeks.startDate, now.toISOString()),
-            gte(weeks.endDate, now.toISOString())
+            gte(weeks.endDate, now.toISOString()),
           ),
           with: {
             picks: true,
-            winner: true
-          }
+            winner: true,
+          },
         });
 
         if (!currentWeek) {
@@ -67,13 +67,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const friday = new Date(monday);
           friday.setDate(monday.getDate() + 4);
           friday.setHours(23, 59, 59, 999);
-          console.log(`[WEEKS][DEBUG] Today: ${today.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`);
-          console.log(`[WEEKS][DEBUG] Calculated Monday: ${monday.toISOString()} | Calculated Friday: ${friday.toISOString()}`);
-          const [newWeek] = await db.insert(weeks).values({
-            weekNum: 1,
-            startDate: monday.toISOString(),
-            endDate: friday.toISOString()
-          }).returning();
+          console.log(
+            `[WEEKS][DEBUG] Today: ${today.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`,
+          );
+          console.log(
+            `[WEEKS][DEBUG] Calculated Monday: ${monday.toISOString()} | Calculated Friday: ${friday.toISOString()}`,
+          );
+          const [newWeek] = await db
+            .insert(weeks)
+            .values({
+              weekNum: 1,
+              startDate: monday.toISOString(),
+              endDate: friday.toISOString(),
+            })
+            .returning();
           console.log('[WEEKS][DEBUG] Inserted new week:', newWeek);
           return res.status(200).json(newWeek);
         }
@@ -84,18 +91,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const lastUpdate = pick.updatedAt ? new Date(pick.updatedAt) : null;
           const nowTime = Date.now();
           const needsUpdate =
-            !pick.entryPrice || pick.entryPrice === 0 ||
+            !pick.entryPrice ||
+            pick.entryPrice === 0 ||
             pick.returnPercentage == null ||
-            pick.dailyPriceData == null ||
-            !lastUpdate || (
-              (pick.dailyPriceData != null && pick.returnPercentage != null) &&
-              (nowTime - lastUpdate.getTime() > 20 * 60 * 1000)
-            );
+            !lastUpdate ||
+            (pick.returnPercentage != null && nowTime - lastUpdate.getTime() > 20 * 60 * 1000);
           if (needsUpdate) {
             let dailyPriceData = null;
             let currentPrice = null;
             try {
-              const result = await fetchPriceData(pick.symbol);
+              const result = await getStockData(pick.symbol);
               dailyPriceData = result.dailyPriceData;
               currentPrice = result.currentPrice;
               console.log('[WEEKS] Daily price data:', dailyPriceData);
@@ -112,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             if (dailyPriceData) {
               // Find Monday open (first available day) for entry price
-              const dpd = dailyPriceData as Record<string, { open: number, close: number }>;
+              const dpd = dailyPriceData as Record<string, { open: number; close: number }>;
               const days = Object.keys(dpd);
               if (days.length > 0) {
                 entryPrice = dpd[days[0]].open;
@@ -124,23 +129,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Calculate return percentage if we have both prices
             if (entryPrice && currentValue) {
               returnPercentage = ((currentValue - entryPrice) / entryPrice) * 100;
-              console.log(`[WEEKS] Calculated return for ${pick.symbol}: ${returnPercentage.toFixed(2)}% (entry: ${entryPrice}, current: ${currentValue})`);
+              console.log(
+                `[WEEKS] Calculated return for ${pick.symbol}: ${returnPercentage.toFixed(2)}% (entry: ${entryPrice}, current: ${currentValue})`,
+              );
             }
 
             // Update pick with new data
             if (entryPrice && currentValue && returnPercentage !== null) {
-              await db.update(picks)
+              await db
+                .update(picks)
                 .set({
                   entryPrice,
                   currentValue,
                   returnPercentage,
-                  dailyPriceData: JSON.stringify(dailyPriceData),
-                  updatedAt: new Date().toISOString()
+                  updatedAt: new Date().toISOString(),
                 })
                 .where(eq(picks.id, pick.id));
-              console.log(`[WEEKS] Updated pick ${pick.id} (${pick.symbol}): entryPrice=${entryPrice}, currentValue=${currentValue}, returnPercentage=${returnPercentage.toFixed(2)}%`);
+              console.log(
+                `[WEEKS] Updated pick ${pick.id} (${pick.symbol}): entryPrice=${entryPrice}, currentValue=${currentValue}, returnPercentage=${returnPercentage.toFixed(2)}%`,
+              );
             } else {
-              console.log(`[WEEKS] Skipping update for pick ${pick.id} (${pick.symbol}) - missing required data`);
+              console.log(
+                `[WEEKS] Skipping update for pick ${pick.id} (${pick.symbol}) - missing required data`,
+              );
             }
           }
         }
@@ -150,10 +161,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Attach user object to each pick
         const weekWithUserPicks = {
           ...currentWeek,
-          picks: currentWeek.picks.map(pick => ({
+          picks: currentWeek.picks.map((pick) => ({
             ...pick,
-            user: allUsers.find(u => u.id === pick.userId) || { id: pick.userId, username: 'Unknown' }
-          }))
+            user: allUsers.find((u) => u.id === pick.userId) || {
+              id: pick.userId,
+              username: 'Unknown',
+            },
+          })),
         };
         console.log('[WEEKS] Found current week:', weekWithUserPicks);
         return res.status(200).json(weekWithUserPicks);
@@ -170,7 +184,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         console.log('[WEEKS] Fetching all weeks');
         const allWeeks = await db.query.weeks.findMany({
-          orderBy: asc(weeks.weekNum)
+          orderBy: asc(weeks.weekNum),
         });
         //console.log('[WEEKS] Found weeks:', allWeeks);
         return res.status(200).json({ weeks: allWeeks });
@@ -194,18 +208,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           orderBy: asc(weeks.weekNum),
           with: {
             picks: true,
-            winner: true
-          }
+            winner: true,
+          },
         });
         // Fetch all users for mapping
         const allUsers = await db.query.users.findMany();
         // Attach user object to each pick
-        const weeksWithUserPicks = allWeeks.map(week => ({
+        const weeksWithUserPicks = allWeeks.map((week) => ({
           ...week,
-          picks: week.picks.map(pick => ({
+          picks: week.picks.map((pick) => ({
             ...pick,
-            user: allUsers.find(u => u.id === pick.userId) || { id: pick.userId, username: 'Unknown' }
-          }))
+            user: allUsers.find((u) => u.id === pick.userId) || {
+              id: pick.userId,
+              username: 'Unknown',
+            },
+          })),
         }));
         //console.log('[WEEKS] Found weeks:', weeksWithUserPicks);
         return res.status(200).json({ weeks: weeksWithUserPicks });
@@ -218,4 +235,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('[WEEKS] Path not found:', path);
       return res.status(404).json({ error: 'Not found' });
   }
-} 
+}

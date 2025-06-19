@@ -44,6 +44,22 @@ The application uses Turso as its database. Make sure to set the following envir
 - `TURSO_DB_URL` - Your Turso database URL
 - `TURSO_DB_TOKEN` - Your Turso authentication token
 
+### Database Migrations (Safe for Production)
+
+To apply schema changes incrementally and safely (without losing data):
+
+```bash
+npm run db:migrate
+```
+
+### Database Reset (Dev/Test Only, Destructive)
+
+To drop and recreate all tables (erases all data, use only for local development or tests):
+
+```bash
+npm run db:reset
+```
+
 ## Testing
 
 Run tests with:
@@ -195,3 +211,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Simple password login.
 - Long-lived JWT (1 year), refreshed on each visit.
+
+- If a pick is an IPO and the IPO is that week, its entry price will be the close price of its first day on the market.

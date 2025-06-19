@@ -1,20 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": [
-      "ES2017",
-      "DOM"
-    ],
+    "lib": ["ES2017", "DOM"],
     "module": "ESNext",
     "moduleResolution": "node",
     "skipLibCheck": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@api/*": [
-        "./api/*"
-      ]
+      "@/*": ["./src/*"],
+      "@api/*": ["./api/*"]
     }
   },
   "references": [
@@ -28,15 +21,5 @@
       "path": "./tsconfig.api.json"
     }
   ],
-  "include": [
-    "./api-helpers/**/*.ts",
-    "./api-helpers/lib/db.ts",
-    "./api-helpers/lib/auth.ts",
-    "./api-helpers/lib/schema.ts",
-    "./api-helpers/lib/auth.ts",
-    "./api-helpers/lib/db.ts",
-    "./api-helpers/lib/schema.ts",
-    "./api-helpers/lib/migrate.ts",
-    "./api-helpers/lib/seed.ts"
-  ]
+  "exclude": ["node_modules", ".vercel", "dist", "**/*.d.ts"]
 }

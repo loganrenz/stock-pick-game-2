@@ -1,0 +1,301 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "tables": {
+    "User": {
+      "name": "User",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jwtToken": {
+          "name": "jwtToken",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {}
+    },
+    "Week": {
+      "name": "Week",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "weekNum": {
+          "name": "weekNum",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "startDate": {
+          "name": "startDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endDate": {
+          "name": "endDate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winnerId": {
+          "name": "winnerId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Week_winnerId_User_id_fk": {
+          "name": "Week_winnerId_User_id_fk",
+          "tableFrom": "Week",
+          "tableTo": "User",
+          "columnsFrom": ["winnerId"],
+          "columnsTo": ["id"]
+        }
+      },
+      "uniqueConstraints": {}
+    },
+    "StockPrice": {
+      "name": "StockPrice",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currentPrice": {
+          "name": "currentPrice",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "previousClose": {
+          "name": "previousClose",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "change": {
+          "name": "change",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changePercent": {
+          "name": "changePercent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "volume": {
+          "name": "volume",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "marketCap": {
+          "name": "marketCap",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peRatio": {
+          "name": "peRatio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "eps": {
+          "name": "eps",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dividendYield": {
+          "name": "dividendYield",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "beta": {
+          "name": "beta",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dailyPriceData": {
+          "name": "dailyPriceData",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lastUpdated": {
+          "name": "lastUpdated",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "uniqueConstraints": {
+        "stock_prices_symbol_unique": {
+          "name": "stock_prices_symbol_unique",
+          "columns": ["symbol"]
+        }
+      }
+    },
+    "Pick": {
+      "name": "Pick",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weekId": {
+          "name": "weekId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entryPrice": {
+          "name": "entryPrice",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "currentValue": {
+          "name": "currentValue",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "weekReturn": {
+          "name": "weekReturn",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "returnPercentage": {
+          "name": "returnPercentage",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "Pick_userId_User_id_fk": {
+          "name": "Pick_userId_User_id_fk",
+          "tableFrom": "Pick",
+          "tableTo": "User",
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"]
+        },
+        "Pick_weekId_Week_id_fk": {
+          "name": "Pick_weekId_Week_id_fk",
+          "tableFrom": "Pick",
+          "tableTo": "Week",
+          "columnsFrom": ["weekId"],
+          "columnsTo": ["id"]
+        }
+      },
+      "uniqueConstraints": {
+        "picks_user_week_unique": {
+          "name": "picks_user_week_unique",
+          "columns": ["userId", "weekId"]
+        }
+      }
+    }
+  }
+}

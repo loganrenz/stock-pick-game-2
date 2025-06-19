@@ -7,7 +7,9 @@ export const users = sqliteTable('User', (table) => ({
   username: text('username').notNull().unique(),
   password: text('password'),
   jwtToken: text('jwtToken'),
-  createdAt: text('createdAt').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text('createdAt')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updatedAt'),
 }));
 
@@ -17,26 +19,58 @@ export const weeks = sqliteTable('Week', (table) => ({
   startDate: text('startDate').notNull().unique(),
   endDate: text('endDate'),
   winnerId: integer('winnerId').references(() => users.id),
-  createdAt: text('createdAt').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text('createdAt')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updatedAt'),
+}));
+
+export const stockPrices = sqliteTable('StockPrice', (table) => ({
+  id: integer('id').primaryKey(),
+  symbol: text('symbol').notNull(),
+  currentPrice: real('currentPrice'),
+  previousClose: real('previousClose'),
+  change: real('change'),
+  changePercent: real('changePercent'),
+  volume: integer('volume'),
+  marketCap: real('marketCap'),
+  peRatio: real('peRatio'),
+  eps: real('eps'),
+  dividendYield: real('dividendYield'),
+  beta: real('beta'),
+  dailyPriceData: text('dailyPriceData'), // JSON string of daily OHLCV data
+  lastUpdated: text('lastUpdated')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 }));
 
 export const picks = sqliteTable('Pick', (table) => ({
   id: integer('id').primaryKey(),
-  userId: integer('userId').notNull().references(() => users.id),
-  weekId: integer('weekId').notNull().references(() => weeks.id),
+  userId: integer('userId')
+    .notNull()
+    .references(() => users.id),
+  weekId: integer('weekId')
+    .notNull()
+    .references(() => weeks.id),
   symbol: text('symbol').notNull(),
   entryPrice: real('entryPrice').notNull(),
-  createdAt: text('createdAt').notNull().default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text('createdAt')
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updatedAt'),
-  dailyPriceData: text('dailyPriceData'),
   currentValue: real('currentValue'),
   weekReturn: real('weekReturn'),
   returnPercentage: real('returnPercentage'),
 }));
 
-// Define unique constraint separately
-export const picksUniqueIndex = uniqueIndex('picks_user_week_unique').on(picks.userId, picks.weekId);
+// Define unique constraints
+export const picksUniqueIndex = uniqueIndex('picks_user_week_unique').on(
+  picks.userId,
+  picks.weekId,
+);
+export const stockPricesUniqueIndex = uniqueIndex('stock_prices_symbol_unique').on(
+  stockPrices.symbol,
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
   picks: many(picks),
@@ -59,4 +93,8 @@ export const picksRelations = relations(picks, ({ one }) => ({
     fields: [picks.weekId],
     references: [weeks.id],
   }),
-})); 
+}));
+
+export const stockPricesRelations = relations(stockPrices, ({ many }) => ({
+  picks: many(picks),
+}));

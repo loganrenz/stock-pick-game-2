@@ -1,12 +1,13 @@
 import { db } from '../lib/db.js';
 import { weeks, picks, users } from '../lib/schema.js';
 import { eq, and, lt } from 'drizzle-orm';
-import axios from 'axios';
+import { getCurrentPrice } from '../stocks/stock-data.js';
 
 async function getHistoricalPrice(symbol: string, date: string): Promise<number | null> {
   try {
-    const res = await axios.post('http://localhost:3000/api/stock', { symbol, date });
-    return res.data?.close ? parseFloat(res.data.close) : null;
+    // Use the centralized stock data utility
+    const currentPrice = await getCurrentPrice(symbol);
+    return currentPrice;
   } catch (e) {
     console.error(`[WINNER] Failed to fetch price for ${symbol} on ${date}`);
     return null;
@@ -17,7 +18,7 @@ async function main() {
   const now = new Date();
   const allWeeks = await db.query.weeks.findMany({
     where: lt(weeks.endDate, now.toISOString()),
-    with: { picks: true }
+    with: { picks: true },
   });
   for (const week of allWeeks) {
     if (!week.picks.length) continue;
@@ -30,7 +31,10 @@ async function main() {
         const closePrice = await getHistoricalPrice(pick.symbol, week.endDate);
         if (closePrice != null) {
           ret = ((closePrice - pick.entryPrice) / pick.entryPrice) * 100;
-          await db.update(picks).set({ currentValue: closePrice, returnPercentage: ret }).where(eq(picks.id, pick.id));
+          await db
+            .update(picks)
+            .set({ currentValue: closePrice, returnPercentage: ret })
+            .where(eq(picks.id, pick.id));
         }
       }
       if (ret != null && ret > bestReturn) {
@@ -47,5 +51,8 @@ async function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || import.meta.url === process.argv[1]) {
-  main().catch(e => { console.error(e); process.exit(1); });
-} 
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

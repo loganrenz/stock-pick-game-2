@@ -15,18 +15,11 @@ export interface Pick {
   symbol: string;
   entryPrice: number;
   createdAt: string;
-  updatedAt: string;
-  user: User;
-  dailyPriceData?: {
-    monday?: DailyPrice;
-    tuesday?: DailyPrice;
-    wednesday?: DailyPrice;
-    thursday?: DailyPrice;
-    friday?: DailyPrice;
-    [key: string]: DailyPrice | undefined;
-  };
+  updatedAt?: string;
   currentValue?: number;
+  weekReturn?: number;
   returnPercentage?: number;
+  user?: User;
 }
 
 export interface Week {
@@ -37,4 +30,4 @@ export interface Week {
   winnerId: number | null;
   picks: Pick[];
   winner?: User | null;
-} 
+}

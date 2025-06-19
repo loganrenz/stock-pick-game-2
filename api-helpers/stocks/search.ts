@@ -1,8 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import axios from 'axios';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
-
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+import { searchStocks } from './stock-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -17,26 +15,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      const response = await axios.get(
-        `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${query}&apikey=${ALPHA_VANTAGE_API_KEY}`
-      );
-
-      if (response.data.bestMatches) {
-        const stocks = response.data.bestMatches.map((match: any) => ({
-          symbol: match['1. symbol'],
-          name: match['2. name'],
-          type: match['3. type'],
-          region: match['4. region'],
-          currency: match['8. currency']
-        }));
-
-        res.json(stocks);
-      } else {
-        res.json([]);
-      }
+      const stocks = await searchStocks(query);
+      res.json(stocks);
     } catch (error) {
       console.error('Error searching stocks:', error);
       res.status(500).json({ error: 'Failed to search stocks' });
     }
   });
-} 
+}

@@ -55,12 +55,8 @@
   },
   "crons": [
     {
-      "path": "/api/cron/fetch-daily-prices?type=open",
-      "schedule": "17 17 * * *"
-    },
-    {
-      "path": "/api/cron/fetch-daily-prices?type=close",
-      "schedule": "17 17 * * *"
+      "path": "/api/cron?job=update-stock-prices",
+      "schedule": "*/15 * * * *"
     }
   ]
-} 
+}

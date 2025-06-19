@@ -4,7 +4,6 @@ import { db } from '../../api-helpers/lib/db.js';
 import { picks } from '../../api-helpers/lib/schema.js';
 import { eq, and } from 'drizzle-orm';
 
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -12,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
   );
 
   // Handle preflight request
@@ -34,12 +33,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (weekId == null || symbol == null || entryPrice == null) {
             return res.status(400).json({ error: 'Missing required fields' });
           }
-          const [pick] = await db.insert(picks).values({
-            userId: (req as AuthenticatedRequest).user!.id,
-            weekId,
-            symbol,
-            entryPrice
-          }).returning();
+          const [pick] = await db
+            .insert(picks)
+            .values({
+              userId: (req as AuthenticatedRequest).user!.id,
+              weekId,
+              symbol,
+              entryPrice,
+            })
+            .returning();
           return res.status(201).json(pick);
         } catch (error) {
           console.error('Create pick error:', error);
@@ -53,30 +55,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       return requireAuth(req as AuthenticatedRequest, res, async () => {
         try {
-          const { pickId, symbol, entryPrice, dailyPriceData, currentValue, weekReturn, returnPercentage } = req.body;
+          const { pickId, symbol, entryPrice, currentValue, weekReturn, returnPercentage } =
+            req.body;
+
           if (!pickId) {
             return res.status(400).json({ error: 'Pick ID is required' });
           }
+
           const updateFields: any = {};
           if (symbol !== undefined) updateFields.symbol = symbol;
           if (entryPrice !== undefined) updateFields.entryPrice = entryPrice;
-          if (dailyPriceData !== undefined) updateFields.dailyPriceData = dailyPriceData;
           if (currentValue !== undefined) updateFields.currentValue = currentValue;
           if (weekReturn !== undefined) updateFields.weekReturn = weekReturn;
           if (returnPercentage !== undefined) updateFields.returnPercentage = returnPercentage;
-          if (Object.keys(updateFields).length === 0) {
-            return res.status(400).json({ error: 'No values to update' });
-          }
-          const [updatedPick] = await db.update(picks)
+          updateFields.updatedAt = new Date().toISOString();
+
+          const [updatedPick] = await db
+            .update(picks)
             .set(updateFields)
-            .where(and(
-              eq(picks.id, pickId),
-              eq(picks.userId, (req as AuthenticatedRequest).user!.id)
-            ))
+            .where(eq(picks.id, pickId))
             .returning();
+
           if (!updatedPick) {
             return res.status(404).json({ error: 'Pick not found' });
           }
+
           return res.status(200).json(updatedPick);
         } catch (error) {
           console.error('Update pick error:', error);
@@ -94,11 +97,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           if (!pickId) {
             return res.status(400).json({ error: 'Pick ID is required' });
           }
-          const [deletedPick] = await db.delete(picks)
-            .where(and(
-              eq(picks.id, pickId),
-              eq(picks.userId, (req as AuthenticatedRequest).user!.id)
-            ))
+          const [deletedPick] = await db
+            .delete(picks)
+            .where(
+              and(eq(picks.id, pickId), eq(picks.userId, (req as AuthenticatedRequest).user!.id)),
+            )
             .returning();
           if (!deletedPick) {
             return res.status(404).json({ error: 'Pick not found' });
@@ -113,4 +116,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     default:
       return res.status(404).json({ error: 'Not found' });
   }
-} 
+}

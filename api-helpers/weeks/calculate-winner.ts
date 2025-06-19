@@ -3,9 +3,7 @@ import { db } from '../lib/db.js';
 import { weeks, picks } from '../lib/schema';
 import { requireAuth, AuthenticatedRequest } from '../lib/auth';
 import { eq } from 'drizzle-orm';
-import axios from 'axios';
-
-const ALPHA_VANTAGE_API_KEY = process.env.ALPHA_VANTAGE_API_KEY;
+import { getCurrentPrice } from '../stocks/stock-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -25,10 +23,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         with: {
           picks: {
             with: {
-              user: true
-            }
-          }
-        }
+              user: true,
+            },
+          },
+        },
       });
 
       if (!week) {
@@ -44,16 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
           const returnPercentage = ((currentPrice - pick.entryPrice) / pick.entryPrice) * 100;
           return { ...pick, return: returnPercentage };
-        })
+        }),
       );
 
       // Find winner
-      const winner = picksWithReturns.reduce((prev, current) => 
-        (current.return > prev.return) ? current : prev
+      const winner = picksWithReturns.reduce((prev, current) =>
+        current.return > prev.return ? current : prev,
       );
 
       // Update week with winner
-      const [updatedWeek] = await db.update(weeks)
+      const [updatedWeek] = await db
+        .update(weeks)
         .set({ winnerId: winner.userId })
         .where(eq(weeks.id, weekId))
         .returning();
@@ -64,11 +63,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         with: {
           picks: {
             with: {
-              user: true
-            }
+              user: true,
+            },
           },
-          winner: true
-        }
+          winner: true,
+        },
       });
 
       res.json(weekWithRelations);
@@ -78,21 +77,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   });
 }
-
-async function getCurrentPrice(symbol: string): Promise<number | null> {
-  try {
-    const response = await axios.get(
-      `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`
-    );
-
-    const quote = response.data['Global Quote'];
-    if (!quote) {
-      return null;
-    }
-
-    return parseFloat(quote['05. price']);
-  } catch (error) {
-    console.error('Error fetching current price:', error);
-    return null;
-  }
-} 

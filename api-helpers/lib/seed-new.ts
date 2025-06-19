@@ -1,25 +1,26 @@
-// DEPRECATED: This seed script is no longer maintained. Use seed-new.ts and static stock price data for future seeding. This file is kept for historical reference only.
 import { db } from './db.js';
-import { users, weeks, picks } from './schema.js';
+import { users, weeks, picks, stockPrices } from './schema.js';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { config } from './config.js';
 import fs from 'fs';
 import path from 'path';
-import { parse } from 'csv-parse/sync';
+import { parse as csvParse } from 'csv-parse/sync';
 import axios from 'axios';
-import { format } from 'date-fns';
-import parse from 'date-fns/parse';
-import { getDailyPriceData } from '../stocks/stock-data.js';
+import { format, parse } from 'date-fns';
+import { getStockData, getDailyPriceData } from '../stocks/stock-data.js';
+
+const STOCK_DATA_SERVER_URL = 'https://stock-data-server.fly.dev';
 
 export default async function main() {
-  console.log('Starting database seeding...');
+  console.log('Starting database seeding with new stock API...');
 
   // Clean up tables before seeding
-  console.log('Clearing Picks, Weeks, and Users tables...');
+  console.log('Clearing Picks, Weeks, Users, and StockPrices tables...');
   await db.delete(picks);
   await db.delete(weeks);
   await db.delete(users);
+  await db.delete(stockPrices);
 
   // Create test users
   const testUsers = [
@@ -60,7 +61,7 @@ export default async function main() {
   console.log('Reading CSV data...');
   const csvPath = path.resolve(process.cwd(), 'numbers-data', 'originaldata2.csv');
   const csvContent = fs.readFileSync(csvPath, 'utf-8');
-  const records = parse(csvContent, {
+  const records = csvParse(csvContent, {
     columns: true,
     skip_empty_lines: true,
     trim: true,
@@ -83,7 +84,7 @@ export default async function main() {
     );
   }
 
-  // Helper to convert MM/DD/YYYY or other formats to YYYY-MM-DD using date-fns
+  // Helper to convert MM/DD/YYYY or other formats to YYYY-MM-DD
   function toIsoDate(dateStr: string) {
     if (!dateStr) return dateStr;
     let parsed;
@@ -99,17 +100,14 @@ export default async function main() {
     return format(parsed, 'yyyy-MM-dd');
   }
 
-  // Helper to fetch missing price from new stock API
-  async function fetchPriceFromStockAPI(symbol: string) {
+  // Helper to fetch stock data from new API
+  async function fetchStockDataForSymbol(symbol: string) {
     try {
-      // Fetch daily price data for the symbol
-      const dailyPriceData = await getDailyPriceData(symbol);
-      return dailyPriceData;
+      console.log(`[SEED] Fetching stock data for ${symbol} from new API...`);
+      const stockData = await getStockData(symbol, true); // Force refresh
+      return stockData;
     } catch (err) {
-      console.warn(
-        `[seed] Failed to fetch price for ${symbol} from stock API:`,
-        err?.message || err,
-      );
+      console.warn(`[SEED] Failed to fetch stock data for ${symbol}:`, err?.message || err);
       return null;
     }
   }
@@ -167,7 +165,67 @@ export default async function main() {
     });
   }
 
-  // Now create weeks and picks, ensuring the current week covers today
+  // Collect all unique symbols for batch stock data fetching
+  const allSymbols = new Set<string>();
+  for (const weekData of weeksData) {
+    for (const pickData of weekData.data) {
+      if (pickData.Symbol && pickData.Symbol !== '-') {
+        allSymbols.add(pickData.Symbol.toUpperCase());
+      }
+    }
+  }
+
+  console.log(`[SEED] Fetching stock data for ${allSymbols.size} unique symbols...`);
+
+  // Fetch stock data for all symbols and cache it
+  const stockDataCache: Record<string, any> = {};
+  for (const symbol of allSymbols) {
+    const stockData = await fetchStockDataForSymbol(symbol);
+    if (stockData) {
+      stockDataCache[symbol] = stockData;
+
+      // Cache the stock data in the database
+      await db
+        .insert(stockPrices)
+        .values({
+          symbol: symbol,
+          currentPrice: stockData.currentPrice,
+          previousClose: stockData.previousClose,
+          change: stockData.change,
+          changePercent: stockData.changePercent,
+          volume: stockData.volume,
+          marketCap: stockData.marketCap,
+          peRatio: stockData.peRatio,
+          eps: stockData.eps,
+          dividendYield: stockData.dividendYield,
+          beta: stockData.beta,
+          dailyPriceData: stockData.dailyPriceData
+            ? JSON.stringify(stockData.dailyPriceData)
+            : null,
+        })
+        .onConflictDoUpdate({
+          target: stockPrices.symbol,
+          set: {
+            currentPrice: stockData.currentPrice,
+            previousClose: stockData.previousClose,
+            change: stockData.change,
+            changePercent: stockData.changePercent,
+            volume: stockData.volume,
+            marketCap: stockData.marketCap,
+            peRatio: stockData.peRatio,
+            eps: stockData.eps,
+            dividendYield: stockData.dividendYield,
+            beta: stockData.beta,
+            dailyPriceData: stockData.dailyPriceData
+              ? JSON.stringify(stockData.dailyPriceData)
+              : null,
+            lastUpdated: new Date().toISOString(),
+          },
+        });
+    }
+  }
+
+  // Now create weeks and picks
   for (let i = 0; i < weeksData.length; i++) {
     const weekData = weeksData[i];
     if (weekData.data.length === 0) continue;
@@ -223,28 +281,11 @@ export default async function main() {
         continue;
       }
 
-      // Build daily price data
-      const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-      const csvDays = ['Mon', 'Tue ', 'Wed ', 'Thur', 'Fri'];
-      let dailyPriceData: any = {};
-      // Try to get daily price data from the new stock API
-      const apiDailyPriceData = await fetchPriceFromStockAPI(pickData.Symbol);
-      if (apiDailyPriceData) {
-        // Map API data to our days
-        for (const day of days) {
-          const key = day.toLowerCase();
-          if (apiDailyPriceData[key]) {
-            dailyPriceData[day] = apiDailyPriceData[key];
-          } else {
-            dailyPriceData[day] = { open: null, close: null };
-          }
-        }
-      } else {
-        // Fallback to CSV data if API fails
-        for (let i = 0; i < days.length; i++) {
-          let price = pickData[csvDays[i]];
-          dailyPriceData[days[i]] = { open: price, close: price };
-        }
+      // Use current price from stock data cache if available
+      let finalCurrentValue = currentValue;
+      const symbol = pickData.Symbol.toUpperCase();
+      if (stockDataCache[symbol] && stockDataCache[symbol].currentPrice) {
+        finalCurrentValue = stockDataCache[symbol].currentPrice;
       }
 
       const [pick] = await db
@@ -254,7 +295,7 @@ export default async function main() {
           weekId: week.id,
           symbol: pickData.Symbol,
           entryPrice,
-          currentValue: Number.isFinite(currentValue) ? currentValue : null,
+          currentValue: Number.isFinite(finalCurrentValue) ? finalCurrentValue : null,
           weekReturn: Number.isFinite(weekReturn) ? weekReturn : null,
           returnPercentage: Number.isFinite(returnPercentage) ? returnPercentage : null,
         })
@@ -264,6 +305,7 @@ export default async function main() {
   }
 
   console.log('Database seeding completed successfully!');
+  console.log(`Cached stock data for ${Object.keys(stockDataCache).length} symbols`);
 }
 
 // Only run if this file is being run directly
