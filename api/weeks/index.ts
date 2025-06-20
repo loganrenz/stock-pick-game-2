@@ -4,7 +4,6 @@ import { weeks, picks } from '../../api-helpers/lib/schema.js';
 import { eq, lte, gte, asc, desc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
-import { getStockData } from '../../api-helpers/stocks/stock-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -51,7 +50,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             gte(weeks.endDate, now.toISOString()),
           ),
           with: {
-            picks: true,
+            picks: {
+              with: {
+                user: true,
+              },
+            },
             winner: true,
           },
         });
@@ -92,66 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           currentWeek.endDate = friday.toISOString();
         }
 
-        // Update picks if needed (entryPrice or returnPercentage missing, or updatedAt > 20 min ago)
-        console.log('[WEEKS] Updating picks prices');
-        const picksWithLivePrices = await Promise.all(
-          currentWeek.picks.map(async (pick) => {
-            let entryPrice = pick.entryPrice;
-            const stockData = await getStockData(pick.symbol);
-
-            // If entry price is not set, get it from the first day of historical data.
-            if ((!entryPrice || entryPrice === 0) && stockData?.dailyPriceData) {
-              const days = Object.keys(stockData.dailyPriceData);
-              if (days.length > 0) {
-                entryPrice =
-                  stockData.dailyPriceData[Object.keys(stockData.dailyPriceData)[0]].open;
-              }
-            }
-
-            // For the current week, the value is always the live price.
-            const currentValue = stockData?.currentPrice;
-
-            let returnPercentage = null;
-            if (entryPrice && currentValue) {
-              returnPercentage = ((currentValue - entryPrice) / entryPrice) * 100;
-            }
-
-            // Update the pick in the database.
-            if (entryPrice && currentValue) {
-              await db
-                .update(picks)
-                .set({
-                  entryPrice,
-                  currentValue,
-                  returnPercentage,
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(picks.id, pick.id));
-            }
-
-            // Return the pick with the most up-to-date data for the response.
-            return {
-              ...pick,
-              entryPrice,
-              currentValue,
-              returnPercentage,
-            };
-          }),
-        );
-
-        const allUsers = await db.query.users.findMany();
-        const weekWithUserPicks = {
-          ...currentWeek,
-          picks: picksWithLivePrices.map((pick) => ({
-            ...pick,
-            user: allUsers.find((u) => u.id === pick.userId) || {
-              id: pick.userId,
-              username: 'Unknown',
-            },
-          })),
-        };
-
-        return res.status(200).json(weekWithUserPicks);
+        return res.status(200).json(currentWeek);
       } catch (error) {
         console.error('[WEEKS] Current week error:', error);
         return res.status(500).json({ error: 'Internal server error' });
