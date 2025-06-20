@@ -20,24 +20,26 @@ export function usePriceUpdates() {
 
     try {
       console.log('[PRICE-UPDATE] Starting background price update...');
+      console.log('[PRICE-UPDATE] Making request to /api/update-prices');
 
       const response = await fetch('/api/update-prices', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          batchSize: 5,
-          maxConcurrent: 5,
-        }),
+        body: JSON.stringify({}),
       });
+
+      console.log('[PRICE-UPDATE] Response status:', response.status);
+      console.log('[PRICE-UPDATE] Response ok:', response.ok);
 
       if (response.ok) {
         const result = await response.json();
         console.log(`[PRICE-UPDATE] Completed: ${result.updated} updated, ${result.failed} failed`);
         lastUpdateTime.value = new Date();
       } else {
-        console.error('[PRICE-UPDATE] Failed to update prices:', response.status);
+        const errorText = await response.text();
+        console.error('[PRICE-UPDATE] Failed to update prices:', response.status, errorText);
       }
     } catch (error) {
       console.error('[PRICE-UPDATE] Error updating prices:', error);

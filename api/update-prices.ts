@@ -28,25 +28,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { batchSize = 5, maxConcurrent = 5 } = req.body;
 
-    // Get all unique symbols that need updating (from current week picks)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const currentWeek = await db.query.weeks.findFirst({
-      where: (w) => w.startDate <= todayStr && w.endDate >= todayStr,
+    // Get all weeks with picks that need updating
+    const allWeeks = await db.query.weeks.findMany({
       with: { picks: true },
     });
 
-    if (!currentWeek) {
-      return res.status(404).json({ message: 'No current week found' });
+    if (!allWeeks || allWeeks.length === 0) {
+      return res.status(404).json({ message: 'No weeks found' });
     }
 
-    // Get unique symbols from current week picks
-    const symbols = [...new Set(currentWeek.picks.map((pick) => pick.symbol))];
+    // Get unique symbols from all weeks
+    const allSymbols = new Set<string>();
+    for (const week of allWeeks) {
+      if (week.picks && week.picks.length > 0) {
+        week.picks.forEach((pick) => allSymbols.add(pick.symbol));
+      }
+    }
+
+    const symbols = Array.from(allSymbols);
 
     if (symbols.length === 0) {
       return res.status(200).json({ message: 'No symbols to update', updated: 0 });
     }
 
-    // Process symbols in batches
+    // Process symbols one at a time (sequential)
     const results = {
       total: symbols.length,
       updated: 0,
@@ -54,67 +59,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       errors: [] as string[],
     };
 
-    // Process in batches of maxConcurrent
-    for (let i = 0; i < symbols.length; i += maxConcurrent) {
-      const batch = symbols.slice(i, i + maxConcurrent);
+    // Process each symbol sequentially
+    for (const symbol of symbols) {
+      try {
+        console.log(`[UPDATE-PRICES] Updating ${symbol}...`);
+        const stockData = await getStockData(symbol);
 
-      // Process batch concurrently
-      const batchPromises = batch.map(async (symbol) => {
-        try {
-          console.log(`[UPDATE-PRICES] Updating ${symbol}...`);
-          const stockData = await getStockData(symbol);
+        if (!stockData || !stockData.currentPrice) {
+          throw new Error(`No price data for ${symbol}`);
+        }
 
-          if (!stockData || !stockData.currentPrice) {
-            throw new Error(`No price data for ${symbol}`);
-          }
+        // Update all picks for this symbol across all weeks
+        for (const week of allWeeks) {
+          if (!week.picks) continue;
 
-          // Update all picks for this symbol in the current week
-          const picksToUpdate = currentWeek.picks.filter((pick) => pick.symbol === symbol);
+          const picksToUpdate = week.picks.filter((pick) => pick.symbol === symbol);
 
           for (const pick of picksToUpdate) {
             const oldPrice = pick.currentValue;
             const newPrice = stockData.currentPrice;
 
-            // Sanity check
-            if (oldPrice && !isPriceChangeRealistic(oldPrice, newPrice)) {
-              console.warn(
-                `[UPDATE-PRICES] Unrealistic price change for ${symbol}: ${oldPrice} -> ${newPrice}`,
-              );
-              continue;
+            // Sanity check - calculate percentage change
+            if (oldPrice && newPrice) {
+              const changePercent = ((newPrice - oldPrice) / oldPrice) * 100;
+              if (!isPriceChangeRealistic(changePercent)) {
+                console.warn(
+                  `[UPDATE-PRICES] Unrealistic price change for ${symbol}: ${oldPrice} -> ${newPrice} (${changePercent.toFixed(2)}%)`,
+                );
+                continue;
+              }
             }
 
-            const returnPercentage = pick.entryPrice
-              ? ((newPrice - pick.entryPrice) / pick.entryPrice) * 100
-              : null;
+            const returnPercentage =
+              pick.entryPrice && newPrice
+                ? ((newPrice - pick.entryPrice) / pick.entryPrice) * 100
+                : null;
 
             await db
               .update(picks)
               .set({
                 currentValue: newPrice,
                 returnPercentage,
-                lastUpdated: new Date().toISOString(),
               })
               .where(eq(picks.id, pick.id));
           }
-
-          results.updated++;
-          console.log(`[UPDATE-PRICES] Successfully updated ${symbol}`);
-          return { symbol, success: true };
-        } catch (error) {
-          const errorMsg = `Failed to update ${symbol}: ${error}`;
-          console.error(`[UPDATE-PRICES] ${errorMsg}`);
-          results.failed++;
-          results.errors.push(errorMsg);
-          return { symbol, success: false, error: errorMsg };
         }
-      });
 
-      // Wait for batch to complete
-      await Promise.all(batchPromises);
+        results.updated++;
+        console.log(`[UPDATE-PRICES] Successfully updated ${symbol}`);
 
-      // Small delay between batches to be respectful
-      if (i + maxConcurrent < symbols.length) {
+        // Small delay between symbols to be respectful to the API
         await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        const errorMsg = `Failed to update ${symbol}: ${error}`;
+        console.error(`[UPDATE-PRICES] ${errorMsg}`);
+        results.failed++;
+        results.errors.push(errorMsg);
       }
     }
 
