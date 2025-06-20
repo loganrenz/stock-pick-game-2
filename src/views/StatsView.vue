@@ -108,9 +108,6 @@ function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
 
     let bestPick = null;
     let worstPick = null;
-    let longestStreak = 0;
-    let currentStreak = 0;
-    let winsInaRow = 0;
 
     const picksByWeek = sortedWeeks.map(week => userPicks.find(p => p.weekId === week.id)).filter(Boolean);
 
@@ -126,27 +123,40 @@ function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
     }
 
     // Streak calculation
-    for (const week of sortedWeeks) {
+    const userWeeks = sortedWeeks.filter(w => userPicks.some(p => p.weekId === w.id));
+
+    let longestWinStreak = 0;
+    let currentWinStreak = 0;
+    for (const week of userWeeks) {
       if (week.winnerId === user.id) {
-        winsInaRow++;
-        if (currentStreak <= 0) { // end of a losing streak
-          currentStreak = 1;
-        } else {
-          currentStreak++;
-        }
+        currentWinStreak++;
       } else {
-        if (userPicks.some(p => p.weekId === week.id)) { // if user made a pick this week
-          if (currentStreak >= 0) { // end of a winning streak
-            currentStreak = -1;
-          } else {
-            currentStreak--;
-          }
-          winsInaRow = 0;
+        if (currentWinStreak > longestWinStreak) {
+          longestWinStreak = currentWinStreak;
         }
+        currentWinStreak = 0;
       }
-      if (winsInaRow > longestStreak) {
-        longestStreak = winsInaRow;
+    }
+    if (currentWinStreak > longestWinStreak) {
+      longestWinStreak = currentWinStreak;
+    }
+
+    // Current streak calculation (from most recent week backwards)
+    let currentStreak = 0;
+    const reversedUserWeeks = [...userWeeks].reverse();
+    const lastWeekResult = reversedUserWeeks.length > 0 && reversedUserWeeks[0].winnerId === user.id;
+
+    for (const week of reversedUserWeeks) {
+      const wonWeek = week.winnerId === user.id;
+      if (wonWeek === lastWeekResult) {
+        currentStreak++;
+      } else {
+        break; // Streak is broken
       }
+    }
+
+    if (!lastWeekResult && currentStreak > 0) {
+      currentStreak = -currentStreak;
     }
 
     const avgReturn = picksByWeek.length > 0 ? picksByWeek.reduce((acc, p) => acc + (p.returnPercentage || 0), 0) / picksByWeek.length : 0;
@@ -155,7 +165,7 @@ function calculateStats(usersArr: any[], weeks: any[], picks: any[]) {
       wins: userWins,
       bestPick,
       worstPick,
-      longestStreak: longestStreak,
+      longestStreak: longestWinStreak,
       avgReturn,
       totalPicks: userPicks.length,
       currentStreak,
