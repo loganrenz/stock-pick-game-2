@@ -205,7 +205,7 @@ function isCacheValid(lastUpdated: string): boolean {
 async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> {
   try {
     console.log(`[STOCK-DATA] Fetching fresh data for ${symbol} from API...`);
-    const response = await makeRequestWithFallback(`/api/stock/${symbol}`);
+    const response = await makeRequestWithFallback(`/api/price/${symbol}`);
     console.log(`[STOCK-DATA] Raw response for ${symbol}:`, JSON.stringify(response.data, null, 2));
 
     if (!response.data || typeof response.data !== 'object') {
