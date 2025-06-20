@@ -4,6 +4,8 @@ import { weeks, picks } from '../../api-helpers/lib/schema.js';
 import { eq, lte, gte, asc, desc, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js';
+import { getStats } from '../../api-helpers/stats.js';
+import { getScoreboard } from '../../api-helpers/scoreboard.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -22,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const path = req.url?.split('/').pop() || '';
+  const path = (req.query.path as string) || req.url?.split('/').pop() || '';
   console.log('[WEEKS] Processing path:', path);
 
   switch (path) {
@@ -150,6 +152,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (error) {
         console.error('[WEEKS] List weeks error:', error);
         return res.status(500).json({ error: 'Internal server error' });
+      }
+
+    case 'stats':
+      if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      try {
+        const stats = await getStats();
+        return res.status(200).json(stats);
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch stats' });
+      }
+
+    case 'scoreboard':
+      if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+      try {
+        const scoreboard = await getScoreboard();
+        return res.status(200).json(scoreboard);
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to fetch scoreboard' });
       }
 
     default:

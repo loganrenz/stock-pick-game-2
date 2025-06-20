@@ -1,12 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { db } from '../api-helpers/lib/db.js';
-import { users, weeks, picks } from '../api-helpers/lib/schema.js';
+import { updatePrices } from '../../api-helpers/update-prices.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
@@ -18,17 +17,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const allUsers = await db.query.users.findMany();
-    const allWeeks = await db.query.weeks.findMany();
-    const allPicks = await db.query.picks.findMany();
-    return res.status(200).json({ users: allUsers, weeks: allWeeks, picks: allPicks });
+    const results = await updatePrices();
+    return res.status(200).json(results);
   } catch (error) {
-    console.error('Stats error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('[CRON-UPDATE-PRICES] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return res.status(500).json({ error: 'Internal server error', details: errorMessage });
   }
 }
