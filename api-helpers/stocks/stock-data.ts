@@ -8,7 +8,7 @@ const STOCK_DATA_SERVER_URLS: string[] = [
   process.env.STOCK_DATA_SERVER_URL || 'https://stockpickgame-api.tideye.com',
 ];
 if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development') {
-  STOCK_DATA_SERVER_URLS.unshift('http://localhost:7788');
+  ///STOCK_DATA_SERVER_URLS.unshift('http://localhost:7788');
 }
 
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
