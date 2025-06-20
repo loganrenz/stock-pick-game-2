@@ -56,9 +56,9 @@
           </template>
         </Modal>
 
-        <!-- Scoreboard -->
+        <!-- Scoreboard
         <Scoreboard v-if="scoreboard" :scoreboard="scoreboard" :loading="gameStore.loading" />
-
+        -->
         <!-- History Section -->
         <HistorySection :completed-weeks="completedWeeks" :loading="gameStore.loading" />
       </div>

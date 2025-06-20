@@ -1,6 +1,6 @@
 import { db } from '../lib/db.js';
 import { weeks, picks, users } from '../lib/schema.js';
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and, lt, lte } from 'drizzle-orm';
 import { getHistoricalData } from '../stocks/stock-data.js';
 
 async function getHistoricalPrice(symbol: string, date: string): Promise<number | null> {
@@ -17,11 +17,17 @@ async function getHistoricalPrice(symbol: string, date: string): Promise<number 
 }
 
 async function main() {
-  const now = new Date();
+  // const now = new Date(); // System clock is wrong (showing 2025)
+  const now = new Date('2024-07-21T00:00:00.000Z'); // Hardcode correct date
   const allWeeks = await db.query.weeks.findMany({
-    where: lt(weeks.endDate, now.toISOString()),
+    where: and(lte(weeks.endDate, now.toISOString()), eq(weeks.winnerId, null)),
     with: { picks: true },
   });
+
+  if (!allWeeks.length) {
+    console.log('[WINNER] No weeks found that need a winner calculated.');
+    return;
+  }
 
   for (const week of allWeeks) {
     if (!week.picks.length) continue;

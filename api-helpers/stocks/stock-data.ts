@@ -398,7 +398,11 @@ export async function getHistoricalData(
   endDate: string,
 ): Promise<DailyPriceData | null> {
   try {
-    const path = `/api/historical/${symbol}?start=${startDate}&end=${endDate}`;
+    // Convert ISO timestamps to YYYY-MM-DD format
+    const startDateFormatted = new Date(startDate).toISOString().split('T')[0];
+    const endDateFormatted = new Date(endDate).toISOString().split('T')[0];
+
+    const path = `/api/historical/${symbol}?start=${startDateFormatted}&end=${endDateFormatted}`;
     const historicalResp = await makeRequestWithFallback(path);
     const historicalData = historicalResp.data;
 
