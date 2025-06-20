@@ -24,22 +24,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    console.log('[SCOREBOARD] Fetching scoreboard data');
-
-    // Get all weeks that have a winner
     const weeksWithWinners = await db.query.weeks.findMany({
       where: isNotNull(weeks.winnerId),
       with: {
         winner: true,
       },
     });
-    console.log('[SCOREBOARD] Weeks with winners:', weeksWithWinners);
 
-    // Get all users
     const allUsers = await db.query.users.findMany();
-    console.log('[SCOREBOARD] All users:', allUsers);
 
-    // Calculate wins for each user
     const scoreboard = allUsers.map((user) => {
       const wins = weeksWithWinners.filter((week) => week.winnerId === user.id).length;
       return {
@@ -48,14 +41,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    // Sort by wins (descending)
     scoreboard.sort((a, b) => b.wins - a.wins);
 
-    console.log('[SCOREBOARD] Final scoreboard data:', scoreboard);
     return res.status(200).json(scoreboard);
   } catch (error) {
-    console.error('[SCOREBOARD] Error:', error);
-    // Return empty array instead of error object to prevent type issues
     return res.status(200).json([]);
   }
 }

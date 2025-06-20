@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization',
   );
 
   // Handle preflight request
@@ -30,37 +30,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         with: {
           picks: {
             with: {
-              user: true
-            }
+              user: true,
+            },
           },
-          winner: true
+          winner: true,
         },
-        orderBy: [desc(weeks.startDate)]
+        orderBy: [desc(weeks.startDate)],
       });
 
       // Format weeks data
-      const formattedWeeks = allWeeks.map(week => ({
+      const formattedWeeks = allWeeks.map((week) => ({
         id: week.id,
         weekNum: week.weekNum,
         startDate: week.startDate,
         endDate: week.endDate,
-        winner: week.winner ? {
-          id: week.winner.id,
-          username: week.winner.username
-        } : null,
+        winner: week.winner
+          ? {
+              id: week.winner.id,
+              username: week.winner.username,
+            }
+          : null,
         totalPicks: week.picks.length,
-        picks: week.picks.map(pick => ({
+        picks: week.picks.map((pick) => ({
           id: pick.id,
           symbol: pick.symbol,
           entryPrice: pick.entryPrice,
           currentValue: pick.currentValue,
           weekReturn: pick.weekReturn,
           returnPercentage: pick.returnPercentage,
+          lastClosePrice: pick.lastClosePrice,
+          lastClosePriceUpdatedAt: pick.lastClosePriceUpdatedAt,
           user: {
             id: pick.user.id,
-            username: pick.user.username
-          }
-        }))
+            username: pick.user.username,
+          },
+        })),
       }));
 
       res.json(formattedWeeks);
@@ -69,4 +73,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(500).json({ error: 'Failed to fetch weeks' });
     }
   });
-} 
+}

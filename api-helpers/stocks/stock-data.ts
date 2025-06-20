@@ -2,10 +2,43 @@ import axios from 'axios';
 import { db } from '../lib/db.js';
 import { stockPrices } from '../lib/schema.js';
 import { eq } from 'drizzle-orm';
+import { isPriceChangeRealistic } from '../lib/price-utils.js';
 
-const STOCK_DATA_SERVER_URL = 'http://localhost:3000';
-//process.env.STOCK_DATA_SERVER_URL || 'https://stock-data-server.fly.dev';
+const STOCK_DATA_SERVER_URLS: string[] = [
+  process.env.STOCK_DATA_SERVER_URL || 'https://stockpickgame-api.tideye.com',
+];
+if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development') {
+  STOCK_DATA_SERVER_URLS.unshift('http://localhost:7788');
+}
+
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+/**
+ * Helper function to make requests with fallback URLs
+ */
+async function makeRequestWithFallback(
+  path: string,
+  config: import('axios').AxiosRequestConfig = {},
+) {
+  let lastError: any;
+  for (const baseUrl of STOCK_DATA_SERVER_URLS) {
+    const url = `${baseUrl}${path}`;
+    try {
+      const response = await axios({ ...config, url });
+      console.log(`[STOCK-DATA] Request to ${url} successful.`);
+      return response;
+    } catch (error) {
+      const e = error as any;
+      console.warn(`[STOCK-DATA] Request to ${url} failed: ${e.message}`);
+      lastError = error;
+    }
+  }
+  console.error(`[STOCK-DATA] All request attempts failed for path ${path}.`);
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error(`All request attempts failed for path ${path}`);
+}
 
 interface StockData {
   symbol: string;
@@ -46,30 +79,38 @@ interface AdditionalData {
 /**
  * Get stock data from cache or fetch from API
  */
-export async function getStockData(
-  symbol: string,
-  forceRefresh = false,
-): Promise<StockData | null> {
+export async function getStockData(symbol: string): Promise<StockData | null> {
+  const upperSymbol = symbol.toUpperCase();
   try {
-    // Check cache first (unless force refresh)
-    if (!forceRefresh) {
-      const cached = await getCachedStockData(symbol);
-      if (cached && isCacheValid(cached.lastUpdated)) {
-        return cached;
-      }
+    const cached = await getCachedStockData(upperSymbol);
+    if (cached?.lastUpdated && isCacheValid(cached.lastUpdated)) {
+      console.log(`[STOCK-DATA] Using valid cache for ${upperSymbol}`);
+      return cached;
+    }
+
+    if (cached) {
+      console.log(`[STOCK-DATA] Cache for ${upperSymbol} is stale, fetching fresh data.`);
+    } else {
+      console.log(`[STOCK-DATA] No cache for ${upperSymbol}, fetching fresh data.`);
     }
 
     // Fetch fresh data from API
-    const freshData = await fetchStockDataFromAPI(symbol);
+    const freshData = await fetchStockDataFromAPI(upperSymbol);
     if (freshData) {
       // Update cache
-      await updateStockDataCache(symbol, freshData);
+      await updateStockDataCache(upperSymbol, freshData);
       return freshData;
+    }
+
+    // If fetching fails, return stale data if it exists, otherwise null
+    if (cached) {
+      console.warn(`[STOCK-DATA] Fetch failed for ${upperSymbol}, returning stale data.`);
+      return cached;
     }
 
     return null;
   } catch (error) {
-    console.error(`[STOCK-DATA] Error getting stock data for ${symbol}:`, error);
+    console.error(`[STOCK-DATA] Error getting stock data for ${upperSymbol}:`, error);
     return null;
   }
 }
@@ -93,7 +134,7 @@ export async function getMultipleStockData(
 
   // Determine which symbols need fresh data
   for (const { symbol, cached } of cacheResults) {
-    if (cached && isCacheValid(cached.lastUpdated)) {
+    if (cached?.lastUpdated && isCacheValid(cached.lastUpdated)) {
       results[symbol] = cached;
     } else {
       symbolsToFetch.push(symbol);
@@ -123,7 +164,7 @@ export async function getMultipleStockData(
 async function getCachedStockData(symbol: string): Promise<StockData | null> {
   try {
     const cached = await db.query.stockPrices.findFirst({
-      where: eq(stockPrices.symbol, symbol.toUpperCase()),
+      where: eq(stockPrices.symbol, symbol),
     });
 
     if (!cached) return null;
@@ -163,19 +204,12 @@ function isCacheValid(lastUpdated: string): boolean {
  */
 async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> {
   try {
-    console.log(`[STOCK-DATA] Fetching fresh data for ${symbol}`);
+    console.log(`[STOCK-DATA] Fetching fresh data for ${symbol} from API...`);
+    const response = await makeRequestWithFallback(`/api/stock/${symbol}`);
+    console.log(`[STOCK-DATA] Raw response for ${symbol}:`, JSON.stringify(response.data, null, 2));
 
-    // Get current price and quote data
-    const [priceResp, quoteResp] = await Promise.all([
-      axios.get(`${STOCK_DATA_SERVER_URL}/api/price/${symbol}`),
-      axios.get(`${STOCK_DATA_SERVER_URL}/api/quote/${symbol}`),
-    ]);
-
-    const priceData = priceResp.data;
-    const quoteData = quoteResp.data;
-
-    if (!priceData && !quoteData) {
-      console.warn(`[STOCK-DATA] No data received for ${symbol}`);
+    if (!response.data || typeof response.data !== 'object') {
+      console.error(`[STOCK-DATA] Invalid response data for ${symbol}:`, response.data);
       return null;
     }
 
@@ -185,8 +219,8 @@ async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> 
 
     let dailyPriceData: DailyPriceData | null = null;
     try {
-      const historicalResp = await axios.get(
-        `${STOCK_DATA_SERVER_URL}/api/historical/${symbol}?start=${startDate}&end=${endDate}`,
+      const historicalResp = await makeRequestWithFallback(
+        `/api/historical/${symbol}?start=${startDate}&end=${endDate}`,
       );
       const historicalData = historicalResp.data;
 
@@ -210,8 +244,11 @@ async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> 
     // Get additional details from stock summary
     let additionalData: AdditionalData = {};
     try {
-      const summaryResp = await axios.post(`${STOCK_DATA_SERVER_URL}/api/stock-summary`, {
-        symbol: symbol,
+      const summaryResp = await makeRequestWithFallback(`/api/stock-summary`, {
+        method: 'POST',
+        data: {
+          symbol: symbol,
+        },
       });
       additionalData = summaryResp.data || {};
     } catch (summaryError) {
@@ -219,12 +256,12 @@ async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> 
     }
 
     const stockData: StockData = {
-      symbol: symbol.toUpperCase(),
-      currentPrice: priceData?.price || quoteData?.price || quoteData?.close || null,
-      previousClose: quoteData?.previousClose || null,
-      change: quoteData?.change || null,
-      changePercent: quoteData?.changePercent || null,
-      volume: quoteData?.volume || null,
+      symbol: symbol,
+      currentPrice: response.data.price || response.data.close || null,
+      previousClose: response.data.previousClose || null,
+      change: response.data.change || null,
+      changePercent: response.data.changePercent || null,
+      volume: response.data.volume || null,
       marketCap: additionalData?.marketCap || additionalData?.MarketCapitalization || null,
       peRatio: additionalData?.peRatio || additionalData?.PERatio || null,
       eps: additionalData?.eps || additionalData?.EPS || null,
@@ -246,6 +283,34 @@ async function fetchStockDataFromAPI(symbol: string): Promise<StockData | null> 
  */
 async function updateStockDataCache(symbol: string, data: StockData): Promise<void> {
   try {
+    console.log(
+      `[STOCK-DATA] Updating cache for ${symbol} with data:`,
+      JSON.stringify(data, null, 2),
+    );
+    const existing = await db.query.stockPrices.findFirst({
+      where: eq(stockPrices.symbol, symbol),
+    });
+
+    // Sanity check for price change
+    if (!isPriceChangeRealistic(data.changePercent)) {
+      console.warn(`[STOCK-DATA] Unrealistic price change for ${symbol}. Discarding update.`);
+      return; // Skip the update completely
+    }
+
+    let marketCapValue: number | null = null;
+    if (typeof data.marketCap === 'string') {
+      const marketCapStr = data.marketCap as string;
+      const value = parseFloat(marketCapStr.replace(/,/g, ''));
+      const multiplier = marketCapStr.toUpperCase().includes('B')
+        ? 1000000000
+        : marketCapStr.toUpperCase().includes('M')
+          ? 1000000
+          : 1;
+      marketCapValue = isNaN(value) ? null : value * multiplier;
+    } else if (typeof data.marketCap === 'number') {
+      marketCapValue = data.marketCap;
+    }
+
     const updateData = {
       symbol: data.symbol,
       currentPrice: data.currentPrice,
@@ -253,7 +318,7 @@ async function updateStockDataCache(symbol: string, data: StockData): Promise<vo
       change: data.change,
       changePercent: data.changePercent,
       volume: data.volume,
-      marketCap: data.marketCap,
+      marketCap: marketCapValue,
       peRatio: data.peRatio,
       eps: data.eps,
       dividendYield: data.dividendYield,
@@ -262,13 +327,15 @@ async function updateStockDataCache(symbol: string, data: StockData): Promise<vo
       lastUpdated: new Date().toISOString(),
     };
 
+    console.log(`[STOCK-DATA] Preparing to update cache for ${symbol} with data:`, updateData);
+
     // Use upsert to insert or update
     await db.insert(stockPrices).values(updateData).onConflictDoUpdate({
       target: stockPrices.symbol,
       set: updateData,
     });
 
-    console.log(`[STOCK-DATA] Updated cache for ${symbol}`);
+    console.log(`[STOCK-DATA] Successfully updated cache for ${symbol}`);
   } catch (error) {
     console.error(`[STOCK-DATA] Error updating cache for ${symbol}:`, error);
   }
@@ -287,7 +354,7 @@ export async function searchStocks(query: string): Promise<
   }>
 > {
   try {
-    const response = await axios.get(`${STOCK_DATA_SERVER_URL}/api/search/${query}`);
+    const response = await makeRequestWithFallback(`/api/search/${query}`);
 
     if (response.data && Array.isArray(response.data)) {
       return response.data.map((match: any) => ({
@@ -320,4 +387,35 @@ export async function getCurrentPrice(symbol: string): Promise<number | null> {
 export async function getDailyPriceData(symbol: string): Promise<DailyPriceData | null> {
   const stockData = await getStockData(symbol);
   return stockData?.dailyPriceData || null;
+}
+
+/**
+ * Get historical data for a specific date range
+ */
+export async function getHistoricalData(
+  symbol: string,
+  startDate: string,
+  endDate: string,
+): Promise<DailyPriceData | null> {
+  try {
+    const path = `/api/historical/${symbol}?start=${startDate}&end=${endDate}`;
+    const historicalResp = await makeRequestWithFallback(path);
+    const historicalData = historicalResp.data;
+
+    if (historicalData && Array.isArray(historicalData) && historicalData.length > 0) {
+      const dailyPriceData: DailyPriceData = {};
+      for (const day of historicalData) {
+        const date = new Date(day.date).toISOString().split('T')[0];
+        dailyPriceData[date] = {
+          open: parseFloat(day.open),
+          close: parseFloat(day.close),
+        };
+      }
+      return dailyPriceData;
+    }
+    return null;
+  } catch (error) {
+    console.error(`[STOCK-DATA] Failed to fetch historical data for ${symbol}:`, error);
+    return null;
+  }
 }

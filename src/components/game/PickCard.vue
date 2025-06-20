@@ -25,17 +25,48 @@
             </div>
             <div v-else class="space-y-2 bg-slate-50 p-3 rounded-lg">
                 <p class="flex justify-between items-center">
-                    <span class="text-slate-600">Start Price:</span>
+                    <span class="text-slate-600">Entry Price:</span>
                     <span class="font-bold">${{ formatPrice(localPick.entryPrice) }}</span>
                 </p>
                 <p class="flex justify-between items-center">
-                    <span class="text-slate-600">Last Close:</span>
+                    <span class="text-slate-600">Final Price:</span>
                     <span class="font-bold">${{ formatPrice(localPick.currentValue) }}</span>
                 </p>
                 <p class="flex justify-between items-center">
-                    <span class="text-slate-600">Return:</span>
-                    <span :class="returnClasses" class="font-bold px-3 py-1 rounded-full text-sm">
+                    <span class="text-slate-600">Return ($):</span>
+                    <span class="font-bold" :class="returnClasses(true)">
+                        {{ formatDollarReturn(localPick.entryPrice, localPick.currentValue) }}
+                    </span>
+                </p>
+                <p class="flex justify-between items-center">
+                    <span class="text-slate-600">Return (%):</span>
+                    <span :class="returnClasses()" class="font-bold px-3 py-1 rounded-full text-sm">
                         {{ formatReturn(localPick.returnPercentage) }}
+                    </span>
+                </p>
+            </div>
+
+            <!-- Total Return Section -->
+            <div v-if="localPick.lastClosePrice" class="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                <p class="flex justify-between items-center">
+                    <span class="text-slate-600 font-semibold">Total Return</span>
+                    <span class="text-slate-500 text-xs">(if held until now)</span>
+                </p>
+                <p class="flex justify-between items-center">
+                    <span class="text-slate-600">Last Close:</span>
+                    <span class="font-bold">${{ formatPrice(localPick.lastClosePrice) }}</span>
+                </p>
+                <p class="flex justify-between items-center">
+                    <span class="text-slate-600">Return ($):</span>
+                    <span class="font-bold" :class="returnClasses(true, totalReturnPercentage)">
+                        {{ formatDollarReturn(localPick.entryPrice, localPick.lastClosePrice) }}
+                    </span>
+                </p>
+                <p class="flex justify-between items-center">
+                    <span class="text-slate-600">Return (%):</span>
+                    <span :class="returnClasses(false, totalReturnPercentage)"
+                        class="font-bold px-3 py-1 rounded-full text-sm">
+                        {{ formatReturn(totalReturnPercentage) }}
                     </span>
                 </p>
             </div>
@@ -62,22 +93,15 @@ const props = withDefaults(defineProps<Props>(), {
 const localPick = ref<Pick>(props.pick);
 const loading = ref(false);
 
-const fetchPriceData = async () => {
-    if (localPick.value.entryPrice === null || localPick.value.currentValue === null) {
-        loading.value = true;
-        try {
-            const { data } = await axios.post('/api/picks/update-prices', { pickId: localPick.value.id });
-            localPick.value = { ...localPick.value, ...data };
-        } catch (error) {
-            console.error('Failed to fetch price data:', error);
-        } finally {
-            loading.value = false;
-        }
-    }
-};
-
 onMounted(() => {
-    fetchPriceData();
+    // Data is now pre-fetched by a cron job
+});
+
+const totalReturnPercentage = computed(() => {
+    if (localPick.value.entryPrice == null || localPick.value.lastClosePrice == null) {
+        return null;
+    }
+    return ((localPick.value.lastClosePrice - localPick.value.entryPrice) / localPick.value.entryPrice) * 100;
 });
 
 const cardClasses = computed(() => {
@@ -86,12 +110,18 @@ const cardClasses = computed(() => {
     return baseClasses;
 });
 
-const returnClasses = computed(() => {
-    const percentage = localPick.value.returnPercentage;
-    if (percentage > 0) return 'bg-green-100 text-green-700 shadow-sm';
-    if (percentage < 0) return 'bg-red-100 text-red-700 shadow-sm';
-    return 'bg-slate-200 text-slate-700 shadow-sm';
-});
+const returnClasses = (isText: boolean = false, percentage: number | null | undefined = localPick.value.returnPercentage) => {
+    if (percentage == null) {
+        return isText ? 'text-slate-700' : 'bg-slate-200 text-slate-700 shadow-sm';
+    }
+    if (percentage > 0) {
+        return isText ? 'text-green-700' : 'bg-green-100 text-green-700 shadow-sm';
+    }
+    if (percentage < 0) {
+        return isText ? 'text-red-700' : 'bg-red-100 text-red-700 shadow-sm';
+    }
+    return isText ? 'text-slate-700' : 'bg-slate-200 text-slate-700 shadow-sm';
+};
 
 const formatPrice = (price: number | null | undefined): string => {
     if (price == null) return 'N/A';
@@ -101,5 +131,12 @@ const formatPrice = (price: number | null | undefined): string => {
 const formatReturn = (percentage: number | null | undefined): string => {
     if (percentage == null) return 'N/A';
     return `${percentage.toFixed(2)}%`;
+};
+
+const formatDollarReturn = (entry?: number | null, current?: number | null): string => {
+    if (entry == null || current == null) return 'N/A';
+    const ret = current - entry;
+    const sign = ret > 0 ? '+' : ret < 0 ? '-' : '';
+    return `${sign}$${Math.abs(ret).toFixed(2)}`;
 };
 </script>

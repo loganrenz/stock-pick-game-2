@@ -37,9 +37,14 @@
                                     </th>
                                     <th scope="col" class="px-3 py-2 text-left font-medium text-slate-500">Player</th>
                                     <th scope="col" class="px-3 py-2 text-left font-medium text-slate-500">Pick</th>
-                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">Current
-                                        Price</th>
-                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">Return</th>
+                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">Entry Price
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">{{ isCurrent
+                                        ? 'Current Price' : 'Final Price' }}</th>
+                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">Return ($)
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-right font-medium text-slate-500">Return (%)
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -61,13 +66,18 @@
                                         {{ pick.symbol }}
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-slate-700">
-                                        ${{ pick.currentPrice?.toFixed(2) || 'N/A' }}
+                                        ${{ formatPrice(pick.entryPrice) }}
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-slate-700">
+                                        ${{ formatPrice(pick.currentValue) }}
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono"
+                                        :class="returnColor(pick.returnPercentage, 'text')">
+                                        {{ formatDollarReturn(pick.entryPrice, pick.currentValue) }}
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-2 text-right">
                                         <span :class="[
-                                            pick.returnPercentage > 0 ? 'bg-green-100 text-green-700' :
-                                                pick.returnPercentage < 0 ? 'bg-red-100 text-red-700' :
-                                                    'bg-slate-100 text-slate-700',
+                                            returnColor(pick.returnPercentage, 'bg'),
                                             'px-2 py-1 rounded-full text-xs font-semibold'
                                         ]">
                                             {{ formatReturn(pick.returnPercentage) }}
@@ -125,4 +135,29 @@ const formatReturn = (percentage: number | null | undefined): string => {
     if (percentage == null) return 'N/A';
     return `${percentage.toFixed(2)}%`;
 };
+
+const formatPrice = (price: number | null | undefined): string => {
+    if (price == null) return 'N/A';
+    return price.toFixed(2);
+}
+
+const formatDollarReturn = (entry?: number | null, current?: number | null): string => {
+    if (entry == null || current == null) return 'N/A';
+    const ret = current - entry;
+    const sign = ret > 0 ? '+' : ret < 0 ? '-' : '';
+    return `${sign}$${Math.abs(ret).toFixed(2)}`;
+}
+
+const returnColor = (percentage: number | null | undefined, type: 'bg' | 'text'): string => {
+    if (percentage == null) {
+        return type === 'bg' ? 'bg-slate-100 text-slate-700' : 'text-slate-700';
+    }
+    if (percentage > 0) {
+        return type === 'bg' ? 'bg-green-100 text-green-700' : 'text-green-700';
+    }
+    if (percentage < 0) {
+        return type === 'bg' ? 'bg-red-100 text-red-700' : 'text-red-700';
+    }
+    return type === 'bg' ? 'bg-slate-100 text-slate-700' : 'text-slate-700';
+}
 </script>

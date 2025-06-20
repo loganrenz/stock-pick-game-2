@@ -7,13 +7,7 @@ if (!config.database.url) {
   throw new Error('Database URL is required');
 }
 
-// For SQLite local database, we don't need a token
 const isLocalDatabase = config.database.url.startsWith('file:');
-console.log('[DB] Database URL:', config.database.url);
-console.log('[DB] Is local database:', isLocalDatabase);
-if (!isLocalDatabase) {
-  console.log('[DB] Auth token:', config.database.token);
-}
 
 const client = createClient({
   url: config.database.url,

@@ -61,6 +61,8 @@ export const picks = sqliteTable('Pick', (table) => ({
   currentValue: real('currentValue'),
   weekReturn: real('weekReturn'),
   returnPercentage: real('returnPercentage'),
+  lastClosePrice: real('lastClosePrice'),
+  lastClosePriceUpdatedAt: text('lastClosePriceUpdatedAt'),
 }));
 
 // Define unique constraints

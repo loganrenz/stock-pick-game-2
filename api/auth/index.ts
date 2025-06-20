@@ -8,7 +8,7 @@ import { config } from '../../api-helpers/lib/config.js';
 import cookie from 'cookie';
 
 const JWT_SECRET = config.jwt.secret as jwt.Secret;
-const JWT_EXPIRY = '15m'; // Access token expires in 15 minutes
+const JWT_EXPIRY = '180d'; // Access token expires in 15 minutes
 const REFRESH_TOKEN_SECRET = config.jwt.secret + '_refresh';
 const REFRESH_TOKEN_EXPIRY = '7d'; // Refresh token expires in 7 days
 

@@ -45,28 +45,9 @@ export const useGameStore = defineStore('game', {
       }
     },
     async fetchCurrentWeek() {
-      this.loading = true;
-      try {
-        const response = await axios.get('/api/weeks/current');
-        const week = response.data;
-
-        // Transform picks to include user data and format daily prices
-        const formattedPicks = week.picks.map((pick: any) => ({
-          ...pick,
-          user: pick.user || { id: pick.userId, username: 'Unknown' },
-          dailyPriceData: null, // We'll get this from the stock data API if needed
-        }));
-
-        this.currentWeek = {
-          ...week,
-          picks: formattedPicks,
-        };
-      } catch (error) {
-        console.error('Error fetching current week:', error);
-        this.error = error instanceof Error ? error.message : 'Failed to fetch current week';
-      } finally {
-        this.loading = false;
-      }
+      // This function is deprecated and will be removed.
+      // For now, it just calls fetchAll to ensure correct data is loaded.
+      await this.fetchAll();
     },
     async fetchAll() {
       this.loading = true;
@@ -91,20 +72,14 @@ export const useGameStore = defineStore('game', {
           ...week,
           picks: week.picks.map((pick: any) => ({
             ...pick,
-            entryPrice: pick.entryPrice ?? pick.priceAtPick,
-            currentValue: pick.currentValue ?? pick.currentPrice,
-            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
-            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+            // Simplify mapping, trust the API to send correct fields
           })),
         }));
         this.currentWeek = {
           ...currentWeekRes.data,
           picks: currentWeekRes.data.picks.map((pick: any) => ({
             ...pick,
-            entryPrice: pick.entryPrice ?? pick.priceAtPick,
-            currentValue: pick.currentValue ?? pick.currentPrice,
-            returnPercentage: pick.returnPercentage ?? pick.weekReturnPct,
-            dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
+            // Simplify mapping, trust the API to send correct fields
           })),
         };
         this.scoreboard = scoreboardData;

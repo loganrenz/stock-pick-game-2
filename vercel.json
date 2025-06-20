@@ -56,8 +56,8 @@
   },
   "crons": [
     {
-      "path": "/api/cron?job=update-stock-prices",
-      "schedule": "*/15 * * * *"
+      "path": "/api/crons/update-last-close",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

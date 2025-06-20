@@ -94,55 +94,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Update picks if needed (entryPrice or returnPercentage missing, or updatedAt > 20 min ago)
         console.log('[WEEKS] Updating picks prices');
-        for (const pick of currentWeek.picks) {
-          const lastUpdate = pick.updatedAt ? new Date(pick.updatedAt) : null;
-          const nowTime = Date.now();
-          const needsUpdate =
-            !pick.entryPrice ||
-            pick.entryPrice === 0 ||
-            pick.returnPercentage == null ||
-            !lastUpdate ||
-            (pick.returnPercentage != null && nowTime - lastUpdate.getTime() > 20 * 60 * 1000);
-          if (needsUpdate) {
-            let dailyPriceData = null;
-            let currentPrice = null;
-            try {
-              const result = await getStockData(pick.symbol);
-              if (result) {
-                dailyPriceData = result.dailyPriceData;
-                currentPrice = result.currentPrice;
-              }
-            } catch (error) {
-              console.error('[WEEKS] Error fetching price data:', error);
-              continue;
-            }
-
-            // Calculate entry price and current value
+        const picksWithLivePrices = await Promise.all(
+          currentWeek.picks.map(async (pick) => {
             let entryPrice = pick.entryPrice;
-            let currentValue = currentPrice;
-            let returnPercentage = null;
+            const stockData = await getStockData(pick.symbol);
 
-            if (dailyPriceData) {
-              // Find Monday open (first available day) for entry price
-              const dpd = dailyPriceData as Record<string, { open: number; close: number }>;
-              const days = Object.keys(dpd);
+            // If entry price is not set, get it from the first day of historical data.
+            if ((!entryPrice || entryPrice === 0) && stockData?.dailyPriceData) {
+              const days = Object.keys(stockData.dailyPriceData);
               if (days.length > 0) {
-                entryPrice = dpd[days[0]].open;
-                // Use the latest available close price for current value
-                currentValue = dpd[days[days.length - 1]].close;
+                entryPrice =
+                  stockData.dailyPriceData[Object.keys(stockData.dailyPriceData)[0]].open;
               }
             }
 
-            // Calculate return percentage if we have both prices
+            // For the current week, the value is always the live price.
+            const currentValue = stockData?.currentPrice;
+
+            let returnPercentage = null;
             if (entryPrice && currentValue) {
               returnPercentage = ((currentValue - entryPrice) / entryPrice) * 100;
-              console.log(
-                `[WEEKS] Calculated return for ${pick.symbol}: ${returnPercentage.toFixed(2)}% (entry: ${entryPrice}, current: ${currentValue})`,
-              );
             }
 
-            // Update pick with new data
-            if (entryPrice && currentValue && returnPercentage !== null) {
+            // Update the pick in the database.
+            if (entryPrice && currentValue) {
               await db
                 .update(picks)
                 .set({
@@ -152,42 +127,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   updatedAt: new Date().toISOString(),
                 })
                 .where(eq(picks.id, pick.id));
-              console.log(
-                `[WEEKS] Updated pick ${pick.id} (${pick.symbol}): entryPrice=${entryPrice}, currentValue=${currentValue}, returnPercentage=${returnPercentage.toFixed(2)}%`,
-              );
-            } else {
-              console.log(
-                `[WEEKS] Skipping update for pick ${pick.id} (${pick.symbol}) - missing required data`,
-              );
             }
-          }
-        }
 
-        // Fetch fresh stock data for current prices
-        const picksWithCurrentPrices = await Promise.all(
-          currentWeek.picks.map(async (pick) => {
-            try {
-              const stockData = await getStockData(pick.symbol);
-              return {
-                ...pick,
-                currentPrice: stockData?.currentPrice || null,
-              };
-            } catch (error) {
-              console.error(`[WEEKS] Error fetching current price for ${pick.symbol}:`, error);
-              return {
-                ...pick,
-                currentPrice: null,
-              };
-            }
+            // Return the pick with the most up-to-date data for the response.
+            return {
+              ...pick,
+              entryPrice,
+              currentValue,
+              returnPercentage,
+            };
           }),
         );
 
-        // Fetch all users for mapping
         const allUsers = await db.query.users.findMany();
-        // Attach user object to each pick
         const weekWithUserPicks = {
           ...currentWeek,
-          picks: picksWithCurrentPrices.map((pick) => ({
+          picks: picksWithLivePrices.map((pick) => ({
             ...pick,
             user: allUsers.find((u) => u.id === pick.userId) || {
               id: pick.userId,
@@ -195,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
           })),
         };
-        console.log('[WEEKS] Found current week:', weekWithUserPicks);
+
         return res.status(200).json(weekWithUserPicks);
       } catch (error) {
         console.error('[WEEKS] Current week error:', error);

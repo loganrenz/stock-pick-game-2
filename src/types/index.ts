@@ -20,6 +20,8 @@ export interface Pick {
   weekReturn?: number;
   returnPercentage?: number;
   user?: User;
+  lastClosePrice?: number | null;
+  lastClosePriceUpdatedAt?: string | null;
 }
 
 export interface Week {
@@ -30,4 +32,9 @@ export interface Week {
   winnerId: number | null;
   picks: Pick[];
   winner?: User | null;
+}
+
+export interface Stock {
+  symbol: string;
+  // ... existing code ...
 }

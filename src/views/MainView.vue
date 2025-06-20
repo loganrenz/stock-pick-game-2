@@ -24,7 +24,7 @@
         <WinnerBanner v-if="currentWeek?.winner" :winner="currentWeek.winner" :is-weekend="isWeekend" />
 
         <!-- Current Week Section -->
-        <div class="mb-12">
+        <div v-if="currentWeek" class="mb-12">
           <CurrentWeekSection :current-week="currentWeek" :is-authenticated="isAuthenticated"
             :pick-loading="pickLoading" :pick-error="pickError" :username="user?.username" :loading="gameStore.loading"
             @submit-pick="handleSubmitPick" @open-login="openLoginModal" />
@@ -217,9 +217,9 @@ const openLoginModal = () => {
   emit('update:show-login-modal', true);
 };
 
-// Lifecycle
-onMounted(async () => {
-  await gameStore.fetchAll();
+// Lifecycle Hooks
+onMounted(() => {
+  gameStore.fetchAll();
 });
 
 watch(isAuthenticated, async () => {
