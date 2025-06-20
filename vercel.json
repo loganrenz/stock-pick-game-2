@@ -47,7 +47,8 @@
     { "source": "/api/users", "destination": "/api/users/index.ts" },
     { "source": "/api/weeks", "destination": "/api/weeks/index.ts" },
     { "source": "/api/next-week", "destination": "/api/next-week.ts" },
-    { "source": "/api/stats", "destination": "/api/stats.ts" }
+    { "source": "/api/stats", "destination": "/api/stats.ts" },
+    { "source": "/api/scoreboard", "destination": "/api/scoreboard.ts" }
   ],
   "env": {
     "JWT_SECRET": "d88b53617d7d6285011cef2ea542c53d08c6864a1e92b045d108a4b5db37f600936f8cf756ea2e1404ff9ab215a1c2e5603b47e36ae6ef3d7ba78c6cb36e6525",
