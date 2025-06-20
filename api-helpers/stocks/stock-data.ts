@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 import { isPriceChangeRealistic } from '../lib/price-utils.js';
 
 const STOCK_DATA_SERVER_URLS: string[] = [
-  process.env.STOCK_DATA_SERVER_URL || 'https://stockpickgame-api.tideye.com',
+  process.env.STOCK_DATA_SERVER_URL || 'https://stock-data-server.fly.dev',
 ];
 if (process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'development') {
   ///STOCK_DATA_SERVER_URLS.unshift('http://localhost:7788');
