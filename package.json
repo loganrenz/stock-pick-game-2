@@ -22,6 +22,7 @@
     "cron:run": "tsx scripts/run-cron-manually.ts",
     "db:generate": "tsx api-helpers/lib/generate-migration.ts",
     "db:migrate": "tsx api-helpers/lib/migrate.ts",
+    "db:migrate:prod": "./scripts/migrate-prod.sh",
     "db:reset": "tsx api-helpers/lib/reset-db.ts",
     "db:seed": "tsx api-helpers/lib/seed.ts",
     "db:seed-new": "tsx api-helpers/lib/seed-new.ts",
