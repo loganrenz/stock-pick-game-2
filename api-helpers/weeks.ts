@@ -1,6 +1,6 @@
 import { db } from './lib/db.js';
 import { weeks, picks } from './lib/schema.js';
-import { desc, sql, and, gte, lte } from 'drizzle-orm';
+import { desc, sql, and, gte, lte, eq } from 'drizzle-orm';
 import { getStockData } from './stocks/stock-data.js';
 import { isPriceChangeRealistic } from './lib/price-utils.js';
 
