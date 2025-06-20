@@ -71,6 +71,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useGameStore } from '../stores/game';
 import { useAuth } from '../composables/useAuth';
 import { useGame } from '../composables/useGame';
+import { usePriceUpdates } from '../composables/usePriceUpdates';
 import type { Week, Pick } from '../types';
 
 // Components
@@ -101,6 +102,7 @@ const emit = defineEmits<{
 const gameStore = useGameStore();
 const { isAuthenticated, user, login } = useAuth();
 const { isWeekend, formatDate, canPickCurrentWeek } = useGame();
+const { startAutoUpdate } = usePriceUpdates();
 
 // State
 const showNextWeekModal = ref(false);
@@ -220,11 +222,21 @@ const openLoginModal = () => {
 // Lifecycle Hooks
 onMounted(() => {
   gameStore.fetchAll();
+  // Start automatic price updates
+  startAutoUpdate();
 });
 
 watch(isAuthenticated, async () => {
   await gameStore.fetchAll();
 });
+
+// Watch for current week data and trigger price updates
+watch(() => gameStore.currentWeek, (newWeek) => {
+  if (newWeek && newWeek.picks && newWeek.picks.length > 0) {
+    // Trigger price update when current week data is loaded
+    startAutoUpdate();
+  }
+}, { immediate: true });
 </script>
 
 <style>
