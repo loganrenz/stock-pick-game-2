@@ -109,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log(`[UPDATE-PRICES] Successfully updated ${symbol}`);
 
         // Small delay between symbols to be respectful to the API
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 20000));
       } catch (error) {
         const errorMsg = `Failed to update ${symbol}: ${error}`;
         console.error(`[UPDATE-PRICES] ${errorMsg}`);

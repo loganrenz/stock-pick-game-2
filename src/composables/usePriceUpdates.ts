@@ -16,6 +16,12 @@ export function usePriceUpdates() {
       return;
     }
 
+    // Check if fetch is available
+    if (typeof fetch === 'undefined') {
+      console.warn('[PRICE-UPDATE] Fetch API not available, skipping update');
+      return;
+    }
+
     isUpdating.value = true;
 
     try {
@@ -34,9 +40,17 @@ export function usePriceUpdates() {
       console.log('[PRICE-UPDATE] Response ok:', response.ok);
 
       if (response.ok) {
-        const result = await response.json();
-        console.log(`[PRICE-UPDATE] Completed: ${result.updated} updated, ${result.failed} failed`);
-        lastUpdateTime.value = new Date();
+        try {
+          const responseText = await response.text();
+          const result = JSON.parse(responseText);
+          console.log(
+            `[PRICE-UPDATE] Completed: ${result.updated} updated, ${result.failed} failed`,
+          );
+          lastUpdateTime.value = new Date();
+        } catch (jsonError) {
+          console.error('[PRICE-UPDATE] Failed to parse JSON response:', jsonError);
+          console.error('[PRICE-UPDATE] Raw response:', responseText);
+        }
       } else {
         const errorText = await response.text();
         console.error('[PRICE-UPDATE] Failed to update prices:', response.status, errorText);
@@ -48,17 +62,8 @@ export function usePriceUpdates() {
     }
   };
 
-  // Auto-update when the composable is used
-  const startAutoUpdate = () => {
-    // Update immediately if it's been more than 5 minutes
-    if (!lastUpdateTime.value || Date.now() - lastUpdateTime.value.getTime() > 5 * 60 * 1000) {
-      updatePrices();
-    }
-  };
-
   return {
     updatePrices,
-    startAutoUpdate,
     isUpdating,
     lastUpdateTime,
   };

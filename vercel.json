@@ -35,6 +35,7 @@
     { "source": "/api/picks/delete", "destination": "/api/picks/index.ts" },
     { "source": "/api/stocks/search", "destination": "/api/stocks/index.ts" },
     { "source": "/api/stocks/price", "destination": "/api/stocks/index.ts" },
+    { "source": "/api/stocks/refresh-price", "destination": "/api/stocks/refresh-price.ts" },
     { "source": "/api/test/setup", "destination": "/api/test/index.ts" },
     { "source": "/api/test/cleanup", "destination": "/api/test/index.ts" },
     { "source": "/api/picks/:path*", "destination": "/api/picks/index.ts" },

@@ -60,10 +60,13 @@
                                     ]">
                                         {{ pick.user.username.toUpperCase() }}
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-2 font-bold" :class="[
+                                    <td class="whitespace-nowrap px-3 py-2 font-bold flex items-center gap-2" :class="[
                                         index === 0 && !winner ? 'text-blue-600' : 'text-slate-900'
                                     ]">
-                                        {{ pick.symbol }}
+                                        <span>{{ pick.symbol }}</span>
+                                        <RefreshPriceButton v-if="isCurrent" :symbol="pick.symbol"
+                                            @refreshed="(data) => handlePriceRefreshed(pick.id, data)"
+                                            @error="(error) => handleRefreshError(pick.symbol, error)" />
                                     </td>
                                     <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-slate-700">
                                         ${{ formatPrice(pick.entryPrice) }}
@@ -94,9 +97,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { User, Pick } from '../../types';
 import { useGame } from '../../composables/useGame';
+import RefreshPriceButton from '../RefreshPriceButton.vue';
 
 interface Props {
     weekNum: number;
@@ -113,11 +117,31 @@ const props = withDefaults(defineProps<Props>(), {
     isCurrent: false
 });
 
+const localPicks = ref<Pick[]>([...props.picks]);
+
+watch(() => props.picks, (newPicks) => {
+    localPicks.value = [...newPicks];
+}, { deep: true });
+
 const { orderPicksByReturn } = useGame();
 
 const orderedPicks = computed(() => {
-    return orderPicksByReturn(props.picks);
+    return orderPicksByReturn(localPicks.value);
 });
+
+const handlePriceRefreshed = (pickId: number, data: any) => {
+    const pick = localPicks.value.find(p => p.id === pickId);
+    if (pick && data.currentPrice !== undefined) {
+        pick.currentValue = data.currentPrice;
+        if (pick.entryPrice) {
+            pick.returnPercentage = ((data.currentPrice - pick.entryPrice) / pick.entryPrice) * 100;
+        }
+    }
+};
+
+const handleRefreshError = (symbol: string, error: string) => {
+    console.error(`[WEEK-HEADER] Error refreshing ${symbol}:`, error);
+};
 
 const formatDateRange = (start: string, end: string) => {
     const startDate = new Date(start);

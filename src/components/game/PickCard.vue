@@ -16,9 +16,13 @@
         </div>
         <div class="text-sm text-slate-700">
             <p class="mb-3">
+            <div class="flex items-center gap-2">
                 <span class="block text-4xl font-black text-slate-900 tracking-tight">
                     {{ pick.symbol.toUpperCase() }}
                 </span>
+                <RefreshPriceButton :symbol="pick.symbol" @refreshed="handlePriceRefreshed"
+                    @error="handleRefreshError" />
+            </div>
             </p>
             <div v-if="loading" class="space-y-2 bg-slate-50 p-3 rounded-lg">
                 <p class="text-center text-slate-500">Loading prices...</p>
@@ -78,6 +82,7 @@
 import { computed, ref, onMounted } from 'vue';
 import type { Pick } from '../../types';
 import axios from 'axios';
+import RefreshPriceButton from '../RefreshPriceButton.vue';
 
 interface Props {
     pick: Pick;
@@ -138,5 +143,22 @@ const formatDollarReturn = (entry?: number | null, current?: number | null): str
     const ret = current - entry;
     const sign = ret > 0 ? '+' : ret < 0 ? '-' : '';
     return `${sign}$${Math.abs(ret).toFixed(2)}`;
+};
+
+const handlePriceRefreshed = (data: any) => {
+    console.log(`[PICK-CARD] Price refreshed for ${props.pick.symbol}:`, data);
+    // Update the local pick data with the new price
+    if (data.currentPrice !== undefined) {
+        localPick.value.currentValue = data.currentPrice;
+        // Recalculate return percentage
+        if (localPick.value.entryPrice && data.currentPrice) {
+            localPick.value.returnPercentage = ((data.currentPrice - localPick.value.entryPrice) / localPick.value.entryPrice) * 100;
+        }
+    }
+};
+
+const handleRefreshError = (error: string) => {
+    console.error(`[PICK-CARD] Failed to refresh price for ${props.pick.symbol}:`, error);
+    // You could show a toast notification here if you have a notification system
 };
 </script>
