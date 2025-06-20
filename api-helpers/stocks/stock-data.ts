@@ -4,6 +4,7 @@ import { stockPrices } from '../lib/schema.js';
 import { eq } from 'drizzle-orm';
 
 const STOCK_DATA_SERVER_URL = 'http://localhost:3000';
+//process.env.STOCK_DATA_SERVER_URL || 'https://stock-data-server.fly.dev';
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 interface StockData {

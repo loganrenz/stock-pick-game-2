@@ -7,13 +7,6 @@ import { requireAuth, AuthenticatedRequest } from '../../api-helpers/lib/auth.js
 import { getStockData } from '../../api-helpers/stocks/stock-data.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('[WEEKS] Request received:', {
-    method: req.method,
-    url: req.url,
-    path: req.url?.split('/').pop() || '',
-    headers: req.headers,
-  });
-
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -71,12 +64,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
           const nextWeekNum = lastWeek ? Number(lastWeek.weekNum) + 1 : 1;
 
-          console.log(
-            `[WEEKS][DEBUG] Today: ${now.toISOString()} | dayOfWeek: ${dayOfWeek} | daysSinceMonday: ${daysSinceMonday}`,
-          );
-          console.log(
-            `[WEEKS][DEBUG] Calculated Monday: ${monday.toISOString()} | Calculated Friday: ${friday.toISOString()}`,
-          );
           const [newWeek] = await db
             .insert(weeks)
             .values({
@@ -85,7 +72,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               endDate: friday.toISOString(),
             })
             .returning();
-          console.log('[WEEKS][DEBUG] Inserted new week:', newWeek);
           return res.status(200).json(newWeek);
         }
 
@@ -125,8 +111,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               if (result) {
                 dailyPriceData = result.dailyPriceData;
                 currentPrice = result.currentPrice;
-                console.log('[WEEKS] Daily price data:', dailyPriceData);
-                console.log('[WEEKS] Current price:', currentPrice);
               }
             } catch (error) {
               console.error('[WEEKS] Error fetching price data:', error);
@@ -179,12 +163,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         }
 
+        // Fetch fresh stock data for current prices
+        const picksWithCurrentPrices = await Promise.all(
+          currentWeek.picks.map(async (pick) => {
+            try {
+              const stockData = await getStockData(pick.symbol);
+              return {
+                ...pick,
+                currentPrice: stockData?.currentPrice || null,
+              };
+            } catch (error) {
+              console.error(`[WEEKS] Error fetching current price for ${pick.symbol}:`, error);
+              return {
+                ...pick,
+                currentPrice: null,
+              };
+            }
+          }),
+        );
+
         // Fetch all users for mapping
         const allUsers = await db.query.users.findMany();
         // Attach user object to each pick
         const weekWithUserPicks = {
           ...currentWeek,
-          picks: currentWeek.picks.map((pick) => ({
+          picks: picksWithCurrentPrices.map((pick) => ({
             ...pick,
             user: allUsers.find((u) => u.id === pick.userId) || {
               id: pick.userId,
@@ -219,36 +222,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     case '':
     case 'weeks':
       if (req.method !== 'GET') {
-        console.log('[WEEKS] Invalid method for root path:', req.method);
         return res.status(405).json({ error: 'Method not allowed' });
       }
       try {
         console.log('[WEEKS] Fetching all weeks from root path');
-        console.log('[WEEKS] TURSO_DB_URL:', process.env.TURSO_DB_URL);
-        console.log('[WEEKS] TURSO_DB_TOKEN:', process.env.TURSO_DB_TOKEN);
         // Fetch all weeks with picks and winner info
         const allWeeks = await db.query.weeks.findMany({
           orderBy: asc(weeks.weekNum),
           with: {
-            picks: true,
+            picks: {
+              with: {
+                user: true,
+              },
+            },
             winner: true,
           },
         });
-        // Fetch all users for mapping
-        const allUsers = await db.query.users.findMany();
-        // Attach user object to each pick
-        const weeksWithUserPicks = allWeeks.map((week) => ({
-          ...week,
-          picks: week.picks.map((pick) => ({
+
+        const weeksWithResolvedUsers = allWeeks.map((week) => {
+          const picksWithUsers = week.picks.map((pick) => ({
             ...pick,
-            user: allUsers.find((u) => u.id === pick.userId) || {
-              id: pick.userId,
-              username: 'Unknown',
-            },
-          })),
-        }));
-        //console.log('[WEEKS] Found weeks:', weeksWithUserPicks);
-        return res.status(200).json({ weeks: weeksWithUserPicks });
+            user: pick.user || { id: pick.userId, username: 'Unknown' },
+          }));
+          return { ...week, picks: picksWithUsers };
+        });
+
+        return res.status(200).json({ weeks: weeksWithResolvedUsers });
       } catch (error) {
         console.error('[WEEKS] List weeks error:', error);
         return res.status(500).json({ error: 'Internal server error' });

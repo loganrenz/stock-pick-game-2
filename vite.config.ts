@@ -8,11 +8,14 @@ export default defineConfig({
   plugins: [vue(), svgr(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   server: {
-    port: 5173
+    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+    watch: {
+      usePolling: false,
+    },
   },
   build: {
     outDir: 'dist',
@@ -29,12 +32,12 @@ export default defineConfig({
           return `assets/[name]-[hash].${ext}`;
         },
         chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js'
-      }
-    }
+        entryFileNames: 'assets/[name]-[hash].js',
+      },
+    },
   },
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString())
-  }
-}); 
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
+});

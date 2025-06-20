@@ -13,10 +13,10 @@ interface AuthState {
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: '/',  // Use relative URLs
+  baseURL: '/', // Use relative URLs
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
 // Add request interceptor to add token to requests
@@ -28,16 +28,27 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Add response interceptor to handle 401 errors
+// Add response interceptor to handle 401 errors and token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/';
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const authStore = useAuthStore();
+        await authStore.refreshToken();
+        originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh token failed, logout user
+        const authStore = useAuthStore();
+        authStore.logout();
+        return Promise.reject(refreshError);
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export const useAuthStore = defineStore('auth', {
@@ -45,13 +56,13 @@ export const useAuthStore = defineStore('auth', {
     const token = localStorage.getItem('token');
     return {
       token,
-      user: null
+      user: null,
     };
   },
 
   getters: {
     isAuthenticated: (state): boolean => !!state.token,
-    username: (state): string | null => state.user?.username ?? null
+    username: (state): string | null => state.user?.username ?? null,
   },
 
   actions: {
@@ -117,6 +128,19 @@ export const useAuthStore = defineStore('auth', {
           delete api.defaults.headers.common['Authorization'];
         }
       }
-    }
-  }
-}); 
+    },
+
+    async refreshToken(): Promise<void> {
+      try {
+        const response = await api.post('/api/auth/refresh-token');
+        const { token } = response.data;
+        this.token = token;
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        throw error;
+      }
+    },
+  },
+});

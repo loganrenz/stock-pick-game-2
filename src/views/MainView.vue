@@ -1,509 +1,151 @@
 <template>
-  <div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <!-- Scoreboard in upper left corner, hidden on small screens -->
-      <!-- Removed scoreboard-top-left div as requested -->
-
-
-      <!-- Login Modal -->
-      <Modal v-if="props.showLoginModal" @close="closeLoginModal">
-        <template #header>
-          <div class="text-2xl font-bold mb-2 text-center sm:text-left">
-            Login
-          </div>
-        </template>
-        <template #body>
-          <div class="relative">
-            <form @submit.prevent="login" class="space-y-4">
-              <div>
-                <label class="block text-gray-700 mb-2">Username</label>
-                <input v-model="loginForm.username" type="text" class="w-full border rounded px-3 py-3 text-lg"
-                  placeholder="Enter your username" data-testid="login-username" />
-              </div>
-              <div>
-                <label class="block text-gray-700 mb-2">Password</label>
-                <input v-model="loginForm.password" type="password" class="w-full border rounded px-3 py-3 text-lg"
-                  data-testid="login-password" />
-              </div>
-              <button type="submit"
-                class="w-full bg-blue-700 text-white py-3 rounded-lg text-lg font-bold shadow-lg hover:bg-blue-900 transition-colors"
-                data-testid="login-submit">
-                Login
-              </button>
-              <div v-if="loginError" class="text-red-600 mt-2 text-center">
-                {{ loginError }}
-              </div>
-            </form>
-            <div v-if="pickLoading"
-              class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-lg z-10">
-              <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-              </svg>
-            </div>
-          </div>
-        </template>
-      </Modal>
-
-      <div v-else>
-        <!-- Winner Banner (weekend only) -->
-        <div v-if="isWeekend && currentWeek && currentWeek.winner" class="winner-banner mb-6">
-          <div class="bg-green-200 text-green-900 text-3xl font-extrabold py-6 px-8 rounded-xl shadow text-center">
-            🏆 Winner: {{ currentWeek.winner.username }} 🏆
-          </div>
+  <PageContainer>
+    <!-- Login Modal -->
+    <Modal v-if="showLoginModal" @close="closeLoginModal">
+      <template #header>
+        <div class="text-2xl font-bold mb-2 text-center sm:text-left">
+          Login
         </div>
-        <!-- Current Week at the top -->
-        <div class="bg-white shadow-lg rounded-lg mb-10 border-2 border-blue-200" data-testid="current-week-section">
-          <div
-            class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg">
-            <div>
-              <h3 class="text-2xl leading-6 font-bold text-blue-900">
-                Current Week
-              </h3>
-              <p class="mt-1 text-md text-blue-700 font-semibold">
-                {{ formatDate(currentWeek?.startDate) }} - {{ formatDate(currentWeek?.endDate) }}
-              </p>
-              <div class="text-blue-700 font-bold mt-1 text-lg">
-                Week {{ currentWeek?.weekNum }}
-              </div>
-            </div>
-            <div v-if="currentWeek && currentWeek.winner && !isWeekend">
-              <span class="bg-green-100 text-green-800 px-4 py-2 rounded-full font-bold text-lg">
-                Winner: {{ currentWeek.winner.username }}
-              </span>
-            </div>
-          </div>
-          <div class="px-4 py-5 sm:p-6">
-            <!-- Current week pick form (Monday 00:00 to Friday close) -->
-            <div v-if="isAuthenticated && canPickCurrentWeek">
-              <form class="mb-6 flex gap-4 items-end" @submit.prevent="submitPick">
-                <div class="flex-1">
-                  <label class="block text-gray-700 mb-1">Your Pick for Current Week</label>
-                  <input v-model="pickForm.symbol" class="w-full border rounded px-3 py-2" placeholder="e.g. AAPL"
-                    data-testid="pick-symbol" />
-                </div>
-                <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700">
-                  Submit Pick
-                </button>
-              </form>
-              <div v-if="pickError" class="text-red-600 mt-2">
-                {{ pickError }}
-              </div>
-            </div>
-            <div v-if="!isAuthenticated && canPickCurrentWeek" class="mb-6 flex gap-4 items-end justify-center">
-              <button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700" @click="openLoginModal">
-                Login to
-                Make Pick
-              </button>
-            </div>
-            <div v-if="nextAvailableWeekPickLocked" class="mb-4 text-center text-red-600">
-              Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
-            </div>
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              <div v-for="pick in currentWeek?.picks || []" :key="pick.id"
-                class="bg-white border-2 border-slate-800 rounded-xl shadow-lg p-4 hover:shadow-2xl transition-shadow">
-                <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-base font-extrabold text-slate-800">
-                    {{ pick.user.username.toUpperCase() }}
-                  </h4>
-                  <span v-if="currentWeek?.winnerId === pick.userId"
-                    class="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-extrabold tracking-wide">{{
-                      pick.user.username.toUpperCase() }} WON</span>
-                </div>
-                <div class="text-sm text-slate-700">
-                  <p class="mb-2"><b>Stock:</b> <span class="block text-3xl font-black text-slate-900">{{
-                    pick.symbol.toUpperCase() }}</span></p>
-                  <p class="mb-1 font-semibold"><b>Start Price:</b> <span class="font-bold">{{ pick.entryPrice }}</span>
-                  </p>
-                  <p class="mb-1 font-semibold"><b>Last Close:</b> <span class="font-bold">{{ pick.currentValue
-                  }}</span></p>
-                  <p class="mb-1 font-semibold"><b>Return %:</b> <span
-                      :class="pick.returnPercentage > 0 ? 'bg-green-100 text-green-700' : pick.returnPercentage < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-700'"
-                      class="font-bold px-2 py-1 rounded">
-                      {{ pick.returnPercentage ? pick.returnPercentage.toFixed(2) + '%' : 'N/A' }}
-                    </span></p>
-                </div>
-              </div>
-            </div>
-          </div>
+      </template>
+      <template #body>
+        <div class="relative">
+          <LoginForm :loading="pickLoading" :error="loginError" @submit="handleLogin" />
+        </div>
+      </template>
+    </Modal>
+
+    <div v-else>
+      <!-- Cool app loader for initial data fetch -->
+      <AppLoader v-if="gameStore.loading" message="Loading your stock pick game..." :duration="2000" />
+
+      <!-- Main content -->
+      <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Winner Banner -->
+        <WinnerBanner v-if="currentWeek?.winner" :winner="currentWeek.winner" :is-weekend="isWeekend" />
+
+        <!-- Current Week Section -->
+        <div class="mb-12">
+          <CurrentWeekSection :current-week="currentWeek" :is-authenticated="isAuthenticated"
+            :pick-loading="pickLoading" :pick-error="pickError" :username="user?.username" :loading="gameStore.loading"
+            @submit-pick="handleSubmitPick" @open-login="openLoginModal" />
         </div>
 
-        <!-- Next Week Pick Box (always visible) -->
-        <div class="mb-10 flex flex-col items-center">
-          <div class="w-full max-w-xl bg-white shadow-lg rounded-lg border-2 border-blue-200">
-            <!-- Header -->
-            <div
-              class="px-4 py-5 sm:px-6 border-b border-blue-100 flex justify-between items-center bg-blue-50 rounded-t-lg">
-              <div>
-                <h3 class="text-2xl leading-6 font-bold text-blue-900">
-                  Next Week
-                </h3>
-                <p class="mt-1 text-md text-blue-700 font-semibold">
-                  <span v-if="gameStore.activeNextWeek">
-                    {{ formatDate(gameStore.activeNextWeek?.startDate) }} - {{
-                      formatDate(gameStore.activeNextWeek?.endDate)
-                    }}
-                  </span>
-                  <span v-else>(-)</span>
-                </p>
-                <div class="text-blue-700 font-bold mt-1 text-lg">
-                  Week {{ gameStore.activeNextWeek?.weekNum }}
-                </div>
-              </div>
-              <button @click="gameStore.toggleNextWeekPicksVisibility"
-                class="text-sm text-blue-600 hover:text-blue-800">
-                {{ gameStore.hideNextWeekPicks ? 'Show All Picks' : 'Hide All Picks' }}
-              </button>
-            </div>
+        <!-- Next Week Section -->
+        <NextWeekSection :active-next-week="gameStore.activeNextWeek" :next-available-week="nextAvailableWeek"
+          :users="users" :is-authenticated="isAuthenticated" :hide-picks="gameStore.hideNextWeekPicks"
+          :next-week-pick-locked="nextAvailableWeekPickLocked" :user-next-week-pick="userNextWeekPick"
+          :loading="gameStore.loading" :username="user?.username"
+          @toggle-visibility="gameStore.toggleNextWeekPicksVisibility" @open-login="openLoginModal"
+          @open-next-week-modal="showNextWeekModal = true" />
 
-            <!-- Body -->
-            <div class="px-4 py-5 sm:p-6">
-              <!-- Show all users and their picks (or "No Pick") -->
-              <div class="grid grid-cols-1 gap-4">
-                <div v-for="user in users" :key="user.id"
-                  class="bg-white border-2 border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div class="flex items-center justify-between">
-                    <h4 class="text-base font-extrabold text-slate-800">
-                      {{ user.username.toUpperCase() }}
-                    </h4>
-                    <span v-if="!gameStore.hideNextWeekPicks || (userNextWeekPick?.user.username === user.username)"
-                      class="text-lg font-black text-slate-900">
-                      {{ getUserNextWeekPick(user)?.symbol || 'No Pick' }}
-                    </span>
-                    <span v-else class="text-slate-400 font-medium">Hidden</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Action Button -->
-              <div class="mt-6">
-                <button v-if="!isAuthenticated"
-                  class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
-                  @click="openLoginModal" :disabled="nextAvailableWeekPickLocked">
-                  Login to Make Next Week's Pick
-                </button>
-                <button v-else
-                  class="w-full bg-blue-700 text-white font-extrabold py-3 rounded-lg text-lg shadow-lg hover:bg-blue-900 transition-colors"
-                  @click="showNextWeekModal = true" :disabled="nextAvailableWeekPickLocked">
-                  {{ userNextWeekPick ? 'Change Pick' : 'Make Pick' }}
-                </button>
-                <div v-if="nextAvailableWeekPickLocked" class="mt-2 text-center text-red-600">
-                  Picks for week {{ nextAvailableWeek?.weekNum }} are now locked. You cannot make or change your pick.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Next Week Pick Modal -->
         <Modal v-if="showNextWeekModal && isAuthenticated" @close="showNextWeekModal = false">
           <template #header>
             <div class="text-xl font-bold text-center sm:text-left">
               {{ userNextWeekPick ? 'Update' : 'Make' }} Your Pick for Next Week
             </div>
             <div class="text-gray-500 text-sm text-center sm:text-left">
-              {{ formatDate(gameStore.activeNextWeek?.startDate) }} - {{ formatDate(gameStore.activeNextWeek?.endDate)
-              }}
+              {{ formatDateRange(gameStore.activeNextWeek?.startDate, gameStore.activeNextWeek?.endDate) }}
             </div>
           </template>
           <template #body>
             <div class="relative">
-              <form @submit.prevent="submitNextWeekPick" class="space-y-4">
-                <input v-model="nextWeekPickForm.symbol" class="border rounded px-3 py-3 w-full mb-4 text-lg"
-                  placeholder="e.g. AAPL" />
-                <div v-if="nextWeekPickError" class="text-red-600 mb-2">
-                  {{ nextWeekPickError }}
-                </div>
-                <button type="submit"
-                  class="w-full bg-blue-700 text-white py-3 rounded-lg text-lg font-bold shadow-lg hover:bg-blue-900 transition-colors"
-                  :disabled="nextAvailableWeekPickLocked">
-                  {{ userNextWeekPick ? 'Update Pick' : 'Submit Pick' }}
-                </button>
-              </form>
-              <div v-if="pickLoading"
-                class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 rounded-lg z-10">
-                <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-                  viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                </svg>
-              </div>
+              <PickForm :loading="pickLoading" :error="nextWeekPickError"
+                :submit-text="userNextWeekPick ? 'Update Pick' : 'Submit Pick'" @submit="handleSubmitNextWeekPick" />
             </div>
           </template>
         </Modal>
 
-        <!-- Scoreboard below next week pick, above history -->
-        <div class="scoreboard-main mb-8">
-          <div class="flex gap-1 justify-center">
-            <div v-for="score in scoreboard" :key="score.username" class="scoreboard-box">
-              <div class="scoreboard-user">
-                {{ score.username }}
-              </div>
-              <div class="scoreboard-wins">
-                {{ score.wins }}
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Scoreboard -->
+        <Scoreboard v-if="scoreboard" :scoreboard="scoreboard" :loading="gameStore.loading" />
 
-        <!-- History: only show weeks that have ended (endDate in the past and/or winner assigned) -->
-        <div class="mt-12">
-          <h2 class="text-3xl font-extrabold text-slate-900 mb-6">History</h2>
-          <div v-if="completedWeeks.length === 0" class="text-gray-500 text-center mb-8">
-            No history yet. Completed weeks will appear here.
-          </div>
-          <div v-for="week in completedWeeks" :key="week.id" class="mb-10">
-            <div
-              class="bg-slate-50 border border-slate-200 rounded-2xl shadow p-6 mb-2 flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                <div class="text-xl font-bold text-blue-900">Week {{ week.weekNum }}</div>
-                <div class="text-sm text-slate-600 mb-1">{{ formatDate(week.startDate) }} - {{ formatDate(week.endDate)
-                }}
-                </div>
-                <div v-if="week.winner"
-                  class="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-sm mt-1">
-                  <svg class="w-4 h-4 mr-1 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      d="M10 2a8 8 0 100 16 8 8 0 000-16zm3.707 6.293a1 1 0 00-1.414 0L9 11.586 7.707 10.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4a1 1 0 000-1.414z" />
-                  </svg>
-                  Winner: {{ week.winner.username.toUpperCase() }}
-                </div>
-              </div>
-              <div class="mt-4 md:mt-0 text-sm text-slate-500">Total Picks: <span class="font-bold text-slate-700">{{
-                week.picks.length }}</span></div>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-sm text-left border-separate border-spacing-y-2">
-                <thead>
-                  <tr class="text-slate-700">
-                    <th class="px-3 py-2">User</th>
-                    <th class="px-3 py-2">Stock</th>
-                    <th class="px-3 py-2">Start Price</th>
-                    <th class="px-3 py-2">Last Close</th>
-                    <th class="px-3 py-2">Return %</th>
-                    <th class="px-3 py-2">Pick Time</th>
-                    <th class="px-3 py-2">Best</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="pick in orderedPicks(week.picks)" :key="pick.id"
-                    :class="[week.winnerId === pick.userId ? 'bg-emerald-50' : '', 'hover:bg-slate-100 transition']">
-                    <td class="px-3 py-2 font-bold text-slate-900">{{ pick.user.username.toUpperCase() }}</td>
-                    <td class="px-3 py-2 font-black text-xl text-blue-800">{{ pick.symbol.toUpperCase() }}</td>
-                    <td class="px-3 py-2">{{ pick.entryPrice }}</td>
-                    <td class="px-3 py-2">{{ pick.currentValue ?? '-' }}</td>
-                    <td class="px-3 py-2">
-                      <span
-                        :class="pick.returnPercentage > 0 ? 'bg-emerald-100 text-emerald-700' : pick.returnPercentage < 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'"
-                        class="font-bold px-2 py-1 rounded">
-                        {{ pick.returnPercentage != null ? pick.returnPercentage.toFixed(2) + '%' : '-' }}
-                      </span>
-                    </td>
-                    <td class="px-3 py-2 text-xs text-slate-500">{{ pick.createdAt ? new
-                      Date(pick.createdAt).toLocaleString()
-                      : '-' }}</td>
-                    <td class="px-3 py-2">
-                      <span v-if="isBestPick(week.picks, pick)"
-                        class="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-bold text-xs">
-                        <svg class="w-4 h-4 mr-1 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path
-                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.287 3.967c.3.921-.755 1.688-1.54 1.118l-3.38-2.455a1 1 0 00-1.176 0l-3.38 2.455c-.784.57-1.838-.197-1.54-1.118l1.287-3.967a1 1 0 00-.364-1.118L2.05 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z" />
-                        </svg>
-                        Best
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <!-- History Section -->
+        <HistorySection :completed-weeks="completedWeeks" :loading="gameStore.loading" />
       </div>
     </div>
-  </div>
-  <div style="margin-top: 3rem;" />
-  <button
-    style="margin-bottom: 1rem; padding: 0.5rem 1.2rem; background: #1890ff; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;"
-    @click="copyDebugInfo">
-    Copy
-    Debug Info
-  </button>
-  <span v-if="debugCopied" style="color: #52c41a; margin-left: 1rem; font-weight: bold;">Copied!</span>
-  <div v-if="showDebug" class="debug-box"
-    style="background:#fffbe6;border:1px solid #ffe58f;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
-    <b>DEBUG INFO</b><br />
-    <div>Current Time: {{ new Date().toString() }}</div>
-    <div>Username: {{ auth.user?.username }}</div>
-    <div>isAuthenticated: {{ isAuthenticated.toString() }}</div>
-    <div>currentWeek.startDate: {{ currentWeek?.startDate }}</div>
-    <div>currentWeek.endDate: {{ currentWeek?.endDate }}</div>
-    <div>
-      alreadyPicked: {{(currentWeek?.picks ?? []).some(p => p.user.username === auth.user?.username).toString()}}
-    </div>
-    <div>canPickCurrentWeek: {{ canPickCurrentWeek.toString() }}</div>
-  </div>
-  <div v-if="showDebug" class="debug-box"
-    style="background:#e6f7ff;border:1px solid #91d5ff;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
-    <b>NEXT WEEK DEBUG</b><br />
-    <div>nextWeek.startDate: {{ gameStore.activeNextWeek?.startDate }}</div>
-    <div>nextWeek.endDate: {{ gameStore.activeNextWeek?.endDate }}</div>
-    <div>nextWeek.id: {{ gameStore.activeNextWeek?.id }}</div>
-    <div>nextWeek.picks: {{ gameStore.activeNextWeek?.picks ? JSON.stringify(gameStore.activeNextWeek.picks) : 'null' }}
-    </div>
-    <div>userNextWeekPick: {{ userNextWeekPick ? JSON.stringify(userNextWeekPick) : 'null' }}</div>
-    <div>currentUser: {{ auth.user ? JSON.stringify(auth.user) : 'null' }}</div>
-  </div>
-  <div v-if="showDebug" class="debug-box"
-    style="background:#ffe6e6;border:1px solid #ff7875;padding:1rem;margin-bottom:1rem;border-radius:8px;font-size:0.95rem;">
-    <b>COMPLETED WEEKS DEBUG</b><br />
-    <div>Total weeks in store: {{ allWeeks.length }}</div>
-    <div>
-      <b>All weeks:</b>
-      <ul>
-        <li v-for="w in allWeeks" :key="w.id">
-          WeekNum: {{ w.weekNum }}, endDate: {{ w.endDate }}, ended: {{ w.endDate && new Date(w.endDate)
-            < new Date() }}, winnerId: {{ w.winnerId }}<br />
-          Picks: [<span v-for="p in w.picks" :key="p.id">{{ p.user.username }} </span>]
-        </li>
-      </ul>
-    </div>
-    <div>
-      <b>Completed weeks (after filter):</b> {{ completedWeeks.length }}<br />
-      <ul>
-        <li v-for="w in completedWeeks" :key="w.id">
-          WeekNum: {{ w.weekNum }}
-        </li>
-      </ul>
-    </div>
-    <div>
-      <b>Filter logic for each week:</b>
-      <ul>
-        <li v-for="w in allWeeks" :key="w.id">
-          WeekNum: {{ w.weekNum }} - ended: {{ w.endDate && new Date(w.endDate) < new Date() }}, winnerId: {{ w.winnerId
-          }}, hasValidPick: {{Array.isArray(w.picks) && w.picks.some((p) =>
-              users.includes(p.user.username?.toLowerCase().trim()))}}
-            => Included: {{(w.endDate && new Date(w.endDate) < new Date()) || w.winnerId ? (Array.isArray(w.picks) &&
-              w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim())) ? 'YES' : 'NO') : 'NO'}}
-        </li>
-      </ul>
-    </div>
-  </div>
-  <div v-if="gameStore.loading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
-    <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-      viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-    </svg>
-  </div>
-  <div v-if="pickLoading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
-    <svg class="animate-spin h-12 w-12 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none"
-      viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-    </svg>
-  </div>
+  </PageContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineProps, defineEmits, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useGameStore } from '../stores/game';
-import axios from 'axios';
+import { useAuth } from '../composables/useAuth';
+import { useGame } from '../composables/useGame';
+import type { Week, Pick } from '../types';
+
+// Components
+import PageContainer from '../components/layout/PageContainer.vue';
 import Modal from '../components/Modal.vue';
-import { useAuthStore } from '../stores/auth';
-import { capitalize } from '../utils/format';
-import type { Pick, Week, DailyPrice } from '../types';
+import AppLoader from '../components/ui/AppLoader.vue';
+import WinnerBanner from '../components/game/WinnerBanner.vue';
+import CurrentWeekSection from '../components/game/CurrentWeekSection.vue';
+import NextWeekSection from '../components/game/NextWeekSection.vue';
+import HistorySection from '../components/game/HistorySection.vue';
+import Scoreboard from '../components/game/Scoreboard.vue';
+import LoginForm from '../components/forms/LoginForm.vue';
+import PickForm from '../components/forms/PickForm.vue';
 
-const props = defineProps({
-  showLoginModal: {
-    type: Boolean,
-    default: false
-  }
-});
+// Props
+interface Props {
+  showLoginModal: boolean;
+}
 
-const emit = defineEmits(['update:show-login-modal']);
+const props = defineProps<Props>();
 
-// Use hardcoded users array instead of API
+// Emits
+const emit = defineEmits<{
+  'update:show-login-modal': [value: boolean];
+}>();
+
+// Composables
+const gameStore = useGameStore();
+const { isAuthenticated, user, login } = useAuth();
+const { isWeekend, formatDate, canPickCurrentWeek } = useGame();
+
+// State
+const showNextWeekModal = ref(false);
+const nextWeekPickForm = ref({ symbol: '' });
+const nextWeekPickError = ref('');
+const pickForm = ref({ symbol: '' });
+const pickError = ref('');
+const loginError = ref('');
+const pickLoading = ref(false);
+
+// Hardcoded users array
 const users = [
   { id: 16, username: 'patrick' },
   { id: 17, username: 'taylor' },
   { id: 18, username: 'logan' }
 ];
 
-const loginForm = ref({ username: '', password: '' });
-const loginError = ref('');
-const showNextWeekModal = ref(false);
-const nextWeekPickForm = ref({ symbol: '' });
-const nextWeekPickError = ref('');
-const pickForm = ref({ symbol: '' });
-const pickError = ref('');
-const debugCopied = ref(false);
-const showDebug = ref(false);
-
-const auth = useAuthStore();
-const gameStore = useGameStore();
-
-const isAuthenticated = computed(() => auth.isAuthenticated);
+// Computed
 const currentWeek = computed(() => gameStore.currentWeek);
-const allWeeks = computed(() => gameStore.weeks);
-const historicalWeeks = computed(() => (Array.isArray(gameStore.getHistoricalWeeks) ? gameStore.getHistoricalWeeks : []).filter((w: any) => w.id !== currentWeek.value?.id));
-
-// Add scoreboard computed property
 const scoreboard = computed(() => gameStore.scoreboard);
 
-const canPickCurrentWeek = computed(() => {
-  if (!isAuthenticated.value || !currentWeek.value) return false;
-  const alreadyPicked = currentWeek.value.picks?.some((p: Pick) => p.user.username === auth.user?.username) ?? false;
-  const now = new Date();
-  const monday = new Date(currentWeek.value.startDate);
-  monday.setHours(0, 0, 0, 0);
-  const friday = new Date(currentWeek.value.startDate);
-  friday.setDate(friday.getDate() + 4);
-  friday.setHours(20, 0, 0, 0);
-  return !alreadyPicked && now >= monday && now < friday;
-});
-
-// Find the next week (highest weekNum not equal to currentWeek)
 const nextAvailableWeek = computed(() => {
-  if (!Array.isArray(allWeeks.value) || !currentWeek.value) return null;
-  return allWeeks.value.filter(w => w.id !== currentWeek.value?.id).sort((a, b) => b.weekNum - a.weekNum)[0] || null;
-});
-
-// Only show next week pick box if pick window is open (Friday close to Sunday midnight)
-const showNextWeekPickBox = computed(() => {
-  if (!nextAvailableWeek.value || !currentWeek.value) return false;
-  const now = new Date();
-  const prevFriday = new Date(currentWeek.value.startDate);
-  prevFriday.setDate(prevFriday.getDate() + 4); // Friday
-  prevFriday.setHours(20, 0, 0, 0);
-  const thisSunday = new Date(nextAvailableWeek.value.startDate);
-  thisSunday.setDate(thisSunday.getDate() + 6);
-  thisSunday.setHours(23, 59, 59, 999);
-  return now >= prevFriday && now <= thisSunday;
+  if (!Array.isArray(gameStore.weeks) || !currentWeek.value) return null;
+  return gameStore.weeks
+    .filter(w => w.id !== currentWeek.value?.id)
+    .sort((a, b) => b.weekNum - a.weekNum)[0] || null;
 });
 
 const userNextWeekPick = computed(() => {
   if (!isAuthenticated.value || !gameStore.activeNextWeek) return null;
   return (gameStore.activeNextWeek.picks ?? []).find(
-    (p) => p.user.username?.toLowerCase().trim() === auth.user?.username?.toLowerCase().trim()
+    (p) => p.user.username?.toLowerCase().trim() === user.value?.username?.toLowerCase().trim()
   ) || null;
 });
 
-const isAdmin = computed(() => auth.user?.username === 'admin');
-
 const completedWeeks = computed(() => {
-  // Only show weeks that have ended (endDate in the past and/or winner assigned)
   const now = new Date();
   const validUsernames = users.map(u => u.username.toLowerCase().trim());
-  const completed = (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
+  return (Array.isArray(gameStore.weeks) ? gameStore.weeks : [])
     .filter((w: Week) => {
       const ended = w.endDate && new Date(w.endDate) < now;
       return (ended || w.winnerId) && Array.isArray(w.picks) && w.picks.some((p: Pick) => validUsernames.includes(p.user.username?.toLowerCase().trim()));
     })
     .sort((a: Week, b: Week) => b.weekNum - a.weekNum);
-  return completed;
 });
-
-const today = new Date();
-const isWeekend = today.getDay() === 0 || today.getDay() === 6;
 
 const nextAvailableWeekPickLocked = computed(() => {
   if (!nextAvailableWeek.value) return false;
@@ -515,64 +157,47 @@ const nextAvailableWeekPickLocked = computed(() => {
   return now > sunday;
 });
 
-function formatDate(dateString?: string) {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
+// Methods
+const formatDateRange = (startDate?: string, endDate?: string): string => {
+  if (!startDate || !endDate) return '(-)';
+  const start = formatDate(startDate);
+  const end = formatDate(endDate);
+  return `${start} - ${end}`;
+};
 
-async function login() {
+const handleLogin = async (username: string, password: string) => {
   try {
     loginError.value = '';
-    await auth.login(loginForm.value.username, loginForm.value.password);
+    await login(username, password);
     closeLoginModal();
-    // Refresh game data after login
-    await gameStore.fetchCurrentWeek();
-    await gameStore.fetchWeeks();
-    await gameStore.fetchScoreboard();
+    await gameStore.fetchAll();
   } catch (error) {
     loginError.value = 'Invalid username or password';
   }
-}
+};
 
-function logout() {
-  auth.logout();
-}
-
-const pickLoading = ref(false);
-async function submitPick() {
+const handleSubmitPick = async (symbol: string) => {
   pickError.value = '';
-  if (!pickForm.value.symbol) {
-    pickError.value = 'Please enter a stock symbol';
-    return;
-  }
   try {
     pickLoading.value = true;
-    await gameStore.submitPick(pickForm.value.symbol);
+    await gameStore.submitPick(symbol);
     pickForm.value.symbol = '';
   } catch (err) {
     pickError.value = 'Failed to submit pick';
   } finally {
     pickLoading.value = false;
   }
-}
+};
 
-async function submitNextWeekPick() {
+const handleSubmitNextWeekPick = async (symbol: string) => {
   nextWeekPickError.value = '';
-  if (!nextWeekPickForm.value.symbol) {
-    nextWeekPickError.value = 'Please enter a stock symbol';
-    return;
-  }
   if (!nextAvailableWeek.value) {
     nextWeekPickError.value = 'No next week available.';
     return;
   }
   try {
     pickLoading.value = true;
-    await gameStore.submitNextWeekPick(nextWeekPickForm.value.symbol, nextAvailableWeek.value.id, auth.user);
+    await gameStore.submitNextWeekPick(symbol, nextAvailableWeek.value.id, user.value);
     nextWeekPickForm.value.symbol = '';
     showNextWeekModal.value = false;
     await gameStore.fetchAll();
@@ -581,83 +206,23 @@ async function submitNextWeekPick() {
   } finally {
     pickLoading.value = false;
   }
-}
+};
 
-function closeLoginModal() {
+const closeLoginModal = () => {
   emit('update:show-login-modal', false);
-  loginForm.value = { username: '', password: '' };
   loginError.value = '';
-}
+};
 
-function openLoginModal() {
+const openLoginModal = () => {
   emit('update:show-login-modal', true);
-}
+};
 
-function copyDebugInfo() {
-  const debugBoxes = document.querySelectorAll('.debug-box');
-  let text = '';
-  debugBoxes.forEach(box => { text += box.textContent + '\n'; });
-
-  // Add completed weeks debug info
-  text += '\n\n=== COMPLETED WEEKS DEBUG ===\n';
-  text += `Total weeks in store: ${allWeeks.value.length}\n`;
-  text += 'All weeks:\n';
-  allWeeks.value.forEach(w => {
-    text += `  WeekNum: ${w.weekNum}, endDate: ${w.endDate}, ended: ${w.endDate && new Date(w.endDate) < new Date()}, winnerId: ${w.winnerId}\n`;
-    text += `    Picks: [${(w.picks || []).map(p => p.user.username).join(', ')}]\n`;
-  });
-  text += `Completed weeks (after filter): ${completedWeeks.value.length}\n`;
-  completedWeeks.value.forEach(w => {
-    text += `  WeekNum: ${w.weekNum}\n`;
-  });
-  text += 'Filter logic for each week:\n';
-  allWeeks.value.forEach(w => {
-    const ended = w.endDate && new Date(w.endDate) < new Date();
-    const hasValidPick = Array.isArray(w.picks) && w.picks.some((p) => users.includes(p.user.username?.toLowerCase().trim()));
-    const included = (ended || w.winnerId) && hasValidPick;
-    text += `  WeekNum: ${w.weekNum} - ended: ${ended}, winnerId: ${w.winnerId}, hasValidPick: ${hasValidPick} => Included: ${included ? 'YES' : 'NO'}\n`;
-  });
-
-  navigator.clipboard.writeText(text.trim());
-  debugCopied.value = true;
-  setTimeout(() => { debugCopied.value = false; }, 1200);
-}
-
-function dayLabel(day: string) {
-  const map: Record<string, string> = {
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-  };
-  return map[day] || day;
-}
-
-function isBestPick(picks, pick) {
-  if (!Array.isArray(picks) || picks.length === 0) return false;
-  const best = [...picks].filter(p => typeof p.returnPercentage === 'number').sort((a, b) => b.returnPercentage - a.returnPercentage)[0];
-  return best && best.id === pick.id;
-}
-
-function orderedPicks(picks) {
-  return [...picks].sort((a, b) => (b.returnPercentage ?? -Infinity) - (a.returnPercentage ?? -Infinity));
-}
-
-// Helper function to get a user's next week pick
-function getUserNextWeekPick(user) {
-  if (!gameStore.activeNextWeek?.picks) return null;
-  return gameStore.activeNextWeek.picks.find(
-    (p) => p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim()
-  );
-}
-
-// Remove users store related code
+// Lifecycle
 onMounted(async () => {
   await gameStore.fetchAll();
 });
 
-watch(isAuthenticated, async (isAuth) => {
+watch(isAuthenticated, async () => {
   await gameStore.fetchAll();
 });
 </script>

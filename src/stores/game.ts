@@ -9,6 +9,7 @@ interface GameState {
   error: string | null;
   allWeeks: Week[];
   hideNextWeekPicks: boolean;
+  scoreboard: Array<{ username: string; wins: number }>;
 }
 
 export const useGameStore = defineStore('game', {
@@ -19,6 +20,7 @@ export const useGameStore = defineStore('game', {
     error: null,
     allWeeks: [] as Week[],
     hideNextWeekPicks: false,
+    scoreboard: [],
   }),
   actions: {
     async fetchWeeks() {
@@ -74,6 +76,17 @@ export const useGameStore = defineStore('game', {
           axios.get('/api/weeks'),
           axios.get('/api/weeks/current'),
         ]);
+
+        // Try to fetch scoreboard separately to handle any issues
+        let scoreboardData = [];
+        try {
+          const scoreboardRes = await axios.get('/api/scoreboard');
+          scoreboardData = Array.isArray(scoreboardRes.data) ? scoreboardRes.data : [];
+        } catch (scoreboardError) {
+          console.error('Failed to fetch scoreboard:', scoreboardError);
+          scoreboardData = [];
+        }
+
         this.weeks = weeksRes.data.weeks.map((week: any) => ({
           ...week,
           picks: week.picks.map((pick: any) => ({
@@ -94,6 +107,7 @@ export const useGameStore = defineStore('game', {
             dailyPriceData: pick.dailyPriceData ?? pick.dailyPrices,
           })),
         };
+        this.scoreboard = scoreboardData;
       } catch (err) {
         this.error = 'Failed to fetch data';
       } finally {
