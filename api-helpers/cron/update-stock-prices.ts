@@ -1,7 +1,8 @@
 import { db } from '../lib/db.js';
 import { picks, weeks } from '../lib/schema.js';
 import { eq, and, gte, lte } from 'drizzle-orm';
-import { getMultipleStockData } from '../stocks/stock-data.js';
+import { getStockData } from '../stocks/stock-data.js';
+import { isPriceChangeRealistic } from '../lib/price-utils.js';
 
 export async function updateStockPrices() {
   try {
@@ -13,48 +14,34 @@ export async function updateStockPrices() {
       with: { picks: true },
     });
 
-    // Find next week (startDate > today, closest to today)
-    const nextWeek = await db.query.weeks.findFirst({
-      where: (w) => w.startDate > todayStr,
-      with: { picks: true },
-      orderBy: (w) => w.startDate,
-    });
-
-    const weeksToUpdate = [];
-    if (currentWeek) weeksToUpdate.push({ week: currentWeek, type: 'current' });
-    if (nextWeek) weeksToUpdate.push({ week: nextWeek, type: 'next' });
-
-    if (weeksToUpdate.length === 0) {
-      console.log('[cron] No weeks to update');
-      return { message: 'No weeks to update' };
+    if (!currentWeek) {
+      console.log('[cron] No current week to update');
+      return { message: 'No current week to update' };
     }
 
-    // Collect all unique symbols from both weeks
-    const allSymbols = new Set<string>();
-    for (const { week } of weeksToUpdate) {
-      for (const pick of week.picks) {
-        allSymbols.add(pick.symbol.toUpperCase());
-      }
-    }
-
-    const symbolsArray = Array.from(allSymbols);
-    console.log(`[cron] Updating ${symbolsArray.length} unique symbols`);
-
-    // Fetch stock data for all symbols efficiently
-    const stockDataMap = await getMultipleStockData(symbolsArray);
+    console.log(
+      `[cron] Updating current week ${currentWeek.weekNum} with ${currentWeek.picks.length} picks`,
+    );
 
     let totalPicksUpdated = 0;
 
-    // Update picks with fresh stock data
-    for (const { week, type } of weeksToUpdate) {
-      console.log(`[cron] Processing ${type} week ${week.weekNum} with ${week.picks.length} picks`);
+    // Update picks sequentially (one at a time)
+    for (const pick of currentWeek.picks) {
+      const symbol = pick.symbol.toUpperCase();
+      console.log(`[cron] Fetching price for ${symbol}...`);
 
-      for (const pick of week.picks) {
-        const symbol = pick.symbol.toUpperCase();
-        const stockData = stockDataMap[symbol];
+      try {
+        // Fetch stock data for this symbol only
+        const stockData = await getStockData(symbol);
 
         if (!stockData) {
           console.warn(`[cron] No stock data available for ${symbol}`);
+          continue;
+        }
+
+        // Check if price change is realistic
+        if (!isPriceChangeRealistic(stockData?.changePercent)) {
+          console.warn(`[cron] Unrealistic price change for ${symbol}. Skipping update.`);
           continue;
         }
 
@@ -111,16 +98,23 @@ export async function updateStockPrices() {
           console.log(
             `[cron] Updated ${pick.symbol}: entryPrice=${entryPrice}, currentValue=${currentValue}, returnPercentage=${returnPercentage}%`,
           );
+        } else {
+          console.log(`[cron] No updates needed for ${pick.symbol}`);
         }
+
+        // Add a small delay between API calls to be respectful
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`[cron] Error updating ${symbol}:`, error);
+        // Continue with next symbol even if one fails
       }
     }
 
     console.log(`[cron] Updated ${totalPicksUpdated} picks total`);
     return {
-      message: `Updated ${totalPicksUpdated} picks across ${weeksToUpdate.length} weeks`,
-      weeksUpdated: weeksToUpdate.length,
+      message: `Updated ${totalPicksUpdated} picks for current week`,
       picksUpdated: totalPicksUpdated,
-      symbolsUpdated: symbolsArray.length,
+      symbolsProcessed: currentWeek.picks.length,
     };
   } catch (error) {
     console.error('[cron] Error:', error);
