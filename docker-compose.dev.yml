@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  stock-pick-game-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: stock-pick-game-dev
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:3000
+      - JWT_SECRET=dev-secret-key
+      - DATABASE_URL=file:/app/data/stock-pick-game-dev.db
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/node_modules
+      - /app/packages/frontend/node_modules
+      - /app/packages/backend/node_modules
+      # Persist SQLite database
+      - ./data:/app/data
+      # Persist logs
+      - ./logs:/app/logs
+    restart: unless-stopped
+    command: npm run dev 

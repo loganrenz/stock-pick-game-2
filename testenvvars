@@ -1,2 +1,0 @@
-TURSO_DB_URL=file:test.sqlite
-TURSO_DB_TOKEN=test-token 

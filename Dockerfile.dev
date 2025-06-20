@@ -1,0 +1,25 @@
+# Development Dockerfile for stock-pick-game monorepo
+FROM node:18-alpine
+
+# Install dependencies for node-gyp
+RUN apk add --no-cache python3 make g++
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/frontend/package*.json ./packages/frontend/
+COPY packages/backend/package*.json ./packages/backend/
+
+# Install dependencies
+RUN npm ci
+
+# Create data and logs directories
+RUN mkdir -p /app/data /app/logs
+
+# Expose ports
+EXPOSE 3000 3001
+
+# Start development server
+CMD ["npm", "run", "dev"] 

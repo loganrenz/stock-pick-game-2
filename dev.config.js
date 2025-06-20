@@ -1,8 +1,0 @@
-export const devConfig = {
-  TURSO_DB_URL: process.env.TURSO_DB_URL || 'libsql://dev1-loganrenz.aws-us-east-1.turso.io',
-  TURSO_DB_TOKEN: process.env.TURSO_DB_TOKEN || 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NTAyMDU2NjEsImlkIjoiNGVhOTVhNGItNDYyMi00MGJiLWE2NWYtOGE3YmYxY2JlOTM5IiwicmlkIjoiZjQ5NWY1YTMtYjU2Mi00NTYxLWIxNGItYmQyNGEyNjI1YjIxIn0.gPol3fSRqB2Svq02khk4AYl5BMcmodE4e0zpxba9EPyFwixf1_F7n4ozXgPUW6H_m6S0bH3aSPiXLhp7B1okAg',
-  JWT_SECRET: process.env.JWT_SECRET || 'd88b53617d7d6285011cef2ea542c53d08c6864a1e92b045d108a4b5db37f600936f8cf756ea2e1404ff9ab215a1c2e5603b47e36ae6ef3d7ba78c6cb36e6525',
-  JWT_EXPIRY: '365d',
-  ALPHA_VANTAGE_API_KEY: process.env.ALPHA_VANTAGE_API_KEY || 'J135CCG2DDOQOM6D',
-  NODE_ENV: 'development'
-}; 

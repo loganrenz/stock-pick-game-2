@@ -36,13 +36,6 @@
       "when": 1708718400000,
       "tag": "0004_fix_week_data",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1708804800000,
-      "tag": "0005_rename_tables",
-      "breakpoints": true
     }
   ]
 }

@@ -1,215 +1,320 @@
-# Stock Pick Game
+# Stock Pick Game - Monorepo
 
-A web application where users can pick stocks and compete with others.
+A modern stock picking game built as a monorepo with Vue.js frontend and Node.js backend, featuring real-time stock data scraping from Google Finance.
 
-## Setup
+## 🏗️ Architecture
 
-1. Install dependencies:
+This project is organized as a monorepo with the following structure:
 
-```bash
-npm install
+```
+stock-pick-game/
+├── packages/
+│   ├── frontend/          # Vue.js 3 + Vite frontend
+│   └── backend/           # Node.js + Express backend
+├── data/                  # SQLite database files (persisted)
+├── logs/                  # Application logs
+├── Dockerfile             # Production Docker image
+├── Dockerfile.dev         # Development Docker image
+├── docker-compose.yml     # Production Docker Compose
+└── docker-compose.dev.yml # Development Docker Compose
 ```
 
-2. Set up environment variables:
+## 🚀 Features
 
-```bash
-cp .env.example .env
-```
+- **Real-time Stock Data**: Scrapes live stock prices from Google Finance using Cheerio
+- **User Authentication**: JWT-based authentication system
+- **Stock Picking Game**: Weekly stock picking competition
+- **SQLite Database**: Lightweight, file-based database with data persistence
+- **Docker Support**: Full containerization with data persistence
+- **Cron Jobs**: Automated stock price updates and pick calculations
+- **Modern Tech Stack**: Vue 3, Express, TypeScript, Drizzle ORM
 
-3. Run database migrations:
+## 🛠️ Tech Stack
 
-```bash
-npm run db:migrate
-```
+### Frontend
 
-4. Start the development server:
+- Vue.js 3 with Composition API
+- Vite for build tooling
+- Pinia for state management
+- Vue Router for navigation
+- Tailwind CSS for styling
+- Chart.js for data visualization
 
-```bash
-npm run dev
-```
+### Backend
 
-## Development
+- Node.js with Express
+- TypeScript for type safety
+- Drizzle ORM with SQLite
+- JWT for authentication
+- Winston for logging
+- Cheerio for web scraping
+- Node-cron for scheduled tasks
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run test` - Run tests
-- `npm run lint` - Run linter
-- `npm run type-check` - Run type checking
+### Infrastructure
 
-## Database
+- Docker for containerization
+- SQLite for data persistence
+- Monorepo with npm workspaces
 
-The application uses Turso as its database. Make sure to set the following environment variables:
-
-- `TURSO_DB_URL` - Your Turso database URL
-- `TURSO_DB_TOKEN` - Your Turso authentication token
-
-### Database Migrations (Safe for Production)
-
-To apply schema changes incrementally and safely (without losing data):
-
-```bash
-npm run db:migrate
-```
-
-### Database Reset (Dev/Test Only, Destructive)
-
-To drop and recreate all tables (erases all data, use only for local development or tests):
-
-```bash
-npm run db:reset
-```
-
-## Testing
-
-Run tests with:
-
-```bash
-npm run test
-```
-
-For end-to-end tests:
-
-```bash
-npm run test:e2e
-```
-
-## Features
-
-- Weekly stock picks tracking
-- Real-time price updates
-- Performance tracking and leaderboards
-- Historical data visualization
-- User authentication and profiles
-- Mobile-responsive design
-
-## Getting Started
+## 📦 Installation
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- Docker (optional, for containerized deployment)
+- Node.js 18+
+- Docker and Docker Compose
+- Git
 
-### Installation
+### Development Setup
 
-1. Clone the repository:
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd stock-pick-game
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Start development servers**
+
+   ```bash
+   # Start both frontend and backend
+   npm run dev
+   
+   # Or start individually
+   npm run dev:frontend  # Frontend on http://localhost:3000
+   npm run dev:backend   # Backend on http://localhost:3001
+   ```
+
+### Docker Development Setup
+
+1. **Build and start development containers**
+
+   ```bash
+   docker-compose -f docker-compose.dev.yml up --build
+   ```
+
+2. **Access the application**
+   - Frontend: <http://localhost:3000>
+   - Backend API: <http://localhost:3001>
+
+### Production Setup
+
+1. **Build and start production containers**
+
+   ```bash
+   docker-compose up --build -d
+   ```
+
+2. **Access the application**
+   - Application: <http://localhost:3000>
+
+## 🗄️ Database
+
+The application uses SQLite for data storage. Database files are persisted in the `./data` directory:
+
+- **Development**: `./data/stock-pick-game-dev.db`
+- **Production**: `./data/stock-pick-game.db`
+
+### Database Management
 
 ```bash
-git clone [repository-url]
-cd stock-pick-game
+# Generate new migration
+npm run db:generate
+
+# Run migrations
+npm run db:migrate
+
+# Reset database
+npm run db:reset
+
+# Seed database
+npm run db:seed
 ```
 
-2. Install dependencies:
+## 🔧 Configuration
 
-```bash
-# Install backend dependencies
-cd backend
-npm install
+### Environment Variables
 
-# Install frontend dependencies
-cd ../frontend
-npm install
-```
+Create a `.env` file in the root directory:
 
-3. Set up environment variables:
+```env
+# Database
+DATABASE_URL=file:./data/stock-pick-game.db
 
-```bash
-# Backend (.env)
-DATABASE_URL=file:./dev.db
-JWT_SECRET=your_jwt_secret
+# JWT
+JWT_SECRET=your-secret-key-change-in-production
+
+# Server
 PORT=3001
+FRONTEND_URL=http://localhost:3000
 
-# Frontend (.env)
-VITE_API_URL=http://localhost:3001
+# Environment
+NODE_ENV=development
+LOG_LEVEL=info
 ```
 
-4. Run database migrations and seed data:
+### Docker Environment
+
+For Docker deployments, you can set environment variables in the `docker-compose.yml` file or use a `.env` file.
+
+## 📊 Stock Data
+
+The application scrapes real-time stock data from Google Finance using Cheerio. Features include:
+
+- **Real-time Quotes**: Live stock prices and changes
+- **Caching**: 5-minute cache to reduce API calls
+- **Error Handling**: Graceful fallbacks for failed requests
+- **Scheduled Updates**: Automatic price updates via cron jobs
+
+### Stock Data Endpoints
+
+- `GET /api/stocks/quote/:symbol` - Get stock quote
+- `GET /api/stocks/search?query=...` - Search stocks
+- `GET /api/stocks/cache/stats` - Get cache statistics
+- `POST /api/stocks/cache/clear` - Clear cache
+
+## 🔄 Cron Jobs
+
+The application includes several automated tasks:
+
+- **Stock Price Updates**: Every 5 minutes during market hours
+- **Pick Price Updates**: Every hour for current week picks
+- **Cache Clearing**: Every hour to refresh data
+
+## 🐳 Docker Deployment
+
+### Production Deployment
+
+1. **Build and deploy**
+
+   ```bash
+   docker-compose up --build -d
+   ```
+
+2. **Check status**
+
+   ```bash
+   docker-compose ps
+   docker-compose logs -f
+   ```
+
+3. **Stop services**
+
+   ```bash
+   docker-compose down
+   ```
+
+### Data Persistence
+
+The Docker setup includes volume mounts for data persistence:
+
+- **Database**: `./data:/app/data` - SQLite database files
+- **Logs**: `./logs:/app/logs` - Application logs
+
+### Health Checks
+
+The application includes health checks that monitor:
+
+- API availability
+- Database connectivity
+- Overall application status
+
+## 🧪 Testing
 
 ```bash
-cd backend
-npm run prisma:migrate
-npm run prisma:seed
+# Run all tests
+npm run test
+
+# Run frontend tests
+npm run test:frontend
+
+# Run backend tests
+npm run test:backend
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
-5. Start the development servers:
+## 📝 API Documentation
 
-```bash
-# Start both backend and frontend (from the project root)
-npm run dev
-```
+### Authentication Endpoints
 
-## Usage
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
 
-### Making Stock Picks
+### Stock Endpoints
 
-1. Log in to your account
-2. Navigate to the "Make Pick" page
-3. Enter your stock symbol and pick date
-4. Submit your pick
+- `GET /api/stocks/quote/:symbol` - Get stock quote
+- `GET /api/stocks/search` - Search stocks
+- `GET /api/stocks/cache/stats` - Cache statistics
+- `POST /api/stocks/cache/clear` - Clear cache
 
-### Viewing Results
+### Game Endpoints
 
-- Dashboard: View overall performance and current standings
-- History: Browse past picks and their performance
-- Leaderboard: See who's winning the competition
+- `GET /api/weeks/current` - Get current week
+- `GET /api/weeks` - Get all weeks
+- `GET /api/picks` - Get user picks
+- `POST /api/picks` - Create pick
 
-### Admin Features
+### Admin Endpoints
 
-- Manage users and permissions
-- Update stock prices
-- Modify historical data
-- Generate reports
+- `POST /api/crons/update-prices` - Manual price update trigger
 
-### Default Users
+## 🔒 Security
 
-The application comes with the following default users:
+- JWT-based authentication
+- Password hashing with bcrypt
+- CORS configuration
+- Helmet.js for security headers
+- Input validation and sanitization
 
-- Admin: username: `admin`, password: `admin123`
-- Patrick: username: `patrick`, no password required
-- Taylor: username: `taylor`, no password required
-- Logan: username: `logan`, no password required
+## 📈 Monitoring
 
-## Deployment
+- Winston logging with file and console output
+- Health check endpoints
+- Docker health checks
+- Error tracking and reporting
 
-The application can be deployed using Docker:
-
-```bash
-# Build and start containers
-docker-compose up -d
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-## License
+## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
-## Stock Pick Game Rules
+## 🆘 Support
 
-### Pick Window
+For support and questions:
 
-- Picks for the following week can be made after Friday 4:30pm Eastern (market close) until Sunday midnight Eastern.
-- Picks are locked as soon as Monday starts (12:00am ET).
-- If a player does not make a pick, their previous week's pick rolls over.
-- The backend automatically creates the next week as soon as the pick window opens (no admin needed).
-- On backend restart, if the next week is missing and the pick window is open, it is created immediately.
+- Check the documentation
+- Review the logs in `./logs/`
+- Check Docker container status
+- Verify environment variables
 
-### Game Flow
+## 🔄 Migration from Vercel
 
-- Users see the current week's picks in a table.
-- On weekends, the end result and winner (best % gain from Monday open to Friday close) are shown.
-- Only one screen: shows current week, pick history, and winner (prominently).
-- Stock info includes Monday open, daily open/close, and previous day's prices for holidays.
+This monorepo replaces the previous Vercel deployment with a Docker-based solution that provides:
 
-### Authentication
-
-- Simple password login.
-- Long-lived JWT (1 year), refreshed on each visit.
-
-- If a pick is an IPO and the IPO is that week, its entry price will be the close price of its first day on the market.
+- **Better Control**: Full control over the deployment environment
+- **Data Persistence**: SQLite database with proper volume mounting
+- **Real-time Features**: Web scraping for live stock data
+- **Scalability**: Easy horizontal scaling with Docker
+- **Development Experience**: Hot reloading and better debugging
