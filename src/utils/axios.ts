@@ -11,7 +11,7 @@ axios.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Add a response interceptor
@@ -25,13 +25,9 @@ axios.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to home page if unauthorized
-      localStorage.removeItem('token');
-      window.location.href = '/';
-    }
+    // Remove the automatic logout on 401 - let the auth store handle it
     return Promise.reject(error);
-  }
+  },
 );
 
-export default axios; 
+export default axios;

@@ -19,6 +19,9 @@ const api = axios.create({
   },
 });
 
+// Cache for refresh token requests to prevent race conditions
+let refreshPromise: Promise<void> | null = null;
+
 // Add request interceptor to add token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
@@ -35,12 +38,31 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
+      // If there's already a refresh in progress, wait for it
+      if (refreshPromise) {
+        try {
+          await refreshPromise;
+          const authStore = useAuthStore();
+          originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          const authStore = useAuthStore();
+          authStore.logout();
+          return Promise.reject(refreshError);
+        }
+      }
+
+      // Start a new refresh
       try {
         const authStore = useAuthStore();
-        await authStore.refreshToken();
+        refreshPromise = authStore.refreshToken();
+        await refreshPromise;
         originalRequest.headers.Authorization = `Bearer ${authStore.token}`;
+        refreshPromise = null;
         return api(originalRequest);
       } catch (refreshError) {
+        refreshPromise = null;
         // Refresh token failed, logout user
         const authStore = useAuthStore();
         authStore.logout();
@@ -139,7 +161,47 @@ export const useAuthStore = defineStore('auth', {
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       } catch (error) {
         console.error('Token refresh failed:', error);
+        // Clear all auth state on refresh failure
+        this.token = null;
+        this.user = null;
+        localStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
         throw error;
+      }
+    },
+
+    // Check if token is about to expire and refresh if needed
+    async checkTokenExpiry(): Promise<void> {
+      if (!this.token) return;
+
+      try {
+        // Decode the JWT to check expiration
+        const payload = JSON.parse(atob(this.token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = payload.exp - now;
+
+        // If token expires in less than 5 minutes, refresh it
+        if (timeUntilExpiry < 300) {
+          await this.refreshToken();
+        }
+      } catch (error) {
+        console.error('Error checking token expiry:', error);
+        // If we can't decode the token, it's probably invalid
+        this.logout();
+      }
+    },
+
+    // Check if user is still authenticated
+    async checkAuth(): Promise<boolean> {
+      if (!this.token) return false;
+
+      try {
+        await this.fetchUser();
+        return true;
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        this.logout();
+        return false;
       }
     },
   },
