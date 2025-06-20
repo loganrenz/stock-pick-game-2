@@ -53,5 +53,11 @@
     "JWT_SECRET": "d88b53617d7d6285011cef2ea542c53d08c6864a1e92b045d108a4b5db37f600936f8cf756ea2e1404ff9ab215a1c2e5603b47e36ae6ef3d7ba78c6cb36e6525",
     "ALPHA_VANTAGE_API_KEY": "J135CCG2DDOQOM6D",
     "NODE_ENV": "development"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/crons/update-last-close",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }
