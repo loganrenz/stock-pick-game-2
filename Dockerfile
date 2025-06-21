@@ -23,14 +23,14 @@ COPY . .
 FROM base AS frontend-builder
 WORKDIR /app
 # Build the frontend workspace
-RUN npm run build --workspace=frontend
+RUN npm run build --workspace=@stock-pick-game/frontend
 
 # --- Backend Builder ---
 # This stage builds the backend application
 FROM base AS backend-builder
 WORKDIR /app
 # Build the backend workspace
-RUN npm run build --workspace=backend
+RUN npm run build --workspace=@stock-pick-game/backend
 
 # --- Production Stage ---
 # This is the final, optimized image for production
