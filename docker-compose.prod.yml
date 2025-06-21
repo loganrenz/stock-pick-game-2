@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     ports:
       - "6969:6969"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=6969
