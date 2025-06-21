@@ -19,7 +19,21 @@ const app = express();
 const PORT = process.env.PORT || 6969;
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://appleid.cdn-apple.com'],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Unsafe-inline for Vue styles
+        connectSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:'],
+        fontSrc: ["'self'"],
+        frameSrc: ["'self'", 'https://appleid.cdn-apple.com'],
+      },
+    },
+  }),
+);
 app.use(
   cors({
     origin: [
