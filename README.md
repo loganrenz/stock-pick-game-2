@@ -318,3 +318,4 @@ This monorepo replaces the previous Vercel deployment with a Docker-based soluti
 - **Real-time Features**: Web scraping for live stock data
 - **Scalability**: Easy horizontal scaling with Docker
 - **Development Experience**: Hot reloading and better debugging
+# Trigger rebuild
