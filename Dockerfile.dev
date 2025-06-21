@@ -29,8 +29,8 @@ VOLUME /app/data
 # Switch to the non-root user
 USER appuser
 
-# Expose ports for backend (8081) and frontend (5173 - Vite's default)
-EXPOSE 8081 5173
+# Expose ports for backend (6969) and frontend (5173 - Vite's default)
+EXPOSE 6969 5173
 
 # Start the development servers for both frontend and backend
 CMD ["npm", "run", "dev"] 

@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: stock-pick-game-dev
     ports:
-      - "8081:8081"
+      - "6969:6969"
       - "5173:5173"
     env_file:
       - .env
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=development
-      - PORT=8081
+      - PORT=6969
       - FRONTEND_URL=http://localhost:5173
       - DATABASE_URL=file:/app/data/stock-pick-game.db
       - JWT_SECRET=a-secure-secret-for-development

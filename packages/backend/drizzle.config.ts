@@ -6,6 +6,6 @@ export default {
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
-    url: process.env.DATABASE_URL || 'file:./data/stock-pick-game.db',
+    url: process.env.DATABASE_URL || 'file:../../data/stock-pick-game.db',
   },
 } satisfies Config;

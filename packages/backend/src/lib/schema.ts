@@ -4,8 +4,10 @@ import { relations } from 'drizzle-orm';
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey(),
-  username: text('username').notNull().unique(),
+  username: text('username').unique(),
   password: text('password'),
+  appleId: text('appleId').unique(),
+  email: text('email'),
   jwtToken: text('jwtToken'),
   createdAt: text('createdAt')
     .notNull()

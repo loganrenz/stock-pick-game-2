@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # --- Configuration ---
 COMPOSE_FILE="docker-compose.dev.yml"
-BACKEND_HEALTH_URL="http://localhost:8081/health"
+BACKEND_HEALTH_URL="http://localhost:6969/health"
 FRONTEND_URL="http://localhost:5173"
 WAIT_TIME=15 # Seconds to wait for services to start
 

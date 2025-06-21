@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import api from '../utils/axios.js';
+import { useAuthStore } from '../stores/auth';
+import { useRouter } from 'vue-router';
+
+const authStore = useAuthStore();
+const router = useRouter();
 
 // Props
 const props = defineProps<{
@@ -28,7 +33,7 @@ const initAppleSignIn = () => {
     }
 
     const redirectURI = import.meta.env.DEV
-        ? 'http://localhost:3004/api/auth/apple-auth'
+        ? 'http://localhost:6969/api/auth/apple-auth'
         : 'https://stockpickgame.tideye.com/api/apple-auth';
 
     window.AppleID.auth.init({
@@ -50,6 +55,16 @@ const handleSuccess = async (event: any) => {
             code: authorization.code,
             id_token: authorization.id_token,
         });
+
+        // Set token and user in auth store
+        const { token, user } = response.data;
+        authStore.token = token;
+        authStore.user = user;
+        localStorage.setItem('token', token);
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+        // Optionally redirect or update UI
+        router.push({ name: 'Home' }); // Change to your main route
 
         // Call success callback with user info
         props.onSuccess?.(response.data);

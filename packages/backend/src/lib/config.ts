@@ -15,6 +15,13 @@ type Config = {
   alphaVantage: {
     apiKey: string;
   };
+  apple: {
+    teamId: string;
+    clientId: string;
+    keyId: string;
+    privateKey: string;
+    redirectUri: string;
+  };
 };
 
 export const config: Config = {
@@ -30,9 +37,17 @@ export const config: Config = {
   alphaVantage: {
     apiKey: process.env.ALPHA_VANTAGE_API_KEY || '',
   },
+  apple: {
+    teamId: process.env.APPLE_TEAM_ID || '',
+    clientId: process.env.APPLE_CLIENT_ID || '',
+    keyId: process.env.APPLE_KEY_ID || '',
+    privateKey: process.env.APPLE_PRIVATE_KEY || '',
+    redirectUri: process.env.APPLE_REDIRECT_URI || '',
+  },
 };
 
 // Log configuration values
 console.log('[CONFIG] Environment:', isDevelopment ? 'development' : 'production');
 console.log('[CONFIG] Database URL:', config.database.url);
 console.log('[CONFIG] Database token present:', !!config.database.token);
+console.log('[CONFIG] Apple Sign In configured:', !!config.apple.teamId && !!config.apple.clientId);

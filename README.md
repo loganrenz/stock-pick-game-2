@@ -93,8 +93,8 @@ stock-pick-game/
    npm run dev
    
    # Or start individually
-   npm run dev:frontend  # Frontend on http://localhost:3000
-   npm run dev:backend   # Backend on http://localhost:3001
+   npm run dev:frontend  # Frontend on http://localhost:6968
+   npm run dev:backend   # Backend on http://localhost:6969
    ```
 
 ### Docker Development Setup
@@ -106,8 +106,8 @@ stock-pick-game/
    ```
 
 2. **Access the application**
-   - Frontend: <http://localhost:3000>
-   - Backend API: <http://localhost:3001>
+   - Frontend: <http://localhost:5173>
+   - Backend API: <http://localhost:6969>
 
 ### Production Setup
 

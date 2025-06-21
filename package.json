@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "npm run dev --workspace=@stock-pick-game/frontend",
-    "dev:backend": "cross-env PORT=8081 npm run dev --workspace=@stock-pick-game/backend",
+    "dev:backend": "cross-env PORT=6969 npm run dev --workspace=@stock-pick-game/backend",
     "build": "npm run build --workspaces",
     "build:frontend": "npm run build --workspace=@stock-pick-game/frontend",
     "build:backend": "npm run build --workspace=@stock-pick-game/backend",

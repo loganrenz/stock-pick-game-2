@@ -11,10 +11,8 @@ const client = createClient({
 const db = drizzle(client);
 
 async function main() {
-  console.log('[MIGRATE] TURSO_DB_URL:', config.database.url);
-
   try {
-    await migrate(db, { migrationsFolder: './migrations' });
+    await migrate(db, { migrationsFolder: './drizzle' });
     console.log('Migrations applied successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

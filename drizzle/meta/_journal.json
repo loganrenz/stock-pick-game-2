@@ -43,6 +43,13 @@
       "when": 1708804800000,
       "tag": "0005_rename_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1750470537833,
+      "tag": "0006_add_apple_signin",
+      "breakpoints": true
     }
   ]
 }

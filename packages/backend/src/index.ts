@@ -16,7 +16,7 @@ import { getStats } from './lib/stats.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 6969;
 
 // Middleware
 app.use(helmet());
@@ -25,7 +25,7 @@ app.use(
     origin: [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'http://localhost:4173',
-      'http://localhost:8081',
+      'http://localhost:6969',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
