@@ -1,25 +1,36 @@
-# Development Dockerfile for stock-pick-game monorepo
-FROM node:18-alpine
+# Use Node.js 20 for the development environment
+FROM node:20-alpine
 
-# Install dependencies for node-gyp
+# Install dependencies needed for node-gyp
 RUN apk add --no-cache python3 make g++
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY packages/frontend/package*.json ./packages/frontend/
-COPY packages/backend/package*.json ./packages/backend/
+# Copy all package.json and package-lock.json files first to leverage caching
+COPY package.json package-lock.json ./
+COPY packages/backend/package.json ./packages/backend/
+COPY packages/frontend/package.json ./packages/frontend/
 
-# Install dependencies
-RUN npm ci
+# Install all dependencies
+RUN npm install
 
-# Create data and logs directories
-RUN mkdir -p /app/data /app/logs
+# Copy the rest of the application source code
+COPY . .
 
-# Expose ports
-EXPOSE 3000 3001
+# Create a non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Start development server
+# Create and set permissions for data and log directories
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
+RUN mkdir -p /app/logs && chown -R appuser:appgroup /app/logs
+VOLUME /app/data
+
+# Switch to the non-root user
+USER appuser
+
+# Expose ports for backend (8081) and frontend (5173 - Vite's default)
+EXPOSE 8081 5173
+
+# Start the development servers for both frontend and backend
 CMD ["npm", "run", "dev"] 

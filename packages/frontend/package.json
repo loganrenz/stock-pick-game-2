@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite 2>&1 | tee /tmp/stock-pick-game-frontend.log",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",

@@ -9,22 +9,23 @@ import authRoutes from './routes/auth.js';
 import weekRoutes from './routes/weeks.js';
 import scoreboardRoutes from './routes/scoreboard.js';
 import statsRoutes from './routes/stats.js';
+import stocksRoutes from './routes/stocks.js';
 import { getStats } from './lib/stats.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8081;
 
 // Middleware
 app.use(helmet());
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:5173', // Vite dev server
-      'http://localhost:4173', // Vite preview
+      process.env.FRONTEND_URL || 'http://localhost:5173',
+      'http://localhost:4173',
+      'http://localhost:8081',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -53,6 +54,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/weeks', weekRoutes);
 app.use('/api/scoreboard', scoreboardRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/stocks', stocksRoutes);
+app.use('/api/update-prices', stocksRoutes); // for POST /api/update-prices
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

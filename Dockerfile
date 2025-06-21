@@ -1,74 +1,80 @@
-# Multi-stage build for stock-pick-game monorepo
-FROM node:18-alpine AS base
+# Use Node.js 20 for better performance and security
+FROM node:20-alpine AS base
 
-# Install dependencies for node-gyp
+# Install dependencies needed for node-gyp (for packages like bcrypt)
 RUN apk add --no-cache python3 make g++
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY packages/frontend/package*.json ./packages/frontend/
-COPY packages/backend/package*.json ./packages/backend/
+# Copy all package.json files from the monorepo root and packages
+COPY package.json package-lock.json ./
+COPY packages/backend/package.json ./packages/backend/
+COPY packages/frontend/package.json ./packages/frontend/
 
-# Install dependencies
+# Install all dependencies for the entire monorepo
+# This is more efficient for caching layers
 RUN npm ci
 
-# Build frontend
+# Copy the rest of the source code
+COPY . .
+
+# --- Frontend Builder ---
+# This stage builds the frontend application
 FROM base AS frontend-builder
-COPY packages/frontend/ ./packages/frontend/
+WORKDIR /app
+# Build the frontend workspace
 RUN npm run build --workspace=frontend
 
-# Build backend
+# --- Backend Builder ---
+# This stage builds the backend application
 FROM base AS backend-builder
-COPY packages/backend/ ./packages/backend/
+WORKDIR /app
+# Build the backend workspace
 RUN npm run build --workspace=backend
 
-# Production stage
-FROM node:18-alpine AS production
+# --- Production Stage ---
+# This is the final, optimized image for production
+FROM node:20-alpine AS production
 
-# Install dumb-init for proper signal handling
+# Install dumb-init for proper signal handling and process management
 RUN apk add --no-cache dumb-init
 
-# Create app user
+# Create a non-root user and group for security
 RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN adduser -S -u 1001 -g nodejs nodejs
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and install production dependencies
-COPY package*.json ./
-COPY packages/frontend/package*.json ./packages/frontend/
-COPY packages/backend/package*.json ./packages/backend/
-RUN npm ci --only=production
+# Copy only the necessary package.json files for production install
+COPY package.json package-lock.json ./
+COPY packages/backend/package.json ./packages/backend/
 
-# Copy built applications
-COPY --from=frontend-builder --chown=nodejs:nodejs /app/packages/frontend/dist ./packages/frontend/dist
+# Install only the production dependencies for the backend
+RUN npm ci --workspace=backend --omit=dev
+
+# Copy the built backend application from the builder stage
 COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/dist ./packages/backend/dist
 
-# Copy backend source files (needed for database migrations)
-COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/src ./packages/backend/src
-COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/drizzle ./packages/backend/drizzle
-COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/drizzle.config.ts ./packages/backend/
+# The backend needs its package.json to run
+COPY --chown=nodejs:nodejs packages/backend/package.json ./packages/backend/
 
-# Create data directory for SQLite
+# Create and set permissions for data and log directories
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data
-
-# Create logs directory
 RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+VOLUME /app/data
 
-# Switch to non-root user
+# Switch to the non-root user
 USER nodejs
 
-# Expose port
-EXPOSE 3000
+# Expose the new port for the backend service
+EXPOSE 6969
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+# Health check to ensure the service is running correctly
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:6969/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
-# Start the application
-ENTRYPOINT ["dumb-init", "--"]
+# Use dumb-init to start the application, ensuring proper signal handling
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+# Command to run the backend application
 CMD ["node", "packages/backend/dist/index.js"] 
