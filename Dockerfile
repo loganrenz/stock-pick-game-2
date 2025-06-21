@@ -45,18 +45,16 @@ RUN adduser -S -u 1001 -g nodejs nodejs
 
 WORKDIR /app
 
-# Copy only the necessary package.json files for production install
-COPY package.json package-lock.json ./
-COPY packages/backend/package.json ./packages/backend/
-
-# Install only the production dependencies for the backend
-RUN npm ci --workspace=backend --omit=dev
+# Copy production node_modules from the base build stage
+COPY --from=base --chown=nodejs:nodejs /app/node_modules ./node_modules
+# Copy backend's package.json for context
+COPY --chown=nodejs:nodejs packages/backend/package.json ./packages/backend/
 
 # Copy the built backend application from the builder stage
 COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/dist ./packages/backend/dist
 
-# The backend needs its package.json to run
-COPY --chown=nodejs:nodejs packages/backend/package.json ./packages/backend/
+# Copy the built frontend files from the frontend builder stage
+COPY --from=frontend-builder --chown=nodejs:nodejs /app/packages/frontend/dist ./packages/frontend/dist
 
 # Create and set permissions for data and log directories
 RUN mkdir -p /app/data && chown -R nodejs:nodejs /app/data

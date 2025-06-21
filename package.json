@@ -29,8 +29,7 @@
     "docker:run": "docker run -p 3000:3000 -v $(pwd)/data:/app/data stock-pick-game",
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
-    "docker:compose:logs": "docker-compose logs -f",
-    "postinstall": "npm run build --workspace=@stock-pick-game/backend"
+    "docker:compose:logs": "docker-compose logs -f"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

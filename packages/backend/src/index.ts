@@ -57,15 +57,25 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/stocks', stocksRoutes);
 app.use('/api/update-prices', stocksRoutes); // for POST /api/update-prices
 
+// Serve static files from the frontend build
+const frontendPath = path.join(process.cwd(), 'packages', 'frontend', 'dist');
+app.use(express.static(frontendPath));
+
+// Handle SPA routing - serve index.html for all non-API routes
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  // Serve the frontend index.html for all other routes
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Not found' });
 });
 
 // Start server

@@ -1,12 +1,9 @@
 version: '3.8'
 
 services:
-  # Backend API Service with Frontend
+  # Stock Pick Game Application
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
+    image: ghcr.io/loganrenz/stock-pick-game:latest
     container_name: stock-pick-game
     restart: unless-stopped
     ports:
@@ -19,6 +16,13 @@ services:
       - VITE_APPLE_CLIENT_ID=${VITE_APPLE_CLIENT_ID}
       - VITE_APPLE_REDIRECT_URI=${VITE_APPLE_REDIRECT_URI}
       - VITE_APPLE_REDIRECT_URI_DEV=${VITE_APPLE_REDIRECT_URI_DEV}
+      - APPLE_CLIENT_ID=${APPLE_CLIENT_ID}
+      - APPLE_REDIRECT_URI=${APPLE_REDIRECT_URI}
+      - APPLE_REDIRECT_URI_DEV=${APPLE_REDIRECT_URI_DEV}
+      - APPLE_TEAM_ID=${APPLE_TEAM_ID}
+      - APPLE_KEY_ID=${APPLE_KEY_ID}
+      - APPLE_PRIVATE_KEY=${APPLE_PRIVATE_KEY}
+      - FRONTEND_URL=${FRONTEND_URL}
     volumes:
       - stock-pick-game-data:/app/data
       - stock-pick-game-logs:/app/logs
@@ -28,9 +32,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - app-network
 
 volumes:
   stock-pick-game-data:
     driver: local
   stock-pick-game-logs:
-    driver: local 
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge 
