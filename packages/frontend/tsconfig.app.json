@@ -10,10 +10,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "lib": [
-      "ES2017",
-      "DOM"
-    ],
+    "lib": ["ES2017", "DOM"],
     "target": "ES2017",
     "composite": true
   },
@@ -22,6 +19,7 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "src/**/*.js"
+    "src/**/*.js",
+    "vite-env.d.ts"
   ]
 }
