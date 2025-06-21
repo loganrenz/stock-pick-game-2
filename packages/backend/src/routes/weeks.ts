@@ -53,11 +53,11 @@ router.get('/current', async (req, res) => {
     friday.setDate(monday.getDate() + 4);
     friday.setHours(23, 59, 59, 999);
 
-    // Find current week by date range
+    // Find the week that starts on the calculated Monday
     const currentWeek = await db
       .select()
       .from(weeks)
-      .where(and(lte(weeks.startDate, now.toISOString()), gte(weeks.endDate, now.toISOString())))
+      .where(eq(weeks.startDate, monday.toISOString()))
       .limit(1);
 
     if (!currentWeek || currentWeek.length === 0) {

@@ -1,18 +1,18 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "67968b8f-9e3c-4275-87fe-9a82e2a4f015",
+  "id": "622b3cc2-b30e-42fa-b3dd-e397c7226265",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "Pick": {
-      "name": "Pick",
+    "picks": {
+      "name": "picks",
       "columns": {
         "id": {
           "name": "id",
           "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": true
+          "autoincrement": false
         },
         "userId": {
           "name": "userId",
@@ -57,13 +57,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "dailyPriceData": {
-          "name": "dailyPriceData",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "currentValue": {
           "name": "currentValue",
           "type": "real",
@@ -84,14 +77,28 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "lastClosePrice": {
+          "name": "lastClosePrice",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lastClosePriceUpdatedAt": {
+          "name": "lastClosePriceUpdatedAt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "Pick_userId_User_id_fk": {
-          "name": "Pick_userId_User_id_fk",
-          "tableFrom": "Pick",
-          "tableTo": "User",
+        "picks_userId_users_id_fk": {
+          "name": "picks_userId_users_id_fk",
+          "tableFrom": "picks",
+          "tableTo": "users",
           "columnsFrom": [
             "userId"
           ],
@@ -101,10 +108,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "Pick_weekId_Week_id_fk": {
-          "name": "Pick_weekId_Week_id_fk",
-          "tableFrom": "Pick",
-          "tableTo": "Week",
+        "picks_weekId_weeks_id_fk": {
+          "name": "picks_weekId_weeks_id_fk",
+          "tableFrom": "picks",
+          "tableTo": "weeks",
           "columnsFrom": [
             "weekId"
           ],
@@ -119,15 +126,124 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "User": {
-      "name": "User",
+    "stock_prices": {
+      "name": "stock_prices",
       "columns": {
         "id": {
           "name": "id",
           "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": true
+          "autoincrement": false
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currentPrice": {
+          "name": "currentPrice",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "previousClose": {
+          "name": "previousClose",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "change": {
+          "name": "change",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "changePercent": {
+          "name": "changePercent",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "volume": {
+          "name": "volume",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "marketCap": {
+          "name": "marketCap",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "peRatio": {
+          "name": "peRatio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "eps": {
+          "name": "eps",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dividendYield": {
+          "name": "dividendYield",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "beta": {
+          "name": "beta",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dailyPriceData": {
+          "name": "dailyPriceData",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lastUpdated": {
+          "name": "lastUpdated",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
         },
         "username": {
           "name": "username",
@@ -167,17 +283,10 @@
         }
       },
       "indexes": {
-        "User_username_unique": {
-          "name": "User_username_unique",
+        "users_username_unique": {
+          "name": "users_username_unique",
           "columns": [
             "username"
-          ],
-          "isUnique": true
-        },
-        "User_jwtToken_unique": {
-          "name": "User_jwtToken_unique",
-          "columns": [
-            "jwtToken"
           ],
           "isUnique": true
         }
@@ -187,15 +296,15 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "Week": {
-      "name": "Week",
+    "weeks": {
+      "name": "weeks",
       "columns": {
         "id": {
           "name": "id",
           "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": true
+          "autoincrement": false
         },
         "weekNum": {
           "name": "weekNum",
@@ -242,8 +351,8 @@
         }
       },
       "indexes": {
-        "Week_startDate_unique": {
-          "name": "Week_startDate_unique",
+        "weeks_startDate_unique": {
+          "name": "weeks_startDate_unique",
           "columns": [
             "startDate"
           ],
@@ -251,10 +360,10 @@
         }
       },
       "foreignKeys": {
-        "Week_winnerId_User_id_fk": {
-          "name": "Week_winnerId_User_id_fk",
-          "tableFrom": "Week",
-          "tableTo": "User",
+        "weeks_winnerId_users_id_fk": {
+          "name": "weeks_winnerId_users_id_fk",
+          "tableFrom": "weeks",
+          "tableTo": "users",
           "columnsFrom": [
             "winnerId"
           ],

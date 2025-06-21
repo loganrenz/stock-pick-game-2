@@ -8,8 +8,29 @@
         </div>
       </template>
       <template #body>
-        <div class="relative">
-          <LoginForm :loading="pickLoading" :error="loginError" @submit="handleLogin" />
+        <div class="space-y-6">
+          <!-- Regular Login Form -->
+          <div>
+            <LoginForm :loading="pickLoading" :error="loginError" @submit="handleLogin" />
+          </div>
+
+          <!-- Divider -->
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <!-- Apple Sign In -->
+          <div class="flex flex-col items-center justify-center">
+            <AppleSignIn @success="handleAppleSignInSuccess" @error="handleAppleSignInError" />
+            <p v-if="appleSignInError" class="mt-2 text-sm text-red-600">
+              {{ appleSignInError }}
+            </p>
+          </div>
         </div>
       </template>
     </Modal>
@@ -84,6 +105,7 @@ import HistorySection from '../components/game/HistorySection.vue';
 import Scoreboard from '../components/game/Scoreboard.vue';
 import LoginForm from '../components/forms/LoginForm.vue';
 import PickForm from '../components/forms/PickForm.vue';
+import AppleSignIn from '../components/AppleSignIn.vue';
 
 // Props
 interface Props {
@@ -109,6 +131,7 @@ const nextWeekPickError = ref('');
 const pickForm = ref({ symbol: '' });
 const pickError = ref('');
 const loginError = ref('');
+const appleSignInError = ref('');
 const pickLoading = ref(false);
 
 // Hardcoded users array
@@ -168,12 +191,29 @@ const formatDateRange = (startDate?: string, endDate?: string): string => {
 const handleLogin = async (username: string, password: string) => {
   try {
     loginError.value = '';
+    appleSignInError.value = '';
     await login(username, password);
     closeLoginModal();
     await gameStore.fetchAll();
   } catch (error) {
     loginError.value = 'Invalid username or password';
   }
+};
+
+const handleAppleSignInSuccess = async (userData: any) => {
+  try {
+    loginError.value = '';
+    appleSignInError.value = '';
+    closeLoginModal();
+    await gameStore.fetchAll();
+  } catch (error) {
+    loginError.value = 'Apple Sign In failed';
+  }
+};
+
+const handleAppleSignInError = (error: any) => {
+  console.error('Apple Sign In error:', error);
+  appleSignInError.value = 'Apple Sign In failed. Please try again.';
 };
 
 const handleSubmitPick = async (symbol: string) => {
@@ -211,6 +251,7 @@ const handleSubmitNextWeekPick = async (symbol: string) => {
 const closeLoginModal = () => {
   emit('update:show-login-modal', false);
   loginError.value = '';
+  appleSignInError.value = '';
 };
 
 const openLoginModal = () => {

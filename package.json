@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"node start-ngrok.mjs\"",
     "dev:frontend": "npm run dev --workspace=@stock-pick-game/frontend",
     "dev:backend": "cross-env PORT=6969 npm run dev --workspace=@stock-pick-game/backend",
     "build": "npm run build --workspaces",
@@ -29,7 +29,8 @@
     "docker:run": "docker run -p 3000:3000 -v $(pwd)/data:/app/data stock-pick-game",
     "docker:compose": "docker-compose up -d",
     "docker:compose:down": "docker-compose down",
-    "docker:compose:logs": "docker-compose logs -f"
+    "docker:compose:logs": "docker-compose logs -f",
+    "postinstall": "npm run build --workspace=@stock-pick-game/backend"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
@@ -37,5 +38,8 @@
     "cross-env": "^7.0.3",
     "prettier": "^3.2.5",
     "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "localtunnel": "^2.0.2"
   }
 }

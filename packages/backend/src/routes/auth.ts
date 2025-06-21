@@ -162,83 +162,82 @@ router.post('/refresh-token', async (req, res) => {
 });
 
 // Apple Sign In route
-router.post('/apple-auth', async (req, res) => {
-  try {
-    const { code, id_token } = req.body;
+router.post('/apple-auth', async (req, res, next) => {
+  console.log('--- APPLE AUTH REQUEST RECEIVED --- ');
+  console.log('Request Body:', JSON.stringify(req.body, null, 2));
+  console.log('---------------------------------');
 
-    if (!id_token) {
-      return res.status(400).json({ error: 'ID token is required' });
-    }
+  const { id_token, code, user: appleUser } = req.body;
 
-    // Verify the Apple ID token
-    const applePublicKeys = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
-
-    const { payload } = await jwtVerify(id_token, applePublicKeys, {
-      issuer: 'https://appleid.apple.com',
-      audience: config.apple.clientId,
-    });
-
-    const appleUserId = payload.sub as string;
-    const email = payload.email as string | undefined;
-    const emailVerified = payload.email_verified as boolean | undefined;
-
-    if (!appleUserId) {
-      return res.status(400).json({ error: 'Invalid Apple ID token' });
-    }
-
-    // Check if user already exists
-    let user = await db.select().from(users).where(eq(users.appleId, appleUserId)).limit(1);
-
-    if (user.length === 0) {
-      // Create new user
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          appleId: appleUserId,
-          email: email || null,
-          username: email ? email.split('@')[0] : `user_${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        .returning();
-
-      user = [newUser];
-      logger.info('Created new user via Apple Sign In:', { appleUserId, email });
-    }
-
-    const userData = user[0];
-
-    // Generate JWT token
-    const token = jwt.sign(
-      {
-        userId: userData.id,
-        username: userData.username,
-        appleId: userData.appleId,
-      },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiry } as jwt.SignOptions,
-    );
-
-    // Update user's JWT token in database
-    await db
-      .update(users)
-      .set({
-        jwtToken: token,
-        updatedAt: new Date().toISOString(),
-        email: email || userData.email, // Update email if provided
-      })
-      .where(eq(users.id, userData.id));
-
-    // Return user data (without password) and token
-    const { password: _, ...userWithoutPassword } = userData;
-    res.json({
-      token,
-      user: userWithoutPassword,
-    });
-  } catch (error) {
-    logger.error('Apple Sign In error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!id_token) {
+    return res.status(400).json({ error: 'id_token is required' });
   }
+
+  // Verify the Apple ID token
+  const applePublicKeys = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+
+  const { payload } = await jwtVerify(id_token, applePublicKeys, {
+    issuer: 'https://appleid.apple.com',
+    audience: config.apple.clientId,
+  });
+
+  const appleUserId = payload.sub as string;
+  const email = payload.email as string | undefined;
+  const emailVerified = payload.email_verified as boolean | undefined;
+
+  if (!appleUserId) {
+    return res.status(400).json({ error: 'Invalid Apple ID token' });
+  }
+
+  // Check if user already exists
+  let user = await db.select().from(users).where(eq(users.appleId, appleUserId)).limit(1);
+
+  if (user.length === 0) {
+    // Create new user
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        appleId: appleUserId,
+        email: email || null,
+        username: email ? email.split('@')[0] : `user_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .returning();
+
+    user = [newUser];
+    logger.info('Created new user via Apple Sign In:', { appleUserId, email });
+  }
+
+  const userData = user[0];
+
+  // Generate JWT token
+  const token = jwt.sign(
+    {
+      userId: userData.id,
+      username: userData.username,
+      appleId: userData.appleId,
+    },
+    config.jwt.secret,
+    { expiresIn: config.jwt.expiry } as jwt.SignOptions,
+  );
+
+  // Update user's JWT token in database
+  await db
+    .update(users)
+    .set({
+      jwtToken: token,
+      updatedAt: new Date().toISOString(),
+      email: email || userData.email, // Update email if provided
+    })
+    .where(eq(users.id, userData.id));
+
+  // Return user data (without password) and token
+  const { password: _, ...userWithoutPassword } = userData;
+  res.json({
+    token,
+    user: userWithoutPassword,
+  });
 });
 
 export default router;
