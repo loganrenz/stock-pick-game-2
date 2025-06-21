@@ -21,6 +21,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Clear GitHub Actions Cache
+      run: |
+        gh extension install actions/gh-actions-cache || true
+        gh actions-cache delete --all -R ${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} || true
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
