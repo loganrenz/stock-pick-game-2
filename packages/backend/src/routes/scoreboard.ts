@@ -1,121 +1,111 @@
 import express from 'express';
 import { db } from '../lib/db.js';
 import { users, weeks, picks } from '../lib/schema.js';
-import { eq, desc, and, isNotNull, inArray } from 'drizzle-orm';
+import { eq, desc, inArray, isNotNull } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
-// Get scoreboard
+// GET /api/scoreboard - Get the main scoreboard
 router.get('/', async (req, res) => {
   try {
-    // Get all users
-    const allUsers = await db.select().from(users);
-
-    // Get all completed weeks (weeks with winners)
     const completedWeeks = await db.select().from(weeks).where(isNotNull(weeks.winnerId));
 
-    // Get all picks
+    const userScores = new Map<
+      number,
+      { userId: number; username: string; wins: number; totalReturn: number; totalPicks: number }
+    >();
+
+    for (const week of completedWeeks) {
+      if (week.winnerId) {
+        const user = await db.query.users.findFirst({ where: eq(users.id, week.winnerId) });
+        if (user) {
+          const score = userScores.get(week.winnerId) || {
+            userId: week.winnerId,
+            username: user.username || 'N/A',
+            wins: 0,
+            totalReturn: 0,
+            totalPicks: 0,
+          };
+          score.wins += 1;
+          userScores.set(week.winnerId, score);
+        }
+      }
+    }
+
     const allPicks = await db.select().from(picks);
+    for (const pick of allPicks) {
+      const user = await db.query.users.findFirst({ where: eq(users.id, pick.userId) });
+      if (user) {
+        const score = userScores.get(pick.userId) || {
+          userId: pick.userId,
+          username: user.username || 'N/A',
+          wins: 0,
+          totalReturn: 0,
+          totalPicks: 0,
+        };
+        if (pick.returnPercentage !== null) {
+          score.totalReturn += pick.returnPercentage;
+        }
+        score.totalPicks += 1;
+        userScores.set(pick.userId, score);
+      }
+    }
 
-    // Calculate scores for each user
-    const scoreboard = allUsers.map((user) => {
-      const userPicks = allPicks.filter((pick) => pick.userId === user.id);
-
-      // Calculate total return percentage
-      const totalReturn = userPicks.reduce((sum, pick) => {
-        return sum + (pick.returnPercentage || 0);
-      }, 0);
-
-      // Count wins (picks where user won the week)
-      const wins = completedWeeks.filter((week) => week.winnerId === user.id).length;
-
-      // Count total picks
-      const totalPicks = userPicks.length;
-
-      // Calculate average return
-      const averageReturn = totalPicks > 0 ? totalReturn / totalPicks : 0;
-
-      return {
-        id: user.id,
-        username: user.username,
-        totalReturn: parseFloat(totalReturn.toFixed(2)),
-        averageReturn: parseFloat(averageReturn.toFixed(2)),
-        wins,
-        totalPicks,
-        picks: userPicks,
-      };
-    });
-
-    // Sort by total return (descending)
-    scoreboard.sort((a, b) => b.totalReturn - a.totalReturn);
+    const scoreboard = Array.from(userScores.values())
+      .map((score) => ({
+        ...score,
+        averageReturn: score.totalPicks > 0 ? score.totalReturn / score.totalPicks : 0,
+      }))
+      .sort((a, b) => b.wins - a.wins || b.averageReturn - a.averageReturn);
 
     res.json(scoreboard);
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error fetching scoreboard:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Failed to fetch scoreboard' });
   }
 });
 
-// Get user's detailed scoreboard
-router.get('/user/:userId', async (req, res) => {
+// GET /api/scoreboard/:userId - Get stats for a specific user
+router.get('/:userId', async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
-
+    const userId = parseInt(req.params.userId, 10);
     if (isNaN(userId)) {
       return res.status(400).json({ error: 'Invalid user ID' });
     }
 
-    // Get user
-    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (!user || user.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    const userPicks = await db.select().from(picks).where(eq(picks.userId, userId));
+    const wins = (await db.select().from(weeks).where(eq(weeks.winnerId, userId))).length;
+
+    let totalReturn = 0;
+    let highestReturn = -Infinity;
+    let lowestReturn = Infinity;
+
+    for (const pick of userPicks) {
+      if (pick.returnPercentage !== null) {
+        totalReturn += pick.returnPercentage;
+        highestReturn = Math.max(highestReturn, pick.returnPercentage);
+        lowestReturn = Math.min(lowestReturn, pick.returnPercentage);
+      }
     }
 
-    // Get user's picks with week information
-    const userPicks = await db.select().from(picks).where(eq(picks.userId, userId));
+    const stats = {
+      userId: user.id,
+      username: user.username,
+      wins,
+      totalPicks: userPicks.length,
+      averageReturn: userPicks.length > 0 ? totalReturn / userPicks.length : 0,
+      highestReturn: highestReturn === -Infinity ? null : highestReturn,
+      lowestReturn: lowestReturn === Infinity ? null : lowestReturn,
+    };
 
-    // Get weeks for context
-    const weekIds = [...new Set(userPicks.map((pick) => pick.weekId))];
-    const weeks = await db.select().from(weeks).where(inArray(weeks.id, weekIds));
-
-    // Calculate detailed stats
-    const totalReturn = userPicks.reduce((sum, pick) => sum + (pick.returnPercentage || 0), 0);
-    const wins = weeks.filter((week) => week.winnerId === userId).length;
-    const totalPicks = userPicks.length;
-    const averageReturn = totalPicks > 0 ? totalReturn / totalPicks : 0;
-
-    // Get best and worst picks
-    const bestPick = userPicks.reduce((best, pick) =>
-      (pick.returnPercentage || 0) > (best.returnPercentage || 0) ? pick : best,
-    );
-
-    const worstPick = userPicks.reduce((worst, pick) =>
-      (pick.returnPercentage || 0) < (worst.returnPercentage || 0) ? pick : worst,
-    );
-
-    res.json({
-      user: user[0],
-      stats: {
-        totalReturn: parseFloat(totalReturn.toFixed(2)),
-        averageReturn: parseFloat(averageReturn.toFixed(2)),
-        wins,
-        totalPicks,
-        bestPick,
-        worstPick,
-      },
-      picks: userPicks.map((pick) => {
-        const week = weeks.find((w) => w.id === pick.weekId);
-        return {
-          ...pick,
-          week,
-        };
-      }),
-    });
-  } catch (error) {
-    logger.error('Error fetching user scoreboard:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json(stats);
+  } catch (error: any) {
+    logger.error(`Error fetching stats for user ${req.params.userId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch user stats' });
   }
 });
 
