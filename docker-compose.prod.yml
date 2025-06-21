@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Stock Pick Game Application
   app:
-    image: ghcr.io/loganrenz/stock-pick-game:latest
+    image: ghcr.io/loganrenz/stock-pick-game-2:latest
     container_name: stock-pick-game
     restart: unless-stopped
     ports:

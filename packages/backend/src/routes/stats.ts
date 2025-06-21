@@ -1,6 +1,6 @@
 import express from 'express';
-import { db } from '../lib/db';
-import { users, weeks, picks } from '../lib/schema';
+import { db } from '../lib/db.js';
+import { users, weeks, picks } from '../lib/schema.js';
 
 const router = express.Router();
 
