@@ -5,6 +5,8 @@
       <img src="/icons/icon.svg" class="animate-spin h-12 w-12" alt="Loading..." />
     </div>
     <div v-else>
+      <!-- Leaderboard Chart -->
+      <LeaderboardChart :weeks="weeks" :users="users" />
       <!-- Player Cards (now as horizontal table) -->
       <div class="overflow-x-auto mb-12">
         <table class="min-w-full bg-white border-2 border-slate-200 rounded-2xl shadow-lg">
@@ -91,8 +93,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import api from '../utils/axios.js';
+import LeaderboardChart from '../components/game/LeaderboardChart.vue';
 
 const users = ref<any[]>([]);
+const weeks = ref<any[]>([]);
 const stats = ref<Record<string, any>>({});
 const loading = ref(true);
 const playerNames = ['patrick', 'taylor', 'logan'];
@@ -183,6 +187,7 @@ onMounted(async () => {
   loading.value = true;
   const res = await api.get('/stats');
   users.value = Array.isArray(res.data.users) ? res.data.users.filter((u: any) => playerNames.includes(u.username.toLowerCase())) : [];
+  weeks.value = Array.isArray(res.data.weeks) ? res.data.weeks : [];
   stats.value = calculateStats(users.value, res.data.weeks, res.data.picks);
   loading.value = false;
 });

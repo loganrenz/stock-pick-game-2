@@ -15,6 +15,7 @@ export { default as WeekHeader } from './game/WeekHeader.vue';
 export { default as Scoreboard } from './game/Scoreboard.vue';
 export { default as WinnerBanner } from './game/WinnerBanner.vue';
 export { default as LeaderboardChart } from './game/LeaderboardChart.vue';
+export { default as WeeklyPriceChart } from './game/WeeklyPriceChart.vue';
 export { default as CurrentWeekSection } from './game/CurrentWeekSection.vue';
 export { default as NextWeekSection } from './game/NextWeekSection.vue';
 export { default as HistorySection } from './game/HistorySection.vue';

@@ -26,6 +26,25 @@
                 class="bg-white shadow-sm rounded-xl overflow-hidden border border-slate-200">
                 <WeekHeader :week-num="week.weekNum" :start-date="week.startDate" :end-date="week.endDate"
                     :winner="getWinner(week)" :picks="week.picks" />
+                
+                <!-- Weekly Price Chart for completed weeks -->
+                <div v-if="week.picks && week.picks.length > 0" class="px-6 pb-6">
+                    <WeeklyPriceChart :week="week" />
+                </div>
+
+                <!-- Disclosures -->
+                <div class="px-6 pb-4">
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 class="text-sm font-semibold text-gray-800 mb-2">📋 Week Disclosures</h4>
+                        <ul class="text-xs text-gray-600 space-y-1">
+                            <li>• Stock prices reflect opening Monday and closing Friday values</li>
+                            <li>• Daily price progressions are mathematically approximated for visualization</li>
+                            <li>• Returns calculated as (End Price - Start Price) / Start Price × 100</li>
+                            <li>• Market data sourced from reliable financial APIs</li>
+                            <li>• Past performance does not guarantee future results</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -35,6 +54,7 @@
 import { computed } from 'vue';
 import type { Week, User } from '../../types';
 import WeekHeader from './WeekHeader.vue';
+import WeeklyPriceChart from './WeeklyPriceChart.vue';
 import SkeletonLoader from '../ui/SkeletonLoader.vue';
 
 interface Props {
