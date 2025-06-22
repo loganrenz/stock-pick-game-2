@@ -44,73 +44,107 @@ router.get('/', async (req, res) => {
 router.get('/current', async (req, res) => {
   try {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
-    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - daysSinceMonday);
-    monday.setHours(0, 0, 0, 0);
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-    friday.setHours(23, 59, 59, 999);
 
-    // Find the week that starts on the calculated Monday
+    // Find current week by checking which week the current time falls into
     const currentWeek = await db
       .select()
       .from(weeks)
-      .where(eq(weeks.startDate, monday.toISOString()))
+      .where(and(lte(weeks.startDate, now.toISOString()), gte(weeks.endDate, now.toISOString())))
       .limit(1);
 
-    if (!currentWeek || currentWeek.length === 0) {
-      // Get the highest week number
-      const lastWeek = await db.select().from(weeks).orderBy(desc(weeks.weekNum)).limit(1);
-      const nextWeekNum = lastWeek && lastWeek.length > 0 ? Number(lastWeek[0].weekNum) + 1 : 1;
+    if (currentWeek && currentWeek.length > 0) {
+      const week = currentWeek[0];
 
-      const [newWeek] = await db
-        .insert(weeks)
-        .values({
-          weekNum: nextWeekNum,
-          startDate: monday.toISOString(),
-          endDate: friday.toISOString(),
-        })
-        .returning();
+      // Get picks for this week with user data
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+      const allUsers = await db.select().from(users);
+      const userMap = new Map(allUsers.map((user) => [user.id, user]));
 
-      // Return the new week with empty picks array
+      const picksWithUsers = weekPicks.map((pick) => ({
+        ...pick,
+        user: userMap.get(pick.userId) || { id: pick.userId, username: 'Unknown' },
+      }));
+
       res.json({
-        ...newWeek,
-        picks: [],
+        ...week,
+        picks: picksWithUsers,
       });
       return;
     }
 
-    const week = currentWeek[0];
+    // If no current active week, we're in a weekend gap
+    // Show the most recently completed week (the one that just ended)
+    const lastCompletedWeek = await db
+      .select()
+      .from(weeks)
+      .where(lte(weeks.endDate, now.toISOString()))
+      .orderBy(desc(weeks.endDate))
+      .limit(1);
 
-    // Update current week dates if they don't match
-    if (week.startDate !== monday.toISOString() || week.endDate !== friday.toISOString()) {
-      await db
-        .update(weeks)
-        .set({
-          startDate: monday.toISOString(),
-          endDate: friday.toISOString(),
-        })
-        .where(eq(weeks.id, week.id));
-      week.startDate = monday.toISOString();
-      week.endDate = friday.toISOString();
+    if (lastCompletedWeek && lastCompletedWeek.length > 0) {
+      const week = lastCompletedWeek[0];
+
+      // Get picks for this week with user data
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+      const allUsers = await db.select().from(users);
+      const userMap = new Map(allUsers.map((user) => [user.id, user]));
+
+      const picksWithUsers = weekPicks.map((pick) => ({
+        ...pick,
+        user: userMap.get(pick.userId) || { id: pick.userId, username: 'Unknown' },
+      }));
+
+      // Auto-determine winner if not set
+      let weekWithWinner = { ...week };
+      // if (!week.winnerId && picksWithUsers.length > 0) {
+      //   // Find the pick with the highest return percentage
+      //   const winner = picksWithUsers.reduce((best, current) =>
+      //     (current.returnPercentage || 0) > (best.returnPercentage || 0) ? current : best
+      //   );
+      //
+      //   if (winner && winner.returnPercentage !== null) {
+      //     // Update the database with the winner
+      //     await db
+      //       .update(weeks)
+      //       .set({ winnerId: winner.userId })
+      //       .where(eq(weeks.id, week.id));
+      //
+      //     weekWithWinner.winnerId = winner.userId;
+      //   }
+      // }
+
+      res.json({
+        ...weekWithWinner,
+        picks: picksWithUsers,
+      });
+      return;
     }
 
-    // Get picks for this week with user data
-    const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
-    const allUsers = await db.select().from(users);
-    const userMap = new Map(allUsers.map((user) => [user.id, user]));
+    // If still no week found, get the most recent week as fallback
+    const lastWeek = await db.select().from(weeks).orderBy(desc(weeks.weekNum)).limit(1);
 
-    const picksWithUsers = weekPicks.map((pick) => ({
-      ...pick,
-      user: userMap.get(pick.userId) || { id: pick.userId, username: 'Unknown' },
-    }));
+    if (lastWeek && lastWeek.length > 0) {
+      const week = lastWeek[0];
 
-    res.json({
-      ...week,
-      picks: picksWithUsers,
-    });
+      // Get picks for this week with user data
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+      const allUsers = await db.select().from(users);
+      const userMap = new Map(allUsers.map((user) => [user.id, user]));
+
+      const picksWithUsers = weekPicks.map((pick) => ({
+        ...pick,
+        user: userMap.get(pick.userId) || { id: pick.userId, username: 'Unknown' },
+      }));
+
+      res.json({
+        ...week,
+        picks: picksWithUsers,
+      });
+      return;
+    }
+
+    // If no weeks exist at all, return null
+    res.json(null);
   } catch (error) {
     logger.error('Error fetching current week:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -148,6 +182,41 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching week:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Set winner for a week (for testing)
+router.put('/:id/winner', async (req, res) => {
+  try {
+    const weekId = parseInt(req.params.id);
+    const { winnerId } = req.body;
+
+    if (isNaN(weekId)) {
+      return res.status(400).json({ error: 'Invalid week ID' });
+    }
+
+    if (!winnerId) {
+      return res.status(400).json({ error: 'winnerId is required' });
+    }
+
+    // First try updating a simple field to test if table updates work at all
+    await db.update(weeks).set({ updatedAt: new Date().toISOString() }).where(eq(weeks.id, weekId));
+
+    logger.info(`Successfully updated updatedAt for week ${weekId}`);
+
+    // Now try updating winnerId
+    // First set to null to clear any existing value
+    await db.update(weeks).set({ winnerId: null }).where(eq(weeks.id, weekId));
+
+    logger.info(`Successfully cleared winnerId for week ${weekId}`);
+
+    // Then set to the desired value
+    await db.update(weeks).set({ winnerId: winnerId }).where(eq(weeks.id, weekId));
+
+    res.json({ success: true, message: `Winner set for week ${weekId}` });
+  } catch (error) {
+    logger.error('Error setting winner:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
