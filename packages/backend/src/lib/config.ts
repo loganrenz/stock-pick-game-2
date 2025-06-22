@@ -27,7 +27,7 @@ type Config = {
 export const config: Config = {
   isDevelopment,
   database: {
-    url: process.env.DATABASE_URL || 'file:../../data/stock-pick-game.db',
+    url: process.env.DATABASE_URL || 'file:../../data/stonx.db',
     token: process.env.DATABASE_AUTH_TOKEN,
   },
   jwt: {

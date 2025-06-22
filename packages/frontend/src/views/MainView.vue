@@ -37,7 +37,7 @@
 
     <div v-else>
       <!-- Cool app loader for initial data fetch -->
-      <AppLoader v-if="gameStore.loading" message="Loading your stock pick game..." :duration="2000" />
+      <AppLoader v-if="gameStore.loading" message="Loading STONX..." :duration="2000" />
 
       <!-- Main content -->
       <div v-else class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -45,7 +45,8 @@
         <WinnerBanner v-if="currentWeek?.winner" :winner="currentWeek.winner" :is-weekend="isWeekend" />
 
         <!-- Winner Announcement -->
-        <WinnerAnnouncement v-if="currentWeek && currentWeek.picks && currentWeek.picks.length > 0" :week="currentWeek" />
+        <WinnerAnnouncement v-if="currentWeek && currentWeek.picks && currentWeek.picks.length > 0"
+          :week="currentWeek" />
 
         <!-- Current Week Section -->
         <div v-if="currentWeek" class="mb-12">
@@ -85,7 +86,7 @@
         -->
         <!-- History Section -->
         <HistorySection :completed-weeks="completedWeeks" :loading="gameStore.loading" />
-        
+
         <!-- Build Timestamp (temporary for debugging) -->
         <div class="mt-12 text-center">
           <div class="text-xs text-gray-400 font-mono">

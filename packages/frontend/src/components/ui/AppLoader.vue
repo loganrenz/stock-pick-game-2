@@ -24,9 +24,14 @@
             </div>
 
             <!-- App title -->
-            <h1 class="text-3xl font-bold text-gray-800 mb-2 animate-fade-in">
-                Stock Pick Game
-            </h1>
+            <div class="text-center mb-8">
+                <h1 class="text-6xl font-bold text-blue-600 mb-4 tracking-wide">
+                    STONX
+                </h1>
+                <p class="text-xl text-gray-600 font-medium">
+                    Weekly Stock Pick Competition
+                </p>
+            </div>
 
             <!-- Loading message -->
             <p class="text-gray-600 mb-8 animate-fade-in-delay">

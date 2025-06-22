@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  app-dev:
+  app:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: stock-pick-game-dev
+    container_name: stonx-dev
     ports:
       - "6969:6969"
       - "5173:5173"
@@ -16,16 +16,17 @@ services:
       - .:/app
       - /app/node_modules
       # Persist data and logs using named volumes
-      - stock-pick-game-data:/app/data
-      - stock-pick-game-logs:/app/logs
+      - stonx-data:/app/data
+      - stonx-logs:/app/logs
     restart: unless-stopped
     environment:
       - NODE_ENV=development
       - PORT=6969
       - FRONTEND_URL=http://localhost:5173
-      - DATABASE_URL=file:/app/data/stock-pick-game.db
+      - DATABASE_URL=file:/app/data/stonx.db
       - JWT_SECRET=a-secure-secret-for-development
+      - CHOKIDAR_USEPOLLING=true
 
 volumes:
-  stock-pick-game-data:
-  stock-pick-game-logs: 
+  stonx-data:
+  stonx-logs: 

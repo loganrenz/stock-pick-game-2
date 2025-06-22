@@ -1,35 +1,31 @@
 version: '3.8'
 
 services:
-  # Stock Pick Game Application
+  # STONX Application
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY}:latest
-    container_name: stock-pick-game
-    restart: unless-stopped
+    image: ghcr.io/loganrenz/stonx:latest
+    container_name: stonx
     ports:
       - "6969:6969"
+    volumes:
+      # Use bind mount for data persistence - ensures data survives container recreation
+      - /app/data:/app/data
+      - /app/logs:/app/logs
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - PORT=6969
-      - DATABASE_URL=file:/app/data/stock-pick-game.db
+      - DATABASE_URL=file:/app/data/stonx.db
       - JWT_SECRET=${JWT_SECRET}
       - VITE_APPLE_CLIENT_ID=${VITE_APPLE_CLIENT_ID}
       - VITE_APPLE_REDIRECT_URI=${VITE_APPLE_REDIRECT_URI}
       - VITE_APPLE_REDIRECT_URI_DEV=${VITE_APPLE_REDIRECT_URI_DEV}
-      - APPLE_CLIENT_ID=${APPLE_CLIENT_ID}
-      - APPLE_REDIRECT_URI=${APPLE_REDIRECT_URI}
-      - APPLE_REDIRECT_URI_DEV=${APPLE_REDIRECT_URI_DEV}
       - APPLE_TEAM_ID=${APPLE_TEAM_ID}
       - APPLE_KEY_ID=${APPLE_KEY_ID}
       - APPLE_PRIVATE_KEY=${APPLE_PRIVATE_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
-    volumes:
-      # Use bind mounts for better control and backup access
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ./backups:/app/backups
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:6969/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s

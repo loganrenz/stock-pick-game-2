@@ -6,31 +6,25 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production
-    container_name: stock-pick-game
-    restart: unless-stopped
+    container_name: stonx
     ports:
       - "6969:6969"
+    volumes:
+      - stonx-data:/app/data
+      - stonx-logs:/app/logs
     environment:
       - NODE_ENV=production
       - PORT=6969
-      - DATABASE_URL=file:/app/data/stock-pick-game.db
-      - JWT_SECRET=${JWT_SECRET}
-      - VITE_APPLE_CLIENT_ID=${VITE_APPLE_CLIENT_ID}
-      - VITE_APPLE_REDIRECT_URI=${VITE_APPLE_REDIRECT_URI}
-      - VITE_APPLE_REDIRECT_URI_DEV=${VITE_APPLE_REDIRECT_URI_DEV}
-    volumes:
-      - stock-pick-game-data:/app/data
-      - stock-pick-game-logs:/app/logs
+      - DATABASE_URL=file:/app/data/stonx.db
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:6969/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      test: ["CMD", "curl", "-f", "http://localhost:6969/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
 
 volumes:
-  stock-pick-game-data:
+  stonx-data:
     driver: local
-  stock-pick-game-logs:
+  stonx-logs:
     driver: local 

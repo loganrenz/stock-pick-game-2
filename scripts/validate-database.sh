@@ -1,12 +1,36 @@
 #!/bin/bash
 
-# Stock Pick Game Database Validation Script
-# Validates database health and schema integrity
+# STONX Database Validation Script
+# Validates database integrity and structure
+
+# Default database path - can be overridden with command line argument
+DB_PATH="${1:-/root/stonx/data/stonx.db}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Logging functions
+log() {
+    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} $1"
+}
+
+error() {
+    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1"
+}
+
+warn() {
+    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"
+}
+
+log "Validating STONX database: $DB_PATH"
 
 set -e
 
 # Configuration
-DB_PATH="${1:-/root/stock-pick-game-2/data/stock-pick-game.db}"
+DB_PATH="${1:-/root/stonx/data/stonx.db}"
 
 # Colors for output
 RED='\033[0;31m'

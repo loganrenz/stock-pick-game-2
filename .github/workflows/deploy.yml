@@ -1,4 +1,4 @@
-name: Build and Deploy to VPS
+name: Build and Deploy STONX to VPS
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: loganrenz/stonx
 
 jobs:
   build-and-push:
@@ -71,7 +71,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Deploy to VPS using Safe Deployment
+    - name: Deploy STONX to VPS using Safe Deployment
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -80,7 +80,7 @@ jobs:
         port: 22
         script: |
           # Ensure we're in the right directory
-          cd /root/stock-pick-game-2 || { echo "App directory not found"; exit 1; }
+          cd /root/stonx || { echo "STONX app directory not found"; exit 1; }
           
           # Update deployment scripts from repository
           echo "📥 Updating deployment scripts..."
@@ -90,8 +90,8 @@ jobs:
           chmod +x scripts/*.sh
           
           # Run industry-standard safe deployment
-          echo "🚀 Starting safe deployment process..."
+          echo "🚀 Starting STONX safe deployment process..."
           ./scripts/safe-deploy.sh
           
-          echo "✅ Deployment completed successfully!"
-          echo "🌐 Application available at: https://stockpickgame.tideye.com"
+          echo "✅ STONX deployment completed successfully!"
+          echo "🌐 Application available at: https://stonx.app"

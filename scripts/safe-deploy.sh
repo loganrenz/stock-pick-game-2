@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Stock Pick Game Safe Deployment Script
-# Industry standard deployment with validation, backup, and rollback
+# STONX Safe Deployment Script
+# Industry standard deployment with rollback capabilities
 
 set -e
 
 # Configuration
+APP_DIR="/root/stonx"
+BACKUP_DIR="/root/database-backups"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_DIR="/root/stock-pick-game-2"
 COMPOSE_FILE="docker-compose.prod.yml"
 
 # Colors for output
@@ -41,9 +42,9 @@ rollback() {
     docker-compose -f "$COMPOSE_FILE" down 2>/dev/null || true
     
     # Restore from backup if available
-    if [ -n "$BACKUP_TIMESTAMP" ] && [ -d "/root/database-backups/$BACKUP_TIMESTAMP" ]; then
+    if [ -n "$BACKUP_TIMESTAMP" ] && [ -d "$BACKUP_DIR/$BACKUP_TIMESTAMP" ]; then
         print_status "Restoring database from backup: $BACKUP_TIMESTAMP"
-        cp "/root/database-backups/$BACKUP_TIMESTAMP/stock-pick-game.db" "$APP_DIR/data/"
+        cp "$BACKUP_DIR/$BACKUP_TIMESTAMP/stonx.db" "$APP_DIR/data/"
     fi
     
     # Start with previous image
@@ -67,7 +68,7 @@ print_status "Step 1: Pre-deployment validation"
 
 # Validate current database
 print_info "Validating current database..."
-if ! "$SCRIPT_DIR/validate-database.sh" "$APP_DIR/data/stock-pick-game.db"; then
+if ! "$SCRIPT_DIR/validate-database.sh" "$APP_DIR/data/stonx.db"; then
     print_error "Current database validation failed!"
     exit 1
 fi
@@ -92,7 +93,7 @@ if ! "$SCRIPT_DIR/backup-database.sh"; then
 fi
 
 # Get backup timestamp for potential rollback
-BACKUP_TIMESTAMP=$(ls -t /root/database-backups/ | head -1)
+BACKUP_TIMESTAMP=$(ls -t $BACKUP_DIR/ | head -1)
 print_info "Backup created: $BACKUP_TIMESTAMP"
 
 # Step 3: Pull latest image
@@ -156,7 +157,7 @@ fi
 print_status "Step 7: Post-deployment validation"
 
 # Validate database after deployment
-if ! "$SCRIPT_DIR/validate-database.sh" "$APP_DIR/data/stock-pick-game.db"; then
+if ! "$SCRIPT_DIR/validate-database.sh" "$APP_DIR/data/stonx.db"; then
     print_error "Post-deployment database validation failed!"
     exit 1
 fi
@@ -170,7 +171,7 @@ print_info "  Application logs (last 10 lines):"
 docker-compose -f "$COMPOSE_FILE" logs --tail=10 app
 
 print_info "  Database statistics:"
-sqlite3 "$APP_DIR/data/stock-pick-game.db" "
+sqlite3 "$APP_DIR/data/stonx.db" "
 SELECT 'Users: ' || COUNT(*) FROM users;
 SELECT 'Weeks: ' || COUNT(*) FROM weeks;
 SELECT 'Picks: ' || COUNT(*) FROM picks;
@@ -180,5 +181,5 @@ SELECT 'Picks: ' || COUNT(*) FROM picks;
 trap - ERR
 
 print_status "🎉 Deployment completed successfully!"
-print_info "Application is running at: https://stockpickgame.tideye.com"
-print_info "Backup available at: /root/database-backups/$BACKUP_TIMESTAMP" 
+print_info "Application is running at: https://stonx.app"
+print_info "Backup available at: $BACKUP_DIR/$BACKUP_TIMESTAMP" 

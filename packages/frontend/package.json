@@ -1,9 +1,10 @@
 {
-  "name": "@stock-pick-game/frontend",
-  "version": "1.0.0",
+  "name": "@stonx/frontend",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite 2>&1 | tee /tmp/stock-pick-game-frontend.log",
+    "dev": "vite 2>&1 | tee /tmp/stonx-frontend.log",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit",
@@ -11,8 +12,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
-    "lint": "eslint src --fix",
-    "lint:check": "eslint src",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .gitignore",
     "format": "prettier --write \"src/**/*.{js,ts,vue,css,json,md}\""
   },
   "dependencies": {
