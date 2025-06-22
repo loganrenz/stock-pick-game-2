@@ -27,9 +27,9 @@
                 <WeekHeader :week-num="week.weekNum" :start-date="week.startDate" :end-date="week.endDate"
                     :winner="getWinner(week)" :picks="week.picks" />
                 
-                <!-- Weekly Price Chart for completed weeks -->
+                <!-- Winner Announcement for completed weeks -->
                 <div v-if="week.picks && week.picks.length > 0" class="px-6 pb-6">
-                    <WeeklyPriceChart :week="week" />
+                    <WinnerAnnouncement :week="week" />
                 </div>
 
                 <!-- Disclosures -->
@@ -54,7 +54,7 @@
 import { computed } from 'vue';
 import type { Week, User } from '../../types';
 import WeekHeader from './WeekHeader.vue';
-import WeeklyPriceChart from './WeeklyPriceChart.vue';
+import WinnerAnnouncement from './WinnerAnnouncement.vue';
 import SkeletonLoader from '../ui/SkeletonLoader.vue';
 
 interface Props {

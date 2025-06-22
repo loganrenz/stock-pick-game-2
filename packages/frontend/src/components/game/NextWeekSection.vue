@@ -4,6 +4,17 @@
         <div class="mb-6 text-center">
             <h2 class="text-3xl font-bold text-slate-900 mb-2">Next Week</h2>
             <div class="w-16 h-1 bg-green-500 mx-auto rounded-full"></div>
+            <!-- Timing Information -->
+            <div v-if="activeNextWeek && !nextWeekPickLocked" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm font-medium text-blue-800">
+                    {{ getPickDeadlineMessage() }}
+                </p>
+            </div>
+            <div v-else-if="nextWeekPickLocked" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p class="text-sm font-medium text-red-800">
+                    🔒 Picks are now locked for next week
+                </p>
+            </div>
         </div>
 
         <div class="flex justify-center">
@@ -59,7 +70,7 @@
                             <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z" />
                             </svg>
                             <p class="text-lg font-medium">No next week available</p>
                             <p class="text-sm">Check back later for upcoming weeks.</p>
@@ -165,5 +176,33 @@ const getUserNextWeekPick = (user: User): Pick | null => {
     return props.activeNextWeek.picks.find(
         (p) => p.user.username?.toLowerCase().trim() === user.username?.toLowerCase().trim()
     ) || null;
+};
+
+const getPickDeadlineMessage = (): string => {
+    if (!props.activeNextWeek) return '';
+    
+    const now = new Date();
+    const week = props.activeNextWeek;
+    const deadline = new Date(week.startDate);
+    deadline.setDate(deadline.getDate() + 6); // Sunday
+    deadline.setHours(23, 59, 59, 999); // End of Sunday
+    
+    const timeLeft = deadline.getTime() - now.getTime();
+    const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
+    const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+    
+    if (timeLeft <= 0) {
+        return '⏰ Deadline has passed';
+    } else if (daysLeft <= 1) {
+        if (hoursLeft <= 1) {
+            return '🚨 Less than 1 hour left to make your pick!';
+        } else {
+            return `⏰ ${hoursLeft} hours left to make your pick`;
+        }
+    } else if (daysLeft <= 2) {
+        return `⏰ ${daysLeft} day${daysLeft > 1 ? 's' : ''} left to make your pick`;
+    } else {
+        return `📅 You have ${daysLeft} days to make your pick`;
+    }
 };
 </script>

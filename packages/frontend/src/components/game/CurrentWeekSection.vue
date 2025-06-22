@@ -2,7 +2,7 @@
     <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-lg border border-blue-100">
         <!-- Current Week Header -->
         <div class="mb-6 text-center">
-            <h2 class="text-3xl font-bold text-slate-900 mb-2">Current Week</h2>
+            <h2 class="text-3xl font-bold text-slate-900 mb-2">{{ isWeekend ? 'This Week' : 'Current Week' }}</h2>
             <div class="w-16 h-1 bg-blue-500 mx-auto rounded-full"></div>
         </div>
 
@@ -38,7 +38,7 @@ const emit = defineEmits<{
     (e: 'submit', symbol: string): void;
 }>();
 
-const { orderPicksByReturn } = useGame();
+const { orderPicksByReturn, isWeekend } = useGame();
 
 const canPick = computed(() => {
     if (!props.currentWeek?.picks) return true;

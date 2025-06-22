@@ -44,8 +44,8 @@
         <!-- Winner Banner -->
         <WinnerBanner v-if="currentWeek?.winner" :winner="currentWeek.winner" :is-weekend="isWeekend" />
 
-        <!-- Weekly Price Chart -->
-        <WeeklyPriceChart v-if="currentWeek && currentWeek.picks && currentWeek.picks.length > 0" :week="currentWeek" />
+        <!-- Winner Announcement -->
+        <WinnerAnnouncement v-if="currentWeek && currentWeek.picks && currentWeek.picks.length > 0" :week="currentWeek" />
 
         <!-- Current Week Section -->
         <div v-if="currentWeek" class="mb-12">
@@ -109,7 +109,7 @@ import PageContainer from '../components/layout/PageContainer.vue';
 import Modal from '../components/Modal.vue';
 import AppLoader from '../components/ui/AppLoader.vue';
 import WinnerBanner from '../components/game/WinnerBanner.vue';
-import WeeklyPriceChart from '../components/game/WeeklyPriceChart.vue';
+import WinnerAnnouncement from '../components/game/WinnerAnnouncement.vue';
 import CurrentWeekSection from '../components/game/CurrentWeekSection.vue';
 import NextWeekSection from '../components/game/NextWeekSection.vue';
 import HistorySection from '../components/game/HistorySection.vue';
