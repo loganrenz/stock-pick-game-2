@@ -12,7 +12,11 @@ const db = drizzle(client);
 
 async function main() {
   try {
-    await migrate(db, { migrationsFolder: './drizzle' });
+    // Use the same path logic as in index.ts
+    const migrationsPath =
+      process.env.NODE_ENV === 'production' ? './packages/backend/drizzle' : './drizzle';
+
+    await migrate(db, { migrationsFolder: migrationsPath });
     console.log('Migrations applied successfully!');
   } catch (error) {
     console.error('Migration failed:', error);

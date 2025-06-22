@@ -34,7 +34,12 @@ async function runMigrations() {
     const db = drizzle(client);
 
     // Run migrations from the drizzle folder
-    await migrate(db, { migrationsFolder: './drizzle' });
+    // In development: ./packages/backend/drizzle
+    // In production Docker: ./packages/backend/drizzle (from /app working directory)
+    const migrationsPath =
+      process.env.NODE_ENV === 'production' ? './packages/backend/drizzle' : './drizzle';
+
+    await migrate(db, { migrationsFolder: migrationsPath });
 
     logger.info('Database migrations completed successfully!');
   } catch (error) {
