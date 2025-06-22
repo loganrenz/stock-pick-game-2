@@ -10,66 +10,67 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
-    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - daysSinceMonday);
-    monday.setHours(0, 0, 0, 0);
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-    friday.setHours(23, 59, 59, 999);
 
-    // Find current week by date range
+    // Find current week by checking which week the current time falls into
     const currentWeek = await db
       .select()
       .from(weeks)
       .where(and(lte(weeks.startDate, now.toISOString()), gte(weeks.endDate, now.toISOString())))
       .limit(1);
 
-    if (!currentWeek || currentWeek.length === 0) {
-      // Get the highest week number
-      const lastWeek = await db.select().from(weeks).orderBy(desc(weeks.weekNum)).limit(1);
-      const nextWeekNum = lastWeek && lastWeek.length > 0 ? Number(lastWeek[0].weekNum) + 1 : 1;
+    if (currentWeek && currentWeek.length > 0) {
+      const week = currentWeek[0];
 
-      const [newWeek] = await db
-        .insert(weeks)
-        .values({
-          weekNum: nextWeekNum,
-          startDate: monday.toISOString(),
-          endDate: friday.toISOString(),
-        })
-        .returning();
+      // Get picks for this week
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
 
-      // Return the new week with empty picks array
       res.json({
-        ...newWeek,
-        picks: [],
+        ...week,
+        picks: weekPicks,
       });
       return;
     }
 
-    const week = currentWeek[0];
+    // If no current week found, check if we should be in the next week
+    // (e.g., we're in the gap between weeks, like Sunday 3 AM to Monday 4 AM)
+    const nextWeek = await db
+      .select()
+      .from(weeks)
+      .where(gte(weeks.startDate, now.toISOString()))
+      .orderBy(weeks.startDate)
+      .limit(1);
 
-    // Update current week dates if they don't match
-    if (week.startDate !== monday.toISOString() || week.endDate !== friday.toISOString()) {
-      await db
-        .update(weeks)
-        .set({
-          startDate: monday.toISOString(),
-          endDate: friday.toISOString(),
-        })
-        .where(eq(weeks.id, week.id));
-      week.startDate = monday.toISOString();
-      week.endDate = friday.toISOString();
+    if (nextWeek && nextWeek.length > 0) {
+      const week = nextWeek[0];
+
+      // Get picks for this week
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+
+      res.json({
+        ...week,
+        picks: weekPicks,
+      });
+      return;
     }
 
-    // Get picks for this week
-    const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+    // If still no week found, get the most recent week
+    const lastWeek = await db.select().from(weeks).orderBy(desc(weeks.weekNum)).limit(1);
 
-    res.json({
-      ...week,
-      picks: weekPicks,
-    });
+    if (lastWeek && lastWeek.length > 0) {
+      const week = lastWeek[0];
+
+      // Get picks for this week
+      const weekPicks = await db.select().from(picks).where(eq(picks.weekId, week.id));
+
+      res.json({
+        ...week,
+        picks: weekPicks,
+      });
+      return;
+    }
+
+    // If no weeks exist at all, return null
+    res.json(null);
   } catch (error) {
     logger.error('Error fetching current week:', error);
     res.status(500).json({ error: 'Internal server error' });
