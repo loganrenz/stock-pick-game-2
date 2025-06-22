@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, nextTick } from 'vue';
+import { computed, ref, onMounted, nextTick, onRenderTriggered } from 'vue';
 import type { Week, Pick } from '../../types';
 import ConfettiOverlay from '../ui/ConfettiOverlay.vue';
 
@@ -103,14 +103,16 @@ const winner = computed(() => {
 });
 
 // Trigger confetti when component mounts and there's a winner
-onMounted(async () => {
+onRenderTriggered(async () => {
   if (winner.value) {
-    await nextTick(); // Wait for DOM to be ready
+    //await nextTick(); // Wait for DOM to be ready
     setTimeout(() => {
       triggerConfetti.value = true;
-    }, 100); // Small delay to ensure everything is mounted
+    }, 1); // Small delay to ensure everything is mounted
   }
 });
+
+
 
 const runnerUps = computed(() => {
   if (!props.week?.picks?.length || !winner.value) return [];
