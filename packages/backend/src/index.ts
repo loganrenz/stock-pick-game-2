@@ -34,7 +34,7 @@ async function runMigrations() {
     const db = drizzle(client);
 
     // Run migrations from the drizzle folder
-    await migrate(db, { migrationsFolder: './packages/backend/drizzle' });
+    await migrate(db, { migrationsFolder: './drizzle' });
 
     logger.info('Database migrations completed successfully!');
   } catch (error) {
