@@ -44,6 +44,9 @@
         <!-- Winner Banner -->
         <WinnerBanner v-if="currentWeek?.winner" :winner="currentWeek.winner" :is-weekend="isWeekend" />
 
+        <!-- Leaderboard Chart -->
+        <LeaderboardChart :weeks="gameStore.weeks" :users="users" />
+
         <!-- Current Week Section -->
         <div v-if="currentWeek" class="mb-12">
           <CurrentWeekSection :current-week="currentWeek" :is-authenticated="isAuthenticated"
@@ -106,6 +109,7 @@ import PageContainer from '../components/layout/PageContainer.vue';
 import Modal from '../components/Modal.vue';
 import AppLoader from '../components/ui/AppLoader.vue';
 import WinnerBanner from '../components/game/WinnerBanner.vue';
+import LeaderboardChart from '../components/game/LeaderboardChart.vue';
 import CurrentWeekSection from '../components/game/CurrentWeekSection.vue';
 import NextWeekSection from '../components/game/NextWeekSection.vue';
 import HistorySection from '../components/game/HistorySection.vue';
