@@ -86,7 +86,7 @@
         <!-- Build Timestamp (temporary for debugging) -->
         <div class="mt-12 text-center">
           <div class="text-xs text-gray-400 font-mono">
-            Build: {{ buildTimestamp }} | {{ import.meta.env.VITE_BUILD_HASH || 'dev' }}
+            Build: {{ buildTimestamp }} | {{ buildHash }}
           </div>
         </div>
       </div>
@@ -143,6 +143,7 @@ const pickLoading = ref(false);
 
 // Build timestamp
 const buildTimestamp = import.meta.env.VITE_BUILD_TIME || new Date().toISOString();
+const buildHash = import.meta.env.VITE_BUILD_HASH || 'dev';
 
 // Hardcoded users array
 const users = [
