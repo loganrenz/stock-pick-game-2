@@ -4,7 +4,8 @@
       <div class="flex items-center justify-between h-16">
         <!-- Logo/Brand -->
         <div class="flex items-center space-x-3">
-          <span class="text-2xl font-extrabold tracking-tight text-blue-900">STONX</span>
+          <img src="/stonx-icon/icon/48x48/1x/1x.png" alt="STONX" class="h-8 w-8" />
+          <span class="text-2xl font-extrabold tracking-tight text-white">STONX</span>
           <div class="hidden sm:block text-sm text-blue-100">
             Weekly Stock Pick Competition
           </div>

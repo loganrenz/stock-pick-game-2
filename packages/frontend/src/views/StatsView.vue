@@ -2,7 +2,7 @@
   <div class="py-8 max-w-6xl mx-auto">
     <h1 class="text-4xl font-extrabold text-center mb-10 text-blue-900 tracking-tight">Player Stats</h1>
     <div v-if="loading" class="fixed inset-0 z-50 flex items-center justify-center bg-white bg-opacity-70">
-      <img src="/icons/icon.svg" class="animate-spin h-12 w-12" alt="Loading..." />
+      <img src="/stonx-icon/icon/48x48/1x/1x.png" class="animate-spin h-12 w-12" alt="Loading..." />
     </div>
     <div v-else>
       <!-- Leaderboard Chart -->

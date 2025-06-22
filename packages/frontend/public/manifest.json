@@ -1,0 +1,56 @@
+{
+  "name": "STONX - Weekly Stock Pick Competition",
+  "short_name": "STONX",
+  "description": "Compete with friends in weekly stock picking challenges",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "games", "productivity"],
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/stonx-icon/icon/48x48/1x/1x.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stonx-icon/icon/60x60/1x/1x.png",
+      "sizes": "60x60",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stonx-icon/icon/120x120/1x/1x.png",
+      "sizes": "120x120",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stonx-icon/icon/180x180/1x/1x.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/stonx-icon/icon/192x192/1x/1x.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/stonx-icon/icon/512x512/1x/1x.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/stonx-icon/icon/1024x1024/1x/1x.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
