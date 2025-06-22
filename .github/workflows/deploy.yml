@@ -71,7 +71,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Deploy to VPS
+    - name: Deploy to VPS using Safe Deployment
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.VPS_HOST }}
@@ -79,37 +79,19 @@ jobs:
         key: ${{ secrets.VPS_SSH_KEY }}
         port: 22
         script: |
-          # Navigate to app directory
+          # Ensure we're in the right directory
           cd /root/stock-pick-game-2 || { echo "App directory not found"; exit 1; }
           
-          # Pull latest image
-          echo "🔄 Pulling latest Docker image..."
-          docker-compose -f docker-compose.prod.yml pull
+          # Update deployment scripts from repository
+          echo "📥 Updating deployment scripts..."
+          git pull origin main
           
-          # Stop existing containers
-          echo "🛑 Stopping existing containers..."
-          docker-compose -f docker-compose.prod.yml down --remove-orphans
+          # Make scripts executable
+          chmod +x scripts/*.sh
           
-          # Start services with new image
-          echo "🚀 Starting services..."
-          docker-compose -f docker-compose.prod.yml up -d
+          # Run industry-standard safe deployment
+          echo "🚀 Starting safe deployment process..."
+          ./scripts/safe-deploy.sh
           
-          # Wait for services to be healthy
-          echo "⏱️ Waiting for services to start..."
-          sleep 15
-          
-          # Check service health
-          echo "🔍 Checking service health..."
-          if curl -f http://localhost:6969/health > /dev/null 2>&1; then
-            echo "✅ Application is healthy and running"
-          else
-            echo "⚠️ Health check failed, checking logs..."
-            docker-compose -f docker-compose.prod.yml logs --tail=20
-          fi
-          
-          # Show current status
-          echo "📊 Current container status:"
-          docker-compose -f docker-compose.prod.yml ps
-          
-          echo "🎉 Deployment completed successfully!"
-          echo "Application available at: https://stockpickgame.tideye.com"
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Application available at: https://stockpickgame.tideye.com"

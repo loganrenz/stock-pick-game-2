@@ -26,8 +26,10 @@ services:
       - APPLE_PRIVATE_KEY=${APPLE_PRIVATE_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
     volumes:
-      - stock-pick-game-data:/app/data
-      - stock-pick-game-logs:/app/logs
+      # Use bind mounts for better control and backup access
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:6969/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
       interval: 30s
@@ -36,12 +38,6 @@ services:
       start_period: 40s
     networks:
       - app-network
-
-volumes:
-  stock-pick-game-data:
-    driver: local
-  stock-pick-game-logs:
-    driver: local
 
 networks:
   app-network:
