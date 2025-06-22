@@ -1,42 +1,37 @@
 <template>
-  <div v-if="winner && winner.user && winner.user.username" class="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl p-6 shadow-lg border-2 border-yellow-500 relative overflow-hidden">
-    <!-- Confetti -->
-    <div class="absolute inset-0 pointer-events-none">
-      <div v-for="i in 20" :key="i" 
-           class="confetti absolute animate-bounce"
-           :style="{ 
-             left: Math.random() * 100 + '%', 
-             top: Math.random() * 100 + '%',
-             animationDelay: Math.random() * 2 + 's',
-             animationDuration: (2 + Math.random() * 2) + 's'
-           }">
-        {{ ['🎉', '🎊', '⭐', '🏆', '✨'][Math.floor(Math.random() * 5)] }}
-      </div>
-    </div>
-
+  <div v-if="winner && winner.user && winner.user.username" 
+       ref="bannerRef"
+       class="bg-gradient-to-r from-green-600 via-green-700 to-green-800 rounded-xl p-4 shadow-lg border-2 border-green-600 relative overflow-hidden">
     <!-- Winner Announcement -->
     <div class="text-center relative z-10">
-      <div class="text-6xl mb-4 animate-bounce">🏆</div>
-      <h2 class="text-5xl font-black text-white mb-4 shake-animation drop-shadow-lg">
+      <div class="text-4xl mb-3 animate-bounce">🏆</div>
+      <h2 ref="winnerNameRef" 
+          class="text-3xl font-bold text-white mb-3 drop-shadow-lg">
         {{ winner.user.username.toUpperCase() }}
       </h2>
-      <p class="text-2xl font-bold text-yellow-100 mb-2">
+      <p class="text-lg font-bold text-green-100 mb-2">
         WINS WEEK {{ week?.weekNum || '?' }}!
       </p>
-      <div class="text-xl text-yellow-200">
+      <div class="text-base text-green-200">
         <span class="font-bold">{{ winner.symbol || 'N/A' }}</span> • 
-        <span class="text-green-300 font-bold">{{ formatReturn(winner.returnPercentage) }}</span>
+        <span class="text-yellow-300 font-bold">{{ formatReturn(winner.returnPercentage) }}</span>
       </div>
     </div>
 
+    <!-- Confetti Overlay positioned at winner name -->
+    <ConfettiOverlay 
+      :key="winner.user.username" 
+      :trigger="triggerConfetti" 
+      :origin-element="winnerNameRef" />
+
     <!-- Runner-ups -->
-    <div v-if="runnerUps.length > 0" class="mt-6 flex justify-center space-x-4">
+    <div v-if="runnerUps.length > 0" class="mt-4 flex justify-center space-x-3">
       <div v-for="(pick, index) in runnerUps" :key="pick.user?.username || index" 
-           class="bg-white/20 rounded-lg px-4 py-2 backdrop-blur-sm">
+           class="bg-white/20 rounded-lg px-3 py-2 backdrop-blur-sm">
         <div class="text-center">
-          <div class="text-lg">{{ index === 0 ? '🥈' : '🥉' }}</div>
-          <div class="text-white font-bold text-sm">{{ pick.user?.username || 'Unknown' }}</div>
-          <div class="text-yellow-200 text-xs">{{ formatReturn(pick.returnPercentage) }}</div>
+          <div class="text-sm">{{ index === 0 ? '🥈' : '🥉' }}</div>
+          <div class="text-white font-bold text-xs">{{ pick.user?.username || 'Unknown' }}</div>
+          <div class="text-green-200 text-xs">{{ formatReturn(pick.returnPercentage) }}</div>
         </div>
       </div>
     </div>
@@ -71,14 +66,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, nextTick } from 'vue';
 import type { Week, Pick } from '../../types';
+import ConfettiOverlay from '../ui/ConfettiOverlay.vue';
 
 interface Props {
   week?: Week | null;
 }
 
 const props = defineProps<Props>();
+
+const bannerRef = ref(null);
+const winnerNameRef = ref(null);
+const triggerConfetti = ref(false);
 
 const winner = computed(() => {
   if (!props.week?.picks?.length) return null;
@@ -100,6 +100,16 @@ const winner = computed(() => {
   return validPicks.reduce((prev, current) => 
     current.returnPercentage! > prev.returnPercentage! ? current : prev
   );
+});
+
+// Trigger confetti when component mounts and there's a winner
+onMounted(async () => {
+  if (winner.value) {
+    await nextTick(); // Wait for DOM to be ready
+    setTimeout(() => {
+      triggerConfetti.value = true;
+    }, 100); // Small delay to ensure everything is mounted
+  }
 });
 
 const runnerUps = computed(() => {
@@ -141,23 +151,5 @@ const formatReturn = (percentage: number | null | undefined): string => {
 </script>
 
 <style scoped>
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
-}
-
-@keyframes confetti-fall {
-  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
-}
-
-.shake-animation {
-  animation: shake 0.6s ease-in-out infinite;
-}
-
-.confetti {
-  font-size: 1.5rem;
-  animation: confetti-fall linear infinite;
-}
+/* Winner banner styles - confetti moved to global component */
 </style> 

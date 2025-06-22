@@ -5,6 +5,7 @@ export { default as Card } from './ui/Card.vue';
 export { default as LoadingSpinner } from './ui/LoadingSpinner.vue';
 export { default as SkeletonLoader } from './ui/SkeletonLoader.vue';
 export { default as AppLoader } from './ui/AppLoader.vue';
+export { default as ConfettiOverlay } from './ui/ConfettiOverlay.vue';
 
 // Layout Components
 export { default as PageContainer } from './layout/PageContainer.vue';

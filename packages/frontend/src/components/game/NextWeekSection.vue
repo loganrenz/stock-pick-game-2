@@ -183,9 +183,10 @@ const getPickDeadlineMessage = (): string => {
     
     const now = new Date();
     const week = props.activeNextWeek;
+    
+    // Deadline is just before the next week starts (end of current week)
     const deadline = new Date(week.startDate);
-    deadline.setDate(deadline.getDate() + 6); // Sunday
-    deadline.setHours(23, 59, 59, 999); // End of Sunday
+    deadline.setHours(4, 0, 0, 0); // 4 AM when the week starts
     
     const timeLeft = deadline.getTime() - now.getTime();
     const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
