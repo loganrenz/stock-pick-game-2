@@ -53,6 +53,10 @@ COPY --chown=nodejs:nodejs packages/backend/package.json ./packages/backend/
 # Copy the built backend application from the builder stage
 COPY --from=backend-builder --chown=nodejs:nodejs /app/packages/backend/dist ./packages/backend/dist
 
+# Copy drizzle migration files and config
+COPY --from=base --chown=nodejs:nodejs /app/packages/backend/drizzle ./packages/backend/drizzle
+COPY --from=base --chown=nodejs:nodejs /app/packages/backend/drizzle.config.ts ./packages/backend/
+
 # Copy the built frontend files from the frontend builder stage
 COPY --from=frontend-builder --chown=nodejs:nodejs /app/packages/frontend/dist ./packages/frontend/dist
 

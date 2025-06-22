@@ -11,12 +11,37 @@ import scoreboardRoutes from './routes/scoreboard.js';
 import statsRoutes from './routes/stats.js';
 import stocksRoutes from './routes/stocks.js';
 import { getStats } from './lib/stats.js';
+import { drizzle } from 'drizzle-orm/libsql';
+import { migrate } from 'drizzle-orm/libsql/migrator';
+import { createClient } from '@libsql/client';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 6969;
+
+// Database migration function
+async function runMigrations() {
+  try {
+    logger.info('Starting database migrations...');
+
+    const client = createClient({
+      url: config.database.url,
+      authToken: config.database.token,
+    });
+
+    const db = drizzle(client);
+
+    // Run migrations from the drizzle folder
+    await migrate(db, { migrationsFolder: './packages/backend/drizzle' });
+
+    logger.info('Database migrations completed successfully!');
+  } catch (error) {
+    logger.error('Database migration failed:', error);
+    throw error;
+  }
+}
 
 // Middleware
 app.use(
@@ -92,21 +117,35 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-app.listen(PORT, async () => {
-  logger.info(`Server running on port ${PORT}`);
-  logger.info(`Environment: ${config.isDevelopment ? 'development' : 'production'}`);
-
-  // Print the absolute path of the database file
-  const dbPath = path.resolve(config.database.url.replace('file:', ''));
-  logger.info(`Database file path: ${dbPath}`);
-
+// Start server with migrations
+async function startServer() {
   try {
-    const stats = await getStats();
-    logger.info('Database stats:', stats);
+    // Run database migrations first
+    await runMigrations();
+
+    // Start the server
+    app.listen(PORT, async () => {
+      logger.info(`Server running on port ${PORT}`);
+      logger.info(`Environment: ${config.isDevelopment ? 'development' : 'production'}`);
+
+      // Print the absolute path of the database file
+      const dbPath = path.resolve(config.database.url.replace('file:', ''));
+      logger.info(`Database file path: ${dbPath}`);
+
+      try {
+        const stats = await getStats();
+        logger.info('Database stats:', stats);
+      } catch (error) {
+        logger.error('Failed to get database stats:', error);
+      }
+    });
   } catch (error) {
-    logger.error('Failed to get database stats:', error);
+    logger.error('Failed to start server:', error);
+    process.exit(1);
   }
-});
+}
+
+// Start the application
+startServer();
 
 export default app;
