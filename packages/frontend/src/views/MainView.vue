@@ -82,6 +82,13 @@
         -->
         <!-- History Section -->
         <HistorySection :completed-weeks="completedWeeks" :loading="gameStore.loading" />
+        
+        <!-- Build Timestamp (temporary for debugging) -->
+        <div class="mt-12 text-center">
+          <div class="text-xs text-gray-400 font-mono">
+            Build: {{ buildTimestamp }} | {{ import.meta.env.VITE_BUILD_HASH || 'dev' }}
+          </div>
+        </div>
       </div>
     </div>
   </PageContainer>
@@ -133,6 +140,9 @@ const pickError = ref('');
 const loginError = ref('');
 const appleSignInError = ref('');
 const pickLoading = ref(false);
+
+// Build timestamp
+const buildTimestamp = import.meta.env.VITE_BUILD_TIME || new Date().toISOString();
 
 // Hardcoded users array
 const users = [
