@@ -1,4 +1,4 @@
-name: Build and Deploy Docker Image
+name: Build and Deploy to VPS
 
 on:
   push:
@@ -59,4 +59,56 @@ jobs:
       if: github.event_name != 'pull_request'
       run: |
         echo "Image digest: ${{ steps.build.outputs.digest }}"
-        echo "hello world"
+        echo "Image tags: ${{ steps.meta.outputs.tags }}"
+
+  deploy-to-vps:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: vps.tideye.com
+        username: root
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: 22
+        script: |
+          # Navigate to app directory
+          cd /root/stock-pick-game-2 || { echo "App directory not found"; exit 1; }
+          
+          # Pull latest image
+          echo "🔄 Pulling latest Docker image..."
+          docker-compose -f docker-compose.prod.yml pull
+          
+          # Stop existing containers
+          echo "🛑 Stopping existing containers..."
+          docker-compose -f docker-compose.prod.yml down --remove-orphans
+          
+          # Start services with new image
+          echo "🚀 Starting services..."
+          docker-compose -f docker-compose.prod.yml up -d
+          
+          # Wait for services to be healthy
+          echo "⏱️ Waiting for services to start..."
+          sleep 15
+          
+          # Check service health
+          echo "🔍 Checking service health..."
+          if curl -f http://localhost:6969/health > /dev/null 2>&1; then
+            echo "✅ Application is healthy and running"
+          else
+            echo "⚠️ Health check failed, checking logs..."
+            docker-compose -f docker-compose.prod.yml logs --tail=20
+          fi
+          
+          # Show current status
+          echo "📊 Current container status:"
+          docker-compose -f docker-compose.prod.yml ps
+          
+          echo "🎉 Deployment completed successfully!"
+          echo "Application available at: https://stockpickgame.tideye.com"
